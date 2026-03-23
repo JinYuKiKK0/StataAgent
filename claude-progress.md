@@ -23,14 +23,17 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：建立了紧凑的交接模型；下一个可能的工作是定义具体功能
+- 正在处理：完成了所有英文文档的中文翻译；下一个可能的工作是定义具体功能
 - 阶段：文档维护
-- 分支：main
+- 分支：detached HEAD (f5bb4da)
 - 关键文件：
-  - AGENTS.md — 工作流指令加简短仓库地图
+  - AGENTS.md — 工作流指令加简短仓库地图（已翻译）
   - claude-progress.md — 仅用于当前状态的紧凑交接文件
-  - docs/context-harness.md — 上下文容器规则
-  - docs/README.md — 文档入口点和单一事实来源索引
+  - docs/context-harness.md — 上下文容器规则（已翻译）
+  - docs/README.md — 文档入口点和单一事实来源索引（已翻译）
+  - ARCHITECTURE.md — 系统架构和技术栈（已翻译）
+  - doc-example.md — 仓库知识文档示例（已翻译）
+  - docs/product/research-workflow.md — 研究工作流阶段（已翻译）
 - 未解决的问题：
   - `feature_list.json` 的阶段仍为空的功能数组
   - 实现模块和包布局尚未创建
