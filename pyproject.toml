@@ -1,0 +1,30 @@
+[project]
+name = "stata-agent"
+version = "0.1.0"
+description = "Local empirical-analysis agent for Stata workflows"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.11,<3.0",
+    "pydantic-settings>=2.8,<3.0",
+    "rich>=14.0,<15.0",
+    "typer>=0.16,<1.0",
+]
+
+[project.scripts]
+stata-agent = "stata_agent.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.27,<2.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/stata_agent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
