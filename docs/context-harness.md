@@ -15,7 +15,7 @@ The goal is to keep injected context small, stable, and navigable while still ma
 Agents should traverse the knowledge base in layers:
 
 1. Read `AGENTS.md` for workflow and navigation.
-2. Read `claude-progress.md` for current session state.
+2. Read `claude-progress.md` for compact current session state.
 3. Read `feature_list.json` for task ordering and pass criteria.
 4. Read `ARCHITECTURE.md` for system boundaries and runtime responsibilities.
 5. Read only the focused docs needed for the current task.
@@ -34,6 +34,7 @@ Agents should traverse the knowledge base in layers:
 - Keep architecture decisions centralized in `ARCHITECTURE.md`.
 - Split durable knowledge by topic rather than growing another catch-all plan document.
 - Prefer one source of truth per topic; cross-link instead of copying.
+- Keep `claude-progress.md` compact. Do not append session-by-session narrative there; use git history for chronology.
 - If a document stops matching the code or the active design, update or remove it promptly.
 
 ## When to Add a New Doc

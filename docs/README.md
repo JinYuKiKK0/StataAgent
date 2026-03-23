@@ -20,7 +20,7 @@ The repository documentation is the system of record for agent context. `AGENTS.
 - Research-stage semantics: `docs/product/research-workflow.md`
 - Product requirement baseline: `Requirements.md`
 - Vendor SDK constraints: `docs/references/CSMAR_PYTHON.md`
-- Progress and open context: `claude-progress.md`
+- Compact cross-session handoff: `claude-progress.md`
 
 ## Minimum Knowledge Base
 
