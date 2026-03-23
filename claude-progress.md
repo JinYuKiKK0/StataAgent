@@ -21,16 +21,17 @@
 - [2026-03-23] 决策：保持 `claude-progress.md` 为紧凑的交接文件，不含会话日志。 | 原因：保留跨会话记忆，同时保持重复的启动上下文较小；依赖 git 获取按时间顺序的记录。
 - [2026-03-23] 决策：使用 `uv` 作为项目依赖管理工具，并采用 `src/stata_agent` 分层包布局。 | 原因：与本地 Python 3.12 工作流兼容，便于后续按应用层、领域层、服务层、适配器层和工作流层扩展。
 - [2026-03-23] 决策：`feature_list.json` 采用按 `S1-S5` 对齐的纵向切片 feature 设计，每个 feature 必须是可独立开发和验证的交付单元。 | 原因：让 backlog 顺序直接映射到单次实证分析 happy path，避免基建任务先行导致不可验收。
+- [2026-03-23] 决策：`feature_list.json` 的 `category` 使用单值主类型，限定为 `technical`、`functional`、`documentation`、`testing`，并按主交付物切分 feature。 | 原因：避免一个 feature 混合多种职责，让 backlog 分类和最小交付边界保持一致。
 
 ## 当前上下文
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：已为单次实证分析 MVP 填充 `feature_list.json`，定义 12 个按阶段对齐的独立 feature；下一步应从 `S1-T1` 开始实现
+- 正在处理：已将 `feature_list.json` 重切为 18 个按主交付物划分的独立 feature，并引入 `technical`、`functional`、`documentation`、`testing` 四类单值分类；下一步应从 `S1-T1` 开始实现
 - 阶段：项目 bootstrap，ready for S1
 - 分支：main
 - 关键文件：
-  - feature_list.json — 单次实证分析 MVP 的 12 个纵向切片 feature backlog
+  - feature_list.json — 单次实证分析 MVP 的 18 个最小交付 feature backlog，含单值 category 分类
   - pyproject.toml — UV 项目配置、依赖和脚本入口
   - src/stata_agent/cli.py — CLI 入口和根命令回调
   - src/stata_agent/services/requirement_parser.py — S1 需求解析占位实现

@@ -18,7 +18,7 @@
         {
           "id": "S1-T1",
           "name": "研究请求输入契约与 CLI 入口",
-          "category": "functional",
+          "category": "technical",
           "priority": 1,
           "creation_order": 1,
           "status": "todo",
@@ -60,7 +60,7 @@
         {
           "id": "S1-T3",
           "name": "变量定义与数据需求清单生成",
-          "category": "functional",
+          "category": "documentation",
           "priority": 3,
           "creation_order": 3,
           "status": "todo",
@@ -87,31 +87,52 @@
       "features": [
         {
           "id": "S2-T1",
-          "name": "基准面板模型规划器",
-          "category": "functional",
+          "name": "理论预期与基准方程摘要",
+          "category": "documentation",
           "priority": 1,
           "creation_order": 4,
           "status": "todo",
-          "description": "默认生成单次实证分析 happy path 所需的面板回归模型计划，包括预期符号、固定效应和聚类方案。",
-          "deliverable": "基准回归 ModelPlan 与理论预期摘要",
+          "description": "根据 ResearchSpec 产出单次实证分析所需的理论预期、符号方向和基准方程摘要。",
+          "deliverable": "模型设计摘要与基准方程说明",
           "steps": [
-            "定义 ModelPlan、基准方程和预期符号的数据契约",
-            "根据 ResearchSpec 推导面板粒度、固定效应和标准误设定",
-            "输出可直接驱动 Stata 模板的模型计划"
+            "定义理论预期摘要和基准方程的结构化格式",
+            "根据题目语义和变量关系生成预期符号与解释",
+            "输出可供模型规划和结果判断使用的模型设计摘要"
           ],
           "verification": [
-            "典型面板题目可生成非空基准方程",
-            "输出包含预期符号、固定效应和聚类设定"
+            "典型面板题目可生成非空理论预期说明",
+            "结果包含核心系数方向与基准方程文本"
           ],
           "passes": false,
           "updated_at": "2026-03-23"
         },
         {
           "id": "S2-T2",
-          "name": "Agent 自主控制变量补全",
-          "category": "functional",
+          "name": "基准面板模型规划器",
+          "category": "technical",
           "priority": 2,
           "creation_order": 5,
+          "status": "todo",
+          "description": "默认生成单次实证分析 happy path 所需的面板回归模型计划，包括固定效应、聚类方案和可执行参数。",
+          "deliverable": "基准回归 ModelPlan",
+          "steps": [
+            "定义 ModelPlan、固定效应和标准误设定的数据契约",
+            "根据 ResearchSpec 推导面板粒度、固定效应和标准误设定",
+            "输出可直接驱动 Stata 模板的模型计划"
+          ],
+          "verification": [
+            "典型面板题目可生成非空基准方程",
+            "输出包含固定效应和聚类设定"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S2-T3",
+          "name": "Agent 自主控制变量补全",
+          "category": "functional",
+          "priority": 3,
+          "creation_order": 6,
           "status": "todo",
           "description": "让 agent 根据题目语义和样本类型补齐控制变量候选，并给出选择理由。",
           "deliverable": "控制变量列表及其选择依据",
@@ -137,9 +158,9 @@
         {
           "id": "S3-T1",
           "name": "CSMAR 变量映射与查询计划生成",
-          "category": "functional",
+          "category": "technical",
           "priority": 1,
-          "creation_order": 6,
+          "creation_order": 7,
           "status": "todo",
           "description": "把 Y、X 和控制变量映射到 CSMAR 字段，生成单次抓取所需的 QueryPlan。",
           "deliverable": "VariableBinding 列表与 QueryPlan",
@@ -158,9 +179,9 @@
         {
           "id": "S3-T2",
           "name": "CSMAR Bridge 最小抓取闭环",
-          "category": "functional",
+          "category": "technical",
           "priority": 2,
-          "creation_order": 7,
+          "creation_order": 8,
           "status": "todo",
           "description": "通过 CSMAR bridge 执行查询计划，把原始结果落地为本地可追踪文件。",
           "deliverable": "抓取结果文件与抓取元数据",
@@ -178,17 +199,38 @@
         },
         {
           "id": "S3-T3",
-          "name": "面板标准化与合并构建",
-          "category": "functional",
+          "name": "字段标准化与粒度对齐规则",
+          "category": "technical",
           "priority": 3,
-          "creation_order": 8,
+          "creation_order": 9,
           "status": "todo",
-          "description": "统一主键、时间字段、单位和列名，把多张 CSMAR 表合并成单一分析长表。",
-          "deliverable": "标准化 PanelDataset",
+          "description": "统一主键、时间字段、单位和列名，并把多源数据转换到一致的目标分析粒度。",
+          "deliverable": "标准化与粒度对齐后的中间数据资产",
           "steps": [
             "实现日期、ID、单位和缺失值编码的标准化规则",
-            "按目标分析粒度执行多表合并和列重命名",
-            "拒绝未解析的多对多连接并输出合并摘要"
+            "将不同来源字段转换到统一命名和目标分析粒度",
+            "输出标准化摘要供后续合并节点消费"
+          ],
+          "verification": [
+            "输入表能转换为统一字段命名和粒度",
+            "标准化结果保留关键主键和时间维度"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S3-T4",
+          "name": "面板长表合并构建",
+          "category": "functional",
+          "priority": 4,
+          "creation_order": 10,
+          "status": "todo",
+          "description": "把已完成标准化的数据源合并为单一分析长表，并阻断不可解析的连接关系。",
+          "deliverable": "标准化 PanelDataset",
+          "steps": [
+            "按目标分析粒度执行多表合并和列裁剪",
+            "校验主键唯一性和连接关系是否可解析",
+            "输出单张分析长表及合并摘要"
           ],
           "verification": [
             "多表输入能生成单张长表",
@@ -206,31 +248,52 @@
       "features": [
         {
           "id": "S4-T1",
-          "name": "数据质量检查与描述统计报告",
+          "name": "数据质量规则执行与阻断决策",
           "category": "functional",
           "priority": 1,
-          "creation_order": 9,
+          "creation_order": 11,
           "status": "todo",
-          "description": "对合并后的面板生成描述统计和质量检查报告，并在严重问题时中止流程。",
-          "deliverable": "描述统计表与质量报告",
+          "description": "对合并后的面板执行缺失、重复键、非法值和极值规则检查，并在严重问题时中止流程。",
+          "deliverable": "回归前 pass or fail 决策与阻断原因列表",
           "steps": [
             "实现缺失率、重复键、非法比例值和极值扫描",
-            "生成描述统计摘要与阻断级问题列表",
+            "按规则严重程度输出阻断级问题列表",
             "输出回归前 pass or fail 决策"
           ],
           "verification": [
             "脏数据 fixture 会触发失败并列出原因",
-            "正常数据会生成可读的描述统计与质量报告"
+            "正常数据会返回可继续执行的通过决策"
           ],
           "passes": false,
           "updated_at": "2026-03-23"
         },
         {
           "id": "S4-T2",
+          "name": "描述统计与质量报告导出",
+          "category": "documentation",
+          "priority": 2,
+          "creation_order": 12,
+          "status": "todo",
+          "description": "把描述统计结果、质量检查摘要和阻断原因组织成稳定可消费的报告资产。",
+          "deliverable": "描述统计表与质量报告",
+          "steps": [
+            "汇总描述统计结果和质量检查结论",
+            "生成结构化报告和导出格式",
+            "确保报告可被 CLI 或后续结果包引用"
+          ],
+          "verification": [
+            "正常数据会生成可读的描述统计与质量报告",
+            "阻断场景下报告包含失败原因"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S4-T3",
           "name": "Winsorization 与分析数据导出",
           "category": "functional",
-          "priority": 2,
-          "creation_order": 10,
+          "priority": 3,
+          "creation_order": 13,
           "status": "todo",
           "description": "对连续变量执行有界缩尾，并导出可直接供 Stata 使用的分析数据文件。",
           "deliverable": "Stata-ready 分析数据集",
@@ -255,42 +318,105 @@
       "features": [
         {
           "id": "S5-T1",
-          "name": "Stata 模板渲染与执行器打通",
-          "category": "functional",
+          "name": "Stata 模板渲染",
+          "category": "technical",
           "priority": 1,
-          "creation_order": 11,
+          "creation_order": 14,
           "status": "todo",
-          "description": "根据 ModelPlan 和分析数据集渲染 Stata do 文件，并通过执行器跑出最小结果工件。",
-          "deliverable": "do 文件、执行日志和结果文件路径",
+          "description": "根据 ModelPlan 和分析数据集参数渲染 Stata do 文件。",
+          "deliverable": "可执行的 do 文件",
           "steps": [
             "完善 baseline_regression.do.j2 所需输入参数",
             "实现从 ModelPlan 到模板上下文的渲染逻辑",
-            "打通 Stata executor 适配层并收集日志工件"
+            "输出可被执行器直接消费的 do 文件"
           ],
           "verification": [
             "模板渲染测试能产出可检查的 do 文件",
-            "mock executor 测试能返回日志或结果路径"
+            "渲染结果包含核心变量、控制变量和固定效应参数"
           ],
           "passes": false,
           "updated_at": "2026-03-23"
         },
         {
           "id": "S5-T2",
-          "name": "LangGraph 单次实证分析编排",
-          "category": "functional",
+          "name": "Stata 执行器集成",
+          "category": "technical",
           "priority": 2,
-          "creation_order": 12,
+          "creation_order": 15,
           "status": "todo",
-          "description": "用 LangGraph 把从请求解析到回归执行的 happy path 串成一次完整研究运行，并返回最小 ResearchBundle。",
-          "deliverable": "可端到端运行的 LangGraph 工作流与 ResearchBundle",
+          "description": "把 do 文件提交给 Stata 执行器并收集日志与结果工件路径。",
+          "deliverable": "执行日志与结果文件路径",
           "steps": [
-            "定义 LangGraph 节点、边和共享 ResearchState",
-            "按 S1 到 S5 顺序串联解析、抓取、质检和执行节点",
-            "输出包含关键工件路径和状态摘要的最小结果包"
+            "定义执行器请求和响应契约",
+            "打通 do 文件到执行器的调用路径",
+            "收集日志、结果表和异常信息"
           ],
           "verification": [
-            "fixture 驱动的端到端 smoke test 能从输入走到结果包",
-            "成功路径下输出包含 spec、数据集和回归工件摘要"
+            "mock executor 测试能返回日志或结果路径",
+            "执行失败时能返回可诊断的错误信息"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S5-T3",
+          "name": "回归结果解析与最小判断摘要",
+          "category": "functional",
+          "priority": 3,
+          "creation_order": 16,
+          "status": "todo",
+          "description": "解析回归输出并结合理论预期生成最小判断摘要，不包含自动重试。",
+          "deliverable": "结果判断摘要",
+          "steps": [
+            "定义回归结果解析结构和关键指标提取规则",
+            "读取执行结果并提取核心系数、显著性和样本信息",
+            "生成与理论预期对照的最小判断摘要"
+          ],
+          "verification": [
+            "给定结果 fixture 能提取核心回归指标",
+            "摘要包含系数方向、显著性和简要判断"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S5-T4",
+          "name": "LangGraph 单次实证分析编排",
+          "category": "technical",
+          "priority": 4,
+          "creation_order": 17,
+          "status": "todo",
+          "description": "用 LangGraph 把从请求解析到结果判断的 happy path 串成一次完整研究运行。",
+          "deliverable": "可端到端运行的 LangGraph 工作流",
+          "steps": [
+            "定义 LangGraph 节点、边和共享 ResearchState",
+            "按 S1 到 S5 顺序串联解析、抓取、质检、执行和判断节点",
+            "输出包含关键状态迁移和工件路径的工作流结果"
+          ],
+          "verification": [
+            "工作流能按顺序执行到结果判断节点",
+            "成功路径下输出包含关键工件摘要"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S5-T5",
+          "name": "端到端 smoke harness 与可复用 fixture 资产",
+          "category": "testing",
+          "priority": 5,
+          "creation_order": 18,
+          "status": "todo",
+          "description": "建立可跨多个后续 feature 复用的端到端 smoke harness、mock 适配器和固定测试数据资产。",
+          "deliverable": "可复用的端到端测试资产",
+          "steps": [
+            "准备覆盖 happy path 的固定输入、mock CSMAR 数据和 mock 执行结果",
+            "搭建可复用的 workflow smoke harness",
+            "让后续 feature 可复用同一套 fixture 和适配器替身"
+          ],
+          "verification": [
+            "新建 harness 可驱动最小工作流 smoke test",
+            "测试资产能被多个 feature 复用"
           ],
           "passes": false,
           "updated_at": "2026-03-23"
@@ -301,7 +427,7 @@
   "feature_template": {
     "id": "Sx-Tx",
     "name": "",
-    "category": "functional",
+    "category": "technical",
     "priority": 1,
     "creation_order": 1,
     "status": "todo",
