@@ -13,6 +13,7 @@
 
 <!-- Key decisions that affect all future work. Append-only. -->
 <!-- Format: [date] DECISION: <description> | RATIONALE: <why> -->
+
 - [2026-03-23] DECISION: Treat `AGENTS.md` as a short navigation map and keep durable knowledge in `ARCHITECTURE.md` plus `docs/`. | RATIONALE: Preserve context budget, enable progressive disclosure, and reduce documentation rot.
 - [2026-03-23] DECISION: Retire root `PLAN.md` and split durable content by ownership into `ARCHITECTURE.md` and `docs/`. | RATIONALE: Avoid monolithic documentation and keep the knowledge base aligned with topic boundaries.
 
@@ -34,7 +35,25 @@
 - **Commit**: <git commit hash or "N/A">
 -->
 
+### Session 2026-03-23 #2
+
+- **Goal**: Refresh the repository navigation map to match the current docs tree
+- **Stage**: Documentation maintenance
+- **Completed**:
+  - Scanned the `docs/` directory structure
+  - Updated `AGENTS.md` to include `docs/references/CSMAR_PYTHON.md`
+  - Clarified the docs hub description for `docs/README.md`
+- **Key Changes**:
+  - `AGENTS.md` — expanded the navigation tree to reflect `docs/product/` and `docs/references/`
+  - `claude-progress.md` — recorded the session outcome and refreshed current context
+- **Issues Encountered**:
+  - None
+- **Next Steps**:
+  - Keep `AGENTS.md` as a short navigation layer and add new durable details only to focused docs
+- **Commit**: N/A
+
 ### Session 2026-03-23 #1
+
 - **Goal**: Establish the minimal context harness documentation baseline
 - **Stage**: Documentation bootstrap
 - **Completed**:
@@ -63,19 +82,19 @@
 <!-- This section is OVERWRITTEN (not appended) each session. -->
 <!-- It captures the "working memory" for the next session. -->
 
-- Working On: Minimal context harness documentation baseline
-- Stage: Documentation bootstrap
+- Working On: Repository navigation map refresh
+- Stage: Documentation maintenance
 - Branch: main
 - Key Files:
   - AGENTS.md — workflow instructions plus short repository map
-  - ARCHITECTURE.md — top-level system architecture and tech stack
-  - docs/README.md — docs entrypoint and reading order
+  - docs/README.md — docs entrypoint and source-of-truth index
   - docs/context-harness.md — context harness rules
   - docs/product/research-workflow.md — empirical workflow semantics
+  - docs/references/CSMAR_PYTHON.md — vendor SDK reference
 - Open Questions:
+  - Whether additional durable docs should be introduced beyond the current small knowledge base
   - feature_list.json stages still have empty feature arrays
   - implementation modules and package layout have not been created yet
-  - local Stata executor path still needs environment validation before implementation
 - Dependencies Installed: None
 - Dev Server: N/A
 
@@ -83,4 +102,5 @@
 
 <!-- Persistent issues that span multiple sessions. Remove when resolved. -->
 <!-- Format: [date-opened] ISSUE: <description> | STATUS: open/resolved | RESOLVED: [date] -->
+
 - [2026-03-23] ISSUE: `feature_list.json` contains stage shells only and no concrete feature entries. | STATUS: open

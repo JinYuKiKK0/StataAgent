@@ -10,7 +10,7 @@ The repository documentation is the system of record for agent context. `AGENTS.
 4. `ARCHITECTURE.md`
 5. `docs/context-harness.md`
 6. `docs/product/research-workflow.md`
-7. `Requirements.md` or `CSMAR-PYTHON.md` when the task touches product rules or vendor constraints
+7. `Requirements.md` or `docs/references/CSMAR_PYTHON.md` when the task touches product rules or vendor constraints
 
 ## Source of Truth
 
@@ -19,7 +19,7 @@ The repository documentation is the system of record for agent context. `AGENTS.
 - Context harness conventions: `docs/context-harness.md`
 - Research-stage semantics: `docs/product/research-workflow.md`
 - Product requirement baseline: `Requirements.md`
-- Vendor SDK constraints: `CSMAR-PYTHON.md`
+- Vendor SDK constraints: `docs/references/CSMAR_PYTHON.md`
 - Progress and open context: `claude-progress.md`
 
 ## Minimum Knowledge Base
@@ -29,6 +29,7 @@ This repository currently keeps the docs knowledge base intentionally small:
 - `docs/README.md`
 - `docs/context-harness.md`
 - `docs/product/research-workflow.md`
+- `docs/references/CSMAR_PYTHON.md`
 
 Add a new document only when the knowledge is stable enough to outlive a single task or session.
 

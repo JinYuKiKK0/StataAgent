@@ -22,12 +22,12 @@
 - `AGENTS.md`: session workflow and repository navigation entrypoint.
 - `ARCHITECTURE.md`: top-level architecture, tech stack, runtime boundaries, and workflow state flow.
 - `Requirements.md`: product requirements and the five-stage empirical-analysis flow.
-- `CSMAR-PYTHON.md`: upstream CSMAR SDK capabilities, limits, and query conventions.
 - `feature_list.json`: staged backlog and verification state.
 - `claude-progress.md`: session history, architecture decisions, and current working context.
-- `docs/README.md`: docs hub and reading order.
+- `docs/README.md`: docs hub, reading order, and source-of-truth index.
 - `docs/context-harness.md`: rules for using repository docs as the context harness.
 - `docs/product/research-workflow.md`: stage semantics, required outputs, and failure gates.
+- `docs/references/CSMAR_PYTHON.md`: vendor SDK reference material and usage constraints.
 
 ## Directory Structure
 
@@ -36,12 +36,13 @@
 ├── AGENTS.md
 ├── ARCHITECTURE.md
 ├── Requirements.md
-├── CSMAR-PYTHON.md
 ├── feature_list.json
 ├── claude-progress.md
 └── docs/
     ├── README.md
     ├── context-harness.md
-    └── product/
-        └── research-workflow.md
+    ├── product/
+    │   └── research-workflow.md
+    └── references/
+        └── CSMAR_PYTHON.md
 ```
