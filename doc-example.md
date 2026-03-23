@@ -1,17 +1,17 @@
-# We made repository knowledge the system of record
+# 我们将仓库知识设为系统的记录
 
-Context management is one of the biggest challenges in making agents effective at large and complex tasks. One of the earliest lessons we learned was simple: give Codex a map, not a 1,000-page instruction manual.
+上下文管理是使代理在大型复杂任务中有效运作的最大挑战之一。我们最早学到的教训之一很简单：给 Codex 一张地图，而不是 1000 页的说明书。
 
-We tried the “one big AGENTS.md⁠(opens in a new window)” approach. It failed in predictable ways:
+我们尝试了"一个大的 AGENTS.md⁠(在新窗口中打开)"方法。它以可预测的方式失败了：
 
-- Context is a scarce resource. A giant instruction file crowds out the task, the code, and the relevant docs—so the agent either misses key constraints or starts optimizing for the wrong ones.
-- Too much guidance becomes non-guidance. When everything is “important,” nothing is. Agents end up pattern-matching locally instead of navigating intentionally.
-- It rots instantly. A monolithic manual turns into a graveyard of stale rules. Agents can’t tell what’s still true, humans stop maintaining it, and the file quietly becomes an attractive nuisance.
-- It’s hard to verify. A single blob doesn’t lend itself to mechanical checks (coverage, freshness, ownership, cross-links), so drift is inevitable.
+- 上下文是稀缺资源。一个巨大的指令文件挤占了任务、代码和相关文档——所以代理要么错过了关键约束，要么开始为错误的约束进行优化。
+- 过多的指导变成非指导。当一切都是"重要的"时，什么都不重要。代理最终会局部模式匹配，而不是有意导航。
+- 它会立即腐烂。一个单块手册变成了陈旧规则的坟墓。代理无法分辨什么仍然是真的，人类停止维护它，文件悄悄地变成了一个吸引人的麻烦。
+- 难以验证。单个块不适合机械检查（覆盖范围、新鲜度、所有权、交叉链接），因此漂移是不可避免的。
 
-So instead of treating AGENTS.md as the encyclopedia, we treat it as the table of contents.
+因此，与其将 AGENTS.md 视为百科全书，不如将其视为目录。
 
-The repository’s knowledge base lives in a structured docs/ directory treated as the system of record. A short AGENTS.md (roughly 100 lines) is injected into context and serves primarily as a map, with pointers to deeper sources of truth elsewhere.
+仓库的知识库位于结构化的 docs/ 目录中，被视为系统的记录。一个简短的 AGENTS.md（大约 100 行）被注入到上下文中，主要作为地图，指向其他地方的更深层单一事实来源。
 
 ```plaintext
 AGENTS.md
@@ -45,10 +45,10 @@ docs/
 └── SECURITY.md
 ```
 
-Design documentation is catalogued and indexed, including verification status and a set of core beliefs that define agent-first operating principles. Architecture documentation⁠(opens in a new window) provides a top-level map of domains and package layering. A quality document grades each product domain and architectural layer, tracking gaps over time.
+设计文档被编目和索引，包括验证状态和一组定义代理优先操作原则的核心信念。架构文档⁠(在新窗口中打开)提供了域和包分层的顶层地图。质量文档对每个产品域和架构层进行评分，并随时间跟踪差距。
 
-Plans are treated as first-class artifacts. Ephemeral lightweight plans are used for small changes, while complex work is captured in execution plans⁠(opens in a new window) with progress and decision logs that are checked into the repository. Active plans, completed plans, and known technical debt are all versioned and co-located, allowing agents to operate without relying on external context.
+计划被视为一流工件。临时轻量级计划用于小的更改，而复杂的工作则在执行计划⁠(在新窗口中打开)中捕获，其中包含进度和决策日志，这些日志被检入到仓库中。活动计划、已完成计划和已知技术债务都进行了版本控制和并置，使代理能够在不依赖外部上下文的情况下操作。
 
-This enables progressive disclosure: agents start with a small, stable entry point and are taught where to look next, rather than being overwhelmed up front.
+这实现了渐进式披露：代理从一个小而稳定的入口点开始，并被告知下一步在哪里看，而不是在一开始就被淹没。
 
-We enforce this mechanically. Dedicated linters and CI jobs validate that the knowledge base is up to date, cross-linked, and structured correctly. A recurring “doc-gardening” agent scans for stale or obsolete documentation that does not reflect the real code behavior and opens fix-up pull requests.
+我们在机械上强制执行这一点。专用的 linter 和 CI 作业验证知识库是最新的、交叉链接的和结构正确的。一个重复的"文档园艺"代理扫描过时或过时的文档，这些文档不反映真实的代码行为，并打开修复拉取请求。

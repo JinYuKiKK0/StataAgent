@@ -1,45 +1,45 @@
-# Compact cross-session handoff for the repository.
+# 仓库的紧凑跨会话交接
 #
-# Read this file at session start and keep it small.
-# Do not append a session-by-session log here.
-# Use git history for chronological change history.
+# 在会话开始时阅读此文件并保持其小而精。
+# 不要在此处附加逐会话的日志。
+# 使用 git 历史记录作为按时间顺序的更改历史。
 
-## PROJECT STATUS
+## 项目状态
 
-- Current Phase: FOUNDATION_DOCS
-- Overall Progress: 0/5 stages complete
-- Last Updated: 2026-03-23
-- Blocking Issues: `feature_list.json` still has no concrete feature entries
+- 当前阶段：FOUNDATION_DOCS
+- 总体进度：0/5 阶段完成
+- 最后更新：2026-03-23
+- 阻塞问题：`feature_list.json` 仍没有具体的功能条目
 
-## ARCHITECTURE DECISIONS
+## 架构决策
 
-<!-- Append only when a durable decision changes future work. -->
-<!-- Format: [date] DECISION: <description> | RATIONALE: <why> -->
-- [2026-03-23] DECISION: Treat `AGENTS.md` as a short navigation map and keep durable knowledge in `ARCHITECTURE.md` plus `docs/`. | RATIONALE: Preserve context budget, enable progressive disclosure, and reduce documentation rot.
-- [2026-03-23] DECISION: Retire root `PLAN.md` and split durable content by ownership into `ARCHITECTURE.md` and `docs/`. | RATIONALE: Avoid monolithic documentation and keep the knowledge base aligned with topic boundaries.
-- [2026-03-23] DECISION: Keep `claude-progress.md` as a compact handoff file with no session log. | RATIONALE: Preserve cross-session memory while keeping recurring startup context small; rely on git for chronology.
+<!-- 仅当持久决策影响未来工作时才附加。 -->
+<!-- 格式：[日期] 决策：<描述> | 原因：<为什么> -->
+- [2026-03-23] 决策：将 `AGENTS.md` 视为简短的导航地图，将持久知识保留在 `ARCHITECTURE.md` 和 `docs/` 中。 | 原因：保留上下文预算，实现渐进式披露，并减少文档腐烂。
+- [2026-03-23] 决策：退役根 `PLAN.md`，按所有权将持久内容拆分为 `ARCHITECTURE.md` 和 `docs/`。 | 原因：避免单块文档，并使知识库与主题边界保持一致。
+- [2026-03-23] 决策：保持 `claude-progress.md` 为紧凑的交接文件，不含会话日志。 | 原因：保留跨会话记忆，同时保持重复的启动上下文较小；依赖 git 获取按时间顺序的记录。
 
-## CURRENT CONTEXT
+## 当前上下文
 
-<!-- Overwrite this section each session. Keep it concise. -->
+<!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- Working On: Compact handoff model established; next likely work is defining concrete features
-- Stage: Documentation maintenance
-- Branch: main
-- Key Files:
-  - AGENTS.md — workflow instructions plus short repository map
-  - claude-progress.md — compact handoff file for current state only
-  - docs/context-harness.md — context harness rules
-  - docs/README.md — docs entrypoint and source-of-truth index
-- Open Questions:
-  - `feature_list.json` stages still have empty feature arrays
-  - implementation modules and package layout have not been created yet
-  - local Stata executor path still needs environment validation before implementation
-- Dependencies Installed: None
-- Dev Server: N/A
+- 正在处理：建立了紧凑的交接模型；下一个可能的工作是定义具体功能
+- 阶段：文档维护
+- 分支：main
+- 关键文件：
+  - AGENTS.md — 工作流指令加简短仓库地图
+  - claude-progress.md — 仅用于当前状态的紧凑交接文件
+  - docs/context-harness.md — 上下文容器规则
+  - docs/README.md — 文档入口点和单一事实来源索引
+- 未解决的问题：
+  - `feature_list.json` 的阶段仍为空的功能数组
+  - 实现模块和包布局尚未创建
+  - 本地 Stata 执行器路径在实现前仍需要环境验证
+- 已安装依赖：无
+- 开发服务器：不适用
 
-## KNOWN ISSUES
+## 已知问题
 
-<!-- Keep only active issues that matter across sessions. -->
-<!-- Format: [date-opened] ISSUE: <description> | STATUS: open/resolved | RESOLVED: [date] -->
-- [2026-03-23] ISSUE: `feature_list.json` contains stage shells only and no concrete feature entries. | STATUS: open
+<!-- 仅保留跨会话相关的活动问题。 -->
+<!-- 格式：[开放日期] 问题：<描述> | 状态：开放/已解决 | 已解决：[日期] -->
+- [2026-03-23] 问题：`feature_list.json` 仅包含阶段外壳，没有具体的功能条目。 | 状态：开放

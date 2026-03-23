@@ -1,48 +1,48 @@
-# Context Harness
+# 上下文容器
 
-## Purpose
+## 目的
 
-This repository uses a context-harness model:
+本仓库使用上下文容器模型：
 
-- `AGENTS.md` is the map, not the encyclopedia.
-- `ARCHITECTURE.md` is the top-level technical source of truth.
-- `docs/` holds durable knowledge that agents should progressively discover as needed.
+- `AGENTS.md` 是地图，不是百科全书。
+- `ARCHITECTURE.md` 是顶层技术单一事实来源。
+- `docs/` 保存代理应根据需要渐进式发现的持久知识。
 
-The goal is to keep injected context small, stable, and navigable while still making deeper knowledge available on demand.
+目标是保持注入的上下文小而稳定且可导航，同时仍按要求提供更深入的知识。
 
-## Progressive Disclosure
+## 渐进式披露
 
-Agents should traverse the knowledge base in layers:
+代理应分层遍历知识库：
 
-1. Read `AGENTS.md` for workflow and navigation.
-2. Read `claude-progress.md` for compact current session state.
-3. Read `feature_list.json` for task ordering and pass criteria.
-4. Read `ARCHITECTURE.md` for system boundaries and runtime responsibilities.
-5. Read only the focused docs needed for the current task.
+1. 阅读 `AGENTS.md` 以了解工作流和导航。
+2. 阅读 `claude-progress.md` 以了解紧凑的当前会话状态。
+3. 阅读 `feature_list.json` 以了解任务排序和通过标准。
+4. 阅读 `ARCHITECTURE.md` 以了解系统边界和运行时职责。
+5. 仅阅读当前任务所需的专注文档。
 
-## Document Roles
+## 文档角色
 
-- `AGENTS.md`: stable workflow, repository map, and entrypoint
-- `ARCHITECTURE.md`: system shape, stack, state machine, interfaces, and boundaries
-- `docs/`: stable domain knowledge too detailed for `AGENTS.md` but too durable for ephemeral notes
-- `Requirements.md`: upstream product requirement baseline
-- `CSMAR-PYTHON.md`: upstream vendor reference for SDK usage and limits
+- `AGENTS.md`：稳定的工作流、仓库地图和入口点
+- `ARCHITECTURE.md`：系统形态、技术栈、状态机、接口和边界
+- `docs/`：对 `AGENTS.md` 来说太详细但对临时注释来说太持久的稳定域知识
+- `Requirements.md`：上游产品需求基线
+- `CSMAR-PYTHON.md`：SDK 使用和限制的上游供应商参考
 
-## Writing Rules
+## 编写规则
 
-- Keep `AGENTS.md` short. Add links and boundaries, not essays.
-- Keep architecture decisions centralized in `ARCHITECTURE.md`.
-- Split durable knowledge by topic rather than growing another catch-all plan document.
-- Prefer one source of truth per topic; cross-link instead of copying.
-- Keep `claude-progress.md` compact. Do not append session-by-session narrative there; use git history for chronology.
-- If a document stops matching the code or the active design, update or remove it promptly.
+- 保持 `AGENTS.md` 简短。添加链接和边界，而不是论文。
+- 将架构决策集中在 `ARCHITECTURE.md` 中。
+- 按主题拆分持久知识，而不是增长另一个包罗万象的计划文档。
+- 每个主题首选单一事实来源；交叉链接而不是复制。
+- 保持 `claude-progress.md` 紧凑。不要在其中附加逐会话的叙述；使用 git 历史记录获取按时间顺序的记录。
+- 如果文档不再匹配代码或活动设计，请立即更新或删除它。
 
-## When to Add a New Doc
+## 何时添加新文档
 
-Create a new document only if at least one of these is true:
+仅当满足以下至少一个条件时才创建新文档：
 
-- The knowledge is needed across multiple sessions.
-- The topic has stable ownership and a clear boundary.
-- Re-reading the same context repeatedly would otherwise bloat `AGENTS.md` or `ARCHITECTURE.md`.
+- 知识需要在多个会话中使用。
+- 主题具有稳定的所有权和清晰的边界。
+- 否则重复阅读相同的上下文会使 `AGENTS.md` 或 `ARCHITECTURE.md` 膨胀。
 
-Otherwise keep the information in task-local notes or progress logs.
+否则，将信息保留在任务本地注释或进度日志中。

@@ -1,110 +1,110 @@
-# StataAgent Architecture
+# StataAgent 架构
 
-## Purpose
+## 目的
 
-StataAgent is a local Windows empirical-analysis agent. It turns a user research request into a structured research specification, fetches data only through CSMAR, standardizes and merges the data into one analysis-ready long table, generates parameterized Stata code, executes that code through `stata-executor-mcp`, and returns an auditable result bundle.
+StataAgent 是一个本地 Windows 实证分析代理。它将用户研究请求转化为结构化研究规范，仅通过 CSMAR 获取数据，将数据标准化并合并为一个可分析的长表，生成参数化的 Stata 代码，通过 `stata-executor-mcp` 执行代码，并返回可审计的结果包。
 
-`AGENTS.md` is the map. This file is the top-level technical source of truth for system shape, technical stack, runtime boundaries, state transitions, and documentation ownership.
+`AGENTS.md` 是导航地图。本文件是系统形态、技术栈、运行时边界、状态转换和文档所有权的顶层技术单一事实来源。
 
-## System Boundaries
+## 系统边界
 
-- Deployment model: local single-user Windows workstation
-- Interaction surfaces: CLI and Python API
-- Allowed data source: CSMAR only
-- Statistical execution engine: local Stata via `stata-executor-mcp`
-- Non-goals for v1: web UI, multi-user service mode, remote job queue, user-uploaded raw data
+- 部署模式：本地单用户 Windows 工作站
+- 交互界面：CLI 和 Python API
+- 允许的数据源：仅 CSMAR
+- 统计执行引擎：通过 `stata-executor-mcp` 的本地 Stata
+- v1 非目标：Web UI、多用户服务模式、远程作业队列、用户上传原始数据
 
-## Technical Stack
+## 技术栈
 
-- Main runtime: `Python 3.12`
-- Workflow orchestration: `langgraph`, `langchain-core`, `langchain-openai`
-- Structured models and settings: `pydantic v2`, `pydantic-settings`
-- Data processing: `pandas`, `numpy`, `pyarrow`, `pandera`
-- Stata code generation: `jinja2`
-- Local persistence: `sqlite3`, `parquet`, `.dta`
-- CLI and terminal UX: `typer`, `rich`
-- Logging and secrets: `structlog`, `python-keyring`
-- CSMAR compatibility layer: dedicated `Python 3.6` bridge process with official `CSMAR-PYTHON`
-- Stata execution integration: Python MCP client for `stata-executor-mcp`
-- Test stack: `pytest`, `pytest-mock`, `pytest-cov`
+- 主运行时：`Python 3.12`
+- 工作流编排：`langgraph`、`langchain-core`、`langchain-openai`
+- 结构化模型和设置：`pydantic v2`、`pydantic-settings`
+- 数据处理：`pandas`、`numpy`、`pyarrow`、`pandera`
+- Stata 代码生成：`jinja2`
+- 本地持久化：`sqlite3`、`parquet`、`.dta`
+- CLI 和终端 UX：`typer`、`rich`
+- 日志和密钥：`structlog`、`python-keyring`
+- CSMAR 兼容层：专用的 `Python 3.6` 桥接进程，配合官方 `CSMAR-PYTHON`
+- Stata 执行集成：用于 `stata-executor-mcp` 的 Python MCP 客户端
+- 测试栈：`pytest`、`pytest-mock`、`pytest-cov`
 
-## Runtime Topology
+## 运行时拓扑
 
 ```text
-User Request
+用户请求
   -> CLI / Python API
-  -> LangGraph Orchestrator
-     -> Requirement Parsing
-     -> Variable Mapping
-     -> CSMAR Query Planning
-     -> CSMAR Bridge
-     -> Data Standardization and Panel Merge
-     -> Quality Gate
-     -> Model Planning
-     -> Stata Template Rendering
+  -> LangGraph 编排器
+     -> 需求解析
+     -> 变量映射
+     -> CSMAR 查询规划
+     -> CSMAR 桥接
+     -> 数据标准化和面板合并
+     -> 质量检查点
+     -> 模型规划
+     -> Stata 模板渲染
      -> stata-executor-mcp
-     -> Result Judgment and Audit
-  -> Research Bundle
+     -> 结果判断和审计
+  -> 研究包
 ```
 
-## Runtime Layers
+## 运行时层次
 
-### Interface Layer
+### 接口层
 
-- Accepts `ResearchRequest` from CLI or Python.
-- Validates minimum required inputs such as topic, empirical requirements, and scope hints.
-- Creates a run id and workspace for each execution.
+- 从 CLI 或 Python 接受 `ResearchRequest`。
+- 验证最低必需输入，如主题、实证要求和范围提示。
+- 为每次执行创建运行 ID 和工作区。
 
-### Workflow Layer
+### 工作流层
 
-- Uses LangGraph as the canonical state-machine runtime.
-- Stores shared state in a typed `ResearchState`.
-- Keeps every stage resumable, inspectable, and auditable.
+- 使用 LangGraph 作为规范的状态机运行时。
+- 在类型化的 `ResearchState` 中存储共享状态。
+- 保持每个阶段可恢复、可检查和可审计。
 
-### Research Specification Layer
+### 研究规范层
 
-- Converts mixed user input into `ResearchSpec`.
-- Locks the roles of `Y`, `X`, controls, expected sign, target panel grain, candidate fixed effects, and safe retry boundaries.
+- 将混合用户输入转换为 `ResearchSpec`。
+- 锁定 `Y`、`X`、控制变量、预期符号、目标面板粒度、候选固定效应和安全重试边界的角色。
 
-### Variable Mapping Layer
+### 变量映射层
 
-- Resolves research variables to CSMAR tables and fields.
-- Uses internal variable dictionaries first, then falls back to CSMAR metadata inspection.
-- Emits `VariableBinding` records with source table, field, key grain, frequency, unit, and confidence.
+- 将研究变量解析为 CSMAR 表和字段。
+- 首先使用内部变量字典，然后回退到 CSMAR 元数据检查。
+- 输出包含源表、字段、键粒度、频率、单位和置信度的 `VariableBinding` 记录。
 
-### CSMAR Access Layer
+### CSMAR 访问层
 
-- Runs behind a dedicated Python 3.6 bridge because the vendor SDK targets that environment.
-- Accepts `CsmarFetchRequest` JSON and returns `CsmarFetchResult` JSON plus materialized data paths.
-- Handles pagination, query fingerprinting, cooldown-aware caching, and raw artifact storage.
+- 在专用的 Python 3.6 桥接后运行，因为供应商 SDK 针对该环境。
+- 接受 `CsmarFetchRequest` JSON 并返回 `CsmarFetchResult` JSON 以及物化数据路径。
+- 处理分页、查询指纹识别、冷却感知缓存和原始工件存储。
 
-### Data Pipeline Layer
+### 数据管道层
 
-- Standardizes dates, ids, units, missing-value encodings, and column names.
-- Merges all sources into one target analysis grain.
-- Rejects unresolved many-to-many joins instead of silently expanding the panel.
+- 标准化日期、ID、单位、缺失值编码和列名。
+- 将所有源合并到一个目标分析粒度。
+- 拒绝未解析的多对多连接，而不是静默扩展面板。
 
-### Quality Gate Layer
+### 质量检查点层
 
-- Produces descriptive statistics and validation findings before regressions run.
-- Enforces checks for duplicate keys, invalid ratios, impossible values, missingness thresholds, and extreme outliers.
-- Applies bounded winsorization to continuous variables and records it in the audit trail.
+- 在回归运行之前生成描述性统计和验证发现。
+- 强制检查重复键、无效比率、不可能值、缺失阈值和极端异常值。
+- 对连续变量应用有界的缩尾处理并将其记录在审计跟踪中。
 
-### Modeling and Execution Layer
+### 建模和执行层
 
-- Builds a `ModelPlan` first, then renders `.do` files from templates.
-- Runs Stata through `stata-executor-mcp` after a preflight environment check.
-- Collects logs, result tables, and exported artifacts under the run workspace.
+- 首先构建 `ModelPlan`，然后从模板渲染 `.do` 文件。
+- 在预飞行环境检查后通过 `stata-executor-mcp` 运行 Stata。
+- 在运行工作区下收集日志、结果表和导出的工件。
 
-### Judgment and Audit Layer
+### 判断和审计层
 
-- Compares outputs with prior theoretical expectations.
-- Allows only bounded auto-retries: fixed effects, standard errors, safe control pruning, and predefined sample filters.
-- Produces a final `ResearchBundle` with artifacts, decisions, and retry history.
+- 将输出与先前的理论期望进行比较。
+- 仅允许有界的自动重试：固定效应、标准误差、安全控制修剪和预定义的样本筛选器。
+- 生成包含工件、决策和重试历史的最终 `ResearchBundle`。
 
-## Workflow State Flow
+## 工作流状态流程
 
-The canonical state machine is:
+规范的状态机是：
 
 ```text
 requested
@@ -119,28 +119,28 @@ requested
 -> completed | failed
 ```
 
-Each stage must emit a machine-readable artifact or decision record. No stage should depend on hidden prompt context as its only output.
+每个阶段必须输出机器可读的工件或决策记录。任何阶段都不应仅依赖隐藏的提示上下文作为输出。
 
-## Core Data Contracts
+## 核心数据契约
 
-- `ResearchRequest`: raw user problem statement plus structured hints
-- `ResearchSpec`: normalized research design and analysis constraints
-- `VariableBinding`: chosen CSMAR field binding with provenance and confidence
-- `QueryPlan`: table, fields, filter condition, paging, and cache fingerprint
-- `PanelDataset`: final analysis-grain long table with lineage and coverage metadata
-- `StataRunPlan`: input dataset path, template parameters, regression steps, output expectations
-- `ResearchBundle`: end-to-end result package containing spec, data artifacts, code artifacts, logs, tables, and final judgment
+- `ResearchRequest`：原始用户问题陈述加上结构化提示
+- `ResearchSpec`：规范化的研究设计和分析约束
+- `VariableBinding`：包含来源和置信度的所选 CSMAR 字段绑定
+- `QueryPlan`：表、字段、筛选条件、分页和缓存指纹
+- `PanelDataset`：具有谱系和覆盖元数据的最终分析粒度长表
+- `StataRunPlan`：输入数据集路径、模板参数、回归步骤、输出期望
+- `ResearchBundle`：端到端结果包，包含规范、数据工件、代码工件、日志、表和最终判断
 
-## Storage and Artifacts
+## 存储和工件
 
-- `sqlite3`: run metadata, audit trail, cache index, query fingerprints
-- `parquet`: fetched raw tables, standardized tables, intermediate joins
-- `.dta`: Stata-ready analysis table
-- `.do` and log files: generated Stata programs and execution traces
+- `sqlite3`：运行元数据、审计跟踪、缓存索引、查询指纹
+- `parquet`：获取的原始表、标准化表、中间连接
+- `.dta`：Stata 就绪分析表
+- `.do` 和日志文件：生成的 Stata 程序和执行跟踪
 
-## Documentation Boundaries
+## 文档边界
 
-- Keep workflow instructions and repository navigation in `AGENTS.md`.
-- Keep top-level architecture and stack decisions in `ARCHITECTURE.md`.
-- Keep durable supporting knowledge in `docs/`.
-- Do not rebuild a monolithic `PLAN.md`; split durable knowledge by topic and ownership.
+- 将工作流指令和仓库导航保留在 `AGENTS.md` 中。
+- 将顶层架构和栈决策保留在 `ARCHITECTURE.md` 中。
+- 将持久的支持知识保留在 `docs/` 中。
+- 不要重建单块 `PLAN.md`；按主题和所有权拆分持久知识。

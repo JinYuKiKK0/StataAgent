@@ -1,35 +1,35 @@
-# AGENTS.md — StataAgent Workflow
+# AGENTS.md — StataAgent 工作流
 
-## Session Start
+## 会话开始
 
-1. Run `git log --oneline -10` and read `claude-progress.md` to understand current state.
-2. Read `feature_list.json`, pick the highest-priority incomplete feature (follow `task_ordering` in governance).
-3. Announce which feature you will work on before writing any code.
+1. 运行 `git log --oneline -10` 并阅读 `claude-progress.md` 以了解当前状态。
+2. 阅读 `feature_list.json`，选择最高优先级的未完成功能（遵循 governance 中的 `task_ordering`）。
+3. 在编写任何代码前，宣布将要处理的功能。
 
-## During Development
+## 开发期间
 
-- Work on **one feature at a time**. Do not batch multiple features.
-- Do not remove or edit feature definitions in `feature_list.json`. You may only change `status` and `passes` fields.
+- **一次处理一个功能**。不要批量处理多个功能。
+- 不要删除或编辑 `feature_list.json` 中的功能定义。只能修改 `status` 和 `passes` 字段。
 
-## Session End
+## 会话结束
 
-1. **Self-verify**: Test the feature end-to-end. Only set `"passes": true` after confirming it works.
-2. **Git commit**: Commit all changes with a descriptive message.
-3. **Update progress**: Update `claude-progress.md` as a compact handoff file. Overwrite `CURRENT CONTEXT`, and only update `PROJECT STATUS`, `ARCHITECTURE DECISIONS`, or `KNOWN ISSUES` when those facts materially change. Do not keep a session-by-session log there.
+1. **自验证**：端到端测试功能。仅在确认功能正常后设置 `"passes": true`。
+2. **Git 提交**：提交所有更改并附带描述性消息。
+3. **更新进度**：更新 `claude-progress.md` 作为紧凑的交接文件。覆盖 `CURRENT CONTEXT`，仅在这些事实实质性变化时更新 `PROJECT STATUS`、`ARCHITECTURE DECISIONS` 或 `KNOWN ISSUES`。不要在其中保留逐会话的日志。
 
-## Repository Map
+## 仓库导航
 
-- `AGENTS.md`: session workflow and repository navigation entrypoint.
-- `ARCHITECTURE.md`: top-level architecture, tech stack, runtime boundaries, and workflow state flow.
-- `Requirements.md`: product requirements and the five-stage empirical-analysis flow.
-- `feature_list.json`: staged backlog and verification state.
-- `claude-progress.md`: compact cross-session handoff, architecture decisions, and current working context.
-- `docs/README.md`: docs hub, reading order, and source-of-truth index.
-- `docs/context-harness.md`: rules for using repository docs as the context harness.
-- `docs/product/research-workflow.md`: stage semantics, required outputs, and failure gates.
-- `docs/references/CSMAR_PYTHON.md`: vendor SDK reference material and usage constraints.
+- `AGENTS.md`：会话工作流和仓库导航入口点。
+- `ARCHITECTURE.md`：顶层架构、技术栈、运行时边界和工作流状态流程。
+- `Requirements.md`：产品需求和五阶段实证分析流程。
+- `feature_list.json`：分阶段待办事项和验证状态。
+- `claude-progress.md`：紧凑的跨会话交接、架构决策和当前工作上下文。
+- `docs/README.md`：文档中心、阅读顺序和单一事实来源索引。
+- `docs/context-harness.md`：使用仓库文档作为上下文容器的规则。
+- `docs/product/research-workflow.md`：阶段语义、必需输出和失败检查点。
+- `docs/references/CSMAR_PYTHON.md`：供应商 SDK 参考材料和使用约束。
 
-## Directory Structure
+## 目录结构
 
 ```text
 .

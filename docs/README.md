@@ -1,8 +1,8 @@
-# StataAgent Docs
+# StataAgent 文档
 
-The repository documentation is the system of record for agent context. `AGENTS.md` stays short and points here; deeper knowledge lives in focused documents with clear topic boundaries.
+仓库文档是代理上下文的系统记录。`AGENTS.md` 保持简短并指向此处；更深入的知识存在于具有清晰主题边界的专注文档中。
 
-## Reading Order
+## 阅读顺序
 
 1. `AGENTS.md`
 2. `claude-progress.md`
@@ -10,29 +10,29 @@ The repository documentation is the system of record for agent context. `AGENTS.
 4. `ARCHITECTURE.md`
 5. `docs/context-harness.md`
 6. `docs/product/research-workflow.md`
-7. `Requirements.md` or `docs/references/CSMAR_PYTHON.md` when the task touches product rules or vendor constraints
+7. 当任务涉及产品规则或供应商约束时，`Requirements.md` 或 `docs/references/CSMAR_PYTHON.md`
 
-## Source of Truth
+## 单一事实来源
 
-- Session workflow and repository map: `AGENTS.md`
-- Architecture and tech stack: `ARCHITECTURE.md`
-- Context harness conventions: `docs/context-harness.md`
-- Research-stage semantics: `docs/product/research-workflow.md`
-- Product requirement baseline: `Requirements.md`
-- Vendor SDK constraints: `docs/references/CSMAR_PYTHON.md`
-- Compact cross-session handoff: `claude-progress.md`
+- 会话工作流和仓库地图：`AGENTS.md`
+- 架构和技术栈：`ARCHITECTURE.md`
+- 上下文容器约定：`docs/context-harness.md`
+- 研究阶段语义：`docs/product/research-workflow.md`
+- 产品需求基线：`Requirements.md`
+- 供应商 SDK 约束：`docs/references/CSMAR_PYTHON.md`
+- 紧凑的跨会话交接：`claude-progress.md`
 
-## Minimum Knowledge Base
+## 最小知识库
 
-This repository currently keeps the docs knowledge base intentionally small:
+本仓库当前故意保持文档知识库较小：
 
 - `docs/README.md`
 - `docs/context-harness.md`
 - `docs/product/research-workflow.md`
 - `docs/references/CSMAR_PYTHON.md`
 
-Add a new document only when the knowledge is stable enough to outlive a single task or session.
+仅当知识足够稳定，能够超越单个任务或会话时，才添加新文档。
 
-## Retired Root Plan
+## 已退役的根计划
 
-`PLAN.md` is retired. Durable architecture content now lives in `ARCHITECTURE.md`, and domain workflow context lives under `docs/`.
+`PLAN.md` 已退役。持久的架构内容现在位于 `ARCHITECTURE.md` 中，域工作流上下文位于 `docs/` 下。
