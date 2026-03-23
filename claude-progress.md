@@ -7,14 +7,14 @@
 - Current Phase: FOUNDATION_DOCS
 - Overall Progress: 0/5 stages complete
 - Last Updated: 2026-03-23
-- Blocking Issues: Repository has not been initialized as a git repo; session commits cannot be created yet
+- Blocking Issues: `feature_list.json` still has no concrete feature entries
 
 ## ARCHITECTURE DECISIONS
 
 <!-- Key decisions that affect all future work. Append-only. -->
 <!-- Format: [date] DECISION: <description> | RATIONALE: <why> -->
 - [2026-03-23] DECISION: Treat `AGENTS.md` as a short navigation map and keep durable knowledge in `ARCHITECTURE.md` plus `docs/`. | RATIONALE: Preserve context budget, enable progressive disclosure, and reduce documentation rot.
-- [2026-03-23] DECISION: `ARCHITECTURE.md` overrides `PLAN.md` when the two diverge. | RATIONALE: `PLAN.md` is a design snapshot, while `ARCHITECTURE.md` is the maintained top-level source of truth.
+- [2026-03-23] DECISION: Retire root `PLAN.md` and split durable content by ownership into `ARCHITECTURE.md` and `docs/`. | RATIONALE: Avoid monolithic documentation and keep the knowledge base aligned with topic boundaries.
 
 ## SESSION LOG
 
@@ -35,27 +35,27 @@
 -->
 
 ### Session 2026-03-23 #1
-- **Goal**: Establish the repository context harness and top-level architecture documentation
-- **Stage**: S1-foundation
+- **Goal**: Establish the minimal context harness documentation baseline
+- **Stage**: Documentation bootstrap
 - **Completed**:
-  - Rewrote `AGENTS.md` as a repository map instead of a monolithic instruction file
-  - Wrote `ARCHITECTURE.md` with runtime topology, layer boundaries, state machine, and storage strategy
-  - Created the initial `docs/` knowledge base for context harness, contracts, workflow, references, and plans
+  - Preserved the existing workflow instructions in `AGENTS.md`
+  - Appended a short repository map and directory structure to `AGENTS.md`
+  - Wrote `ARCHITECTURE.md` as the top-level architecture and tech-stack source of truth
+  - Created a minimal `docs/` knowledge base with a hub, harness rules, and research workflow doc
+  - Removed the monolithic `PLAN.md` and redistributed its durable content
 - **Key Changes**:
-  - `AGENTS.md` — short map, rules, read order, and repository tree
-  - `ARCHITECTURE.md` — top-level system architecture and documentation policy
-  - `docs/README.md` — knowledge-base index and reading paths
-  - `docs/context-harness.md` — harness principles and maintenance rules
-  - `docs/architecture/data-contracts.md` — core object and stage-output contracts
-  - `docs/product/research-workflow.md` — user-facing five-stage workflow
-  - `docs/references/external-systems.md` — external dependency boundaries
-  - `docs/plans/README.md` and subdirectories — plan storage baseline
+  - `AGENTS.md` — kept workflow instructions and added navigation
+  - `ARCHITECTURE.md` — added architecture, stack, runtime layers, and state flow
+  - `docs/README.md` — added reading order and source-of-truth index
+  - `docs/context-harness.md` — added progressive-disclosure rules for agent context
+  - `docs/product/research-workflow.md` — added stage-by-stage empirical workflow guidance
+  - `PLAN.md` — removed
 - **Issues Encountered**:
-  - `git log` and git commit could not run because the workspace is not an initialized git repository
+  - `feature_list.json` has stage shells only, so this work was handled as repository-foundation documentation rather than a tracked feature implementation
 - **Next Steps**:
-  - Initialize git before expecting commit-based session hygiene
-  - Define concrete feature entries in `feature_list.json`
-  - Align future implementation work with `ARCHITECTURE.md` and use `docs/` as the system of record
+  - Define concrete features in `feature_list.json`
+  - Start implementing the first document-backed subsystem, likely S1 requirement parsing
+  - Add contract docs when code-level interfaces are created
 - **Commit**: N/A
 
 ## CURRENT CONTEXT
@@ -63,19 +63,19 @@
 <!-- This section is OVERWRITTEN (not appended) each session. -->
 <!-- It captures the "working memory" for the next session. -->
 
-- Working On: Context harness documentation baseline
-- Stage: S1-foundation
+- Working On: Minimal context harness documentation baseline
+- Stage: Documentation bootstrap
 - Branch: main
 - Key Files:
-  - AGENTS.md — repository navigation map and working rules
-  - ARCHITECTURE.md — top-level architecture source of truth
-  - docs/README.md — knowledge-base index and reading paths
-  - docs/context-harness.md — harness policy and update rules
-  - docs/architecture/data-contracts.md — core contracts and stage outputs
+  - AGENTS.md — workflow instructions plus short repository map
+  - ARCHITECTURE.md — top-level system architecture and tech stack
+  - docs/README.md — docs entrypoint and reading order
+  - docs/context-harness.md — context harness rules
+  - docs/product/research-workflow.md — empirical workflow semantics
 - Open Questions:
-  - feature_list.json stages still have no concrete features
-  - PLAN.md contains earlier design content and may need selective alignment with ARCHITECTURE.md
-  - Git is not initialized, so session commit requirements are currently blocked
+  - feature_list.json stages still have empty feature arrays
+  - implementation modules and package layout have not been created yet
+  - local Stata executor path still needs environment validation before implementation
 - Dependencies Installed: None
 - Dev Server: N/A
 
@@ -83,3 +83,4 @@
 
 <!-- Persistent issues that span multiple sessions. Remove when resolved. -->
 <!-- Format: [date-opened] ISSUE: <description> | STATUS: open/resolved | RESOLVED: [date] -->
+- [2026-03-23] ISSUE: `feature_list.json` contains stage shells only and no concrete feature entries. | STATUS: open

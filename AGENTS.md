@@ -16,3 +16,32 @@
 1. **Self-verify**: Test the feature end-to-end. Only set `"passes": true` after confirming it works.
 2. **Git commit**: Commit all changes with a descriptive message.
 3. **Update progress**: Update `claude-progress.md` — add a SESSION LOG entry and overwrite CURRENT CONTEXT.
+
+## Repository Map
+
+- `AGENTS.md`: session workflow and repository navigation entrypoint.
+- `ARCHITECTURE.md`: top-level architecture, tech stack, runtime boundaries, and workflow state flow.
+- `Requirements.md`: product requirements and the five-stage empirical-analysis flow.
+- `CSMAR-PYTHON.md`: upstream CSMAR SDK capabilities, limits, and query conventions.
+- `feature_list.json`: staged backlog and verification state.
+- `claude-progress.md`: session history, architecture decisions, and current working context.
+- `docs/README.md`: docs hub and reading order.
+- `docs/context-harness.md`: rules for using repository docs as the context harness.
+- `docs/product/research-workflow.md`: stage semantics, required outputs, and failure gates.
+
+## Directory Structure
+
+```text
+.
+├── AGENTS.md
+├── ARCHITECTURE.md
+├── Requirements.md
+├── CSMAR-PYTHON.md
+├── feature_list.json
+├── claude-progress.md
+└── docs/
+    ├── README.md
+    ├── context-harness.md
+    └── product/
+        └── research-workflow.md
+```
