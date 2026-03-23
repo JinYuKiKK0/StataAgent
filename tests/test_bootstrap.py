@@ -54,6 +54,21 @@ def test_research_command_with_valid_input() -> None:
 def test_research_command_missing_required_fields() -> None:
     from stata_agent.cli import app
 
+    # 测试缺少 --topic
+    result = CliRunner().invoke(
+        app,
+        [
+            "research",
+            "--y", "ROA",
+            "--x", "数字化转型指数",
+            "--entity", "A股上市银行",
+            "--time", "2010-2023",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "--topic" in result.stderr or "Error" in result.stderr
+
     # 测试缺少 --y
     result = CliRunner().invoke(
         app,

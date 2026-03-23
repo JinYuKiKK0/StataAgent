@@ -8,3 +8,4 @@ build/
 *.pyo
 *.pyd
 
+.env

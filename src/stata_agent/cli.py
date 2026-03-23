@@ -2,6 +2,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from pydantic import ValidationError
+
 from stata_agent.application.orchestrator import ApplicationOrchestrator
 from stata_agent.config import get_settings
 from stata_agent.domain.models import ResearchRequest
@@ -39,14 +41,22 @@ def research(
 ) -> None:
     """提交单次实证分析请求。"""
     # 构建请求对象（Pydantic 会自动验证）
-    request = ResearchRequest(
-        topic=topic,
-        dependent_variable=dependent_variable,
-        independent_variables=independent_variables,
-        entity_scope=entity_scope,
-        time_range=time_range,
-        empirical_requirements=empirical_requirements,
-    )
+    try:
+        request = ResearchRequest(
+            topic=topic,
+            dependent_variable=dependent_variable,
+            independent_variables=independent_variables,
+            entity_scope=entity_scope,
+            time_range=time_range,
+            empirical_requirements=empirical_requirements,
+        )
+    except ValidationError as e:
+        console.print("\n[bold red]✗ 输入参数校验失败：[/bold red]")
+        for err in e.errors():
+            field = ".".join(str(loc) for loc in err["loc"])
+            msg = err["msg"]
+            console.print(f"  - [cyan]{field}[/cyan]: {msg}")
+        raise typer.Exit(code=1)
 
     # 通过 orchestrator 创建初始状态
     orchestrator = ApplicationOrchestrator()
