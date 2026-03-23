@@ -1,0 +1,51 @@
+{
+  "project": {
+    "name": "StataAgent",
+    "purpose": "Use LangGraph to build a Stata-based empirical analysis agent"
+  },
+  "governance": {
+    "single_task_per_session": true,
+    "passes_must_follow_verification": true,
+    "mutable_fields_only": ["status", "passes", "updated_at"],
+    "task_ordering": ["stage", "priority", "creation_order"]
+  },
+  "stages": [
+    {
+      "id": "S1",
+      "name": "需求解析与数据定义",
+      "goal": "把用户选题和实证要求映射为变量定义、数据需求和任务拆解",
+      "features": []
+    },
+    {
+      "id": "S2",
+      "name": "理论预判与模型构建",
+      "goal": "定义假设方向、基准模型和回归设计",
+      "features": []
+    },
+    {
+      "id": "S3",
+      "name": "数据清洗与拼接",
+      "goal": "把多源异构数据清洗、对齐并合并成可分析长表",
+      "features": []
+    },
+    {
+      "id": "S4",
+      "name": "描述统计与质量拦截",
+      "goal": "完成基础统计、逻辑校验和异常数据拦截",
+      "features": []
+    },
+    {
+      "id": "S5",
+      "name": "核心回归与反馈循环",
+      "goal": "执行回归、对照预期并输出稳健性与异质性分析",
+      "features": []
+    }
+  ],
+  "feature_template": {
+    "id": "Sx-Tx",
+    "category": "functional",
+    "description": "",
+    "steps": [],
+    "passes": false
+  }
+}

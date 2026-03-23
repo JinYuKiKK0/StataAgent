@@ -1,0 +1,18 @@
+# AGENTS.md — StataAgent Workflow
+
+## Session Start
+
+1. Run `git log --oneline -10` and read `claude-progress.md` to understand current state.
+2. Read `feature_list.json`, pick the highest-priority incomplete feature (follow `task_ordering` in governance).
+3. Announce which feature you will work on before writing any code.
+
+## During Development
+
+- Work on **one feature at a time**. Do not batch multiple features.
+- Do not remove or edit feature definitions in `feature_list.json`. You may only change `status` and `passes` fields.
+
+## Session End
+
+1. **Self-verify**: Test the feature end-to-end. Only set `"passes": true` after confirming it works.
+2. **Git commit**: Commit all changes with a descriptive message.
+3. **Update progress**: Update `claude-progress.md` — add a SESSION LOG entry and overwrite CURRENT CONTEXT.
