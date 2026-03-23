@@ -6,10 +6,10 @@
 
 ## 项目状态
 
-- 当前阶段：PROJECT_BOOTSTRAP
-- 总体进度：0/5 阶段完成
+- 当前阶段：S1（需求解析与数据定义）
+- 总体进度：1/18 features 完成（S1-T1）
 - 最后更新：2026-03-23
-- 阻塞问题：无；下一优先任务为 `S1-T1`
+- 阻塞问题：无；下一优先任务为 `S1-T2`
 
 ## 架构决策
 
@@ -27,16 +27,15 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：已将 `feature_list.json` 重切为 18 个按主交付物划分的独立 feature，并引入 `technical`、`functional`、`documentation`、`testing` 四类单值分类；下一步应从 `S1-T1` 开始实现
-- 阶段：项目 bootstrap，ready for S1
+- 正在处理：已实现 `S1-T1`（研究请求输入契约与 CLI 入口），ResearchRequest 现在包含必填字段（topic、dependent_variable、independent_variables、entity_scope、time_range），CLI 提供了 `research` 命令
+- 阶段：S1（需求解析与数据定义）
 - 分支：main
 - 关键文件：
-  - feature_list.json — 单次实证分析 MVP 的 18 个最小交付 feature backlog，含单值 category 分类
-  - pyproject.toml — UV 项目配置、依赖和脚本入口
-  - src/stata_agent/cli.py — CLI 入口和根命令回调
-  - src/stata_agent/services/requirement_parser.py — S1 需求解析占位实现
-  - src/stata_agent/application/orchestrator.py — 工作流入口占位实现
-  - src/stata_agent/workflows/states.py — 工作流共享状态模型
+  - feature_list.json — S1-T1 已标记为 completed
+  - src/stata_agent/domain/models.py — ResearchRequest 增加了必填字段，ResearchSpec 已更新
+  - src/stata_agent/cli.py — 新增 `research` 命令接收用户输入并显示请求摘要
+  - src/stata_agent/application/orchestrator.py — create_initial_state 支持新的请求结构
+  - tests/test_bootstrap.py — 新增 S1-T1 验证测试
 - 未解决的问题：
   - 具体业务实现仍停留在骨架阶段，LangChain、LangGraph、CSMAR 和 Stata executor 仍未接入真实流程
 - 已安装依赖：通过 `uv` 管理的本地环境，包含 `pydantic`、`pydantic-settings`、`rich`、`typer` 和 `pytest`

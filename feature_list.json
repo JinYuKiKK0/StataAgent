@@ -21,7 +21,7 @@
           "category": "technical",
           "priority": 1,
           "creation_order": 1,
-          "status": "todo",
+          "status": "completed",
           "description": "提供单次实证分析 MVP 的入口，要求用户提交自然语言题目，并强制填写 Y、X、时间范围和样本范围。",
           "deliverable": "可校验的 ResearchRequest 与 CLI 输入路径",
           "steps": [
@@ -33,7 +33,7 @@
             "缺少任一必填字段时 CLI 返回明确错误",
             "合法输入能生成初始 ResearchState"
           ],
-          "passes": false,
+          "passes": true,
           "updated_at": "2026-03-23"
         },
         {
