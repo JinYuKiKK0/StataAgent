@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "StataAgent",
-    "purpose": "Use LangGraph to build a Stata-based empirical analysis agent"
+    "purpose": "Use LangGraph and LangChain to build a Stata-based empirical analysis agent"
   },
   "governance": {
     "single_task_per_session": true,
@@ -14,38 +14,302 @@
       "id": "S1",
       "name": "需求解析与数据定义",
       "goal": "把用户选题和实证要求映射为变量定义、数据需求和任务拆解",
-      "features": []
+      "features": [
+        {
+          "id": "S1-T1",
+          "name": "研究请求输入契约与 CLI 入口",
+          "category": "functional",
+          "priority": 1,
+          "creation_order": 1,
+          "status": "todo",
+          "description": "提供单次实证分析 MVP 的入口，要求用户提交自然语言题目，并强制填写 Y、X、时间范围和样本范围。",
+          "deliverable": "可校验的 ResearchRequest 与 CLI 输入路径",
+          "steps": [
+            "扩展 CLI 入口以接收题目、Y、X、时间范围和样本范围",
+            "补齐 ResearchRequest 和配置层的必填校验与错误提示",
+            "让 orchestrator 能接收结构化请求并创建初始状态"
+          ],
+          "verification": [
+            "缺少任一必填字段时 CLI 返回明确错误",
+            "合法输入能生成初始 ResearchState"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S1-T2",
+          "name": "LangChain 需求解析为 ResearchSpec",
+          "category": "functional",
+          "priority": 2,
+          "creation_order": 2,
+          "status": "todo",
+          "description": "使用 LangChain 结构化输出把自然语言题目、Y、X、时间范围和样本范围解析为初始研究规范。",
+          "deliverable": "包含研究主题、核心变量、样本粒度候选和时间边界的 ResearchSpec",
+          "steps": [
+            "定义 ResearchSpec 所需结构化字段和解析提示词",
+            "接入 LangChain 结构化输出链路生成稳定的解析结果",
+            "将 requirement_parser 升级为返回可审计的规范对象"
+          ],
+          "verification": [
+            "给定固定输入时可稳定产出完整字段",
+            "无法满足约束的输入会返回可解释的解析失败"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S1-T3",
+          "name": "变量定义与数据需求清单生成",
+          "category": "functional",
+          "priority": 3,
+          "creation_order": 3,
+          "status": "todo",
+          "description": "基于 ResearchSpec 产出变量定义清单和数据需求草案，明确 Y、X 和待补控制变量位。",
+          "deliverable": "变量定义表与数据需求表",
+          "steps": [
+            "定义变量清单与数据需求的数据结构",
+            "从 ResearchSpec 推导变量角色、频率和候选数据域",
+            "输出可供后续模型规划和变量映射使用的清单"
+          ],
+          "verification": [
+            "生成结果包含 Y、X、时间范围和样本约束",
+            "清单中明确标记待 agent 补全的控制变量槽位"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        }
+      ]
     },
     {
       "id": "S2",
       "name": "理论预判与模型构建",
       "goal": "定义假设方向、基准模型和回归设计",
-      "features": []
+      "features": [
+        {
+          "id": "S2-T1",
+          "name": "基准面板模型规划器",
+          "category": "functional",
+          "priority": 1,
+          "creation_order": 4,
+          "status": "todo",
+          "description": "默认生成单次实证分析 happy path 所需的面板回归模型计划，包括预期符号、固定效应和聚类方案。",
+          "deliverable": "基准回归 ModelPlan 与理论预期摘要",
+          "steps": [
+            "定义 ModelPlan、基准方程和预期符号的数据契约",
+            "根据 ResearchSpec 推导面板粒度、固定效应和标准误设定",
+            "输出可直接驱动 Stata 模板的模型计划"
+          ],
+          "verification": [
+            "典型面板题目可生成非空基准方程",
+            "输出包含预期符号、固定效应和聚类设定"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S2-T2",
+          "name": "Agent 自主控制变量补全",
+          "category": "functional",
+          "priority": 2,
+          "creation_order": 5,
+          "status": "todo",
+          "description": "让 agent 根据题目语义和样本类型补齐控制变量候选，并给出选择理由。",
+          "deliverable": "控制变量列表及其选择依据",
+          "steps": [
+            "定义控制变量候选库与按样本类型匹配的规则",
+            "结合 ResearchSpec 和 ModelPlan 生成控制变量集合",
+            "记录控制变量的来源、用途和被纳入的理由"
+          ],
+          "verification": [
+            "企业或银行类题目能产出非空控制变量集合",
+            "不会覆盖用户明确指定的 Y 和 X"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        }
+      ]
     },
     {
       "id": "S3",
       "name": "数据清洗与拼接",
       "goal": "把多源异构数据清洗、对齐并合并成可分析长表",
-      "features": []
+      "features": [
+        {
+          "id": "S3-T1",
+          "name": "CSMAR 变量映射与查询计划生成",
+          "category": "functional",
+          "priority": 1,
+          "creation_order": 6,
+          "status": "todo",
+          "description": "把 Y、X 和控制变量映射到 CSMAR 字段，生成单次抓取所需的 QueryPlan。",
+          "deliverable": "VariableBinding 列表与 QueryPlan",
+          "steps": [
+            "定义变量映射结果的数据结构和置信度字段",
+            "实现从变量定义清单到 CSMAR 表字段的映射逻辑",
+            "生成带表名、字段、过滤条件和主键约束的查询计划"
+          ],
+          "verification": [
+            "在 mock CSMAR 元数据下能生成完整 QueryPlan",
+            "不存在的年份或字段会触发明确失败"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S3-T2",
+          "name": "CSMAR Bridge 最小抓取闭环",
+          "category": "functional",
+          "priority": 2,
+          "creation_order": 7,
+          "status": "todo",
+          "description": "通过 CSMAR bridge 执行查询计划，把原始结果落地为本地可追踪文件。",
+          "deliverable": "抓取结果文件与抓取元数据",
+          "steps": [
+            "定义 bridge 请求和响应契约",
+            "实现 query plan 到本地 parquet 工件的抓取流程",
+            "记录抓取路径、源表和行列摘要供后续消费"
+          ],
+          "verification": [
+            "mock bridge 或 fixture 数据能写出预期 parquet 文件",
+            "返回结果包含输出路径和抓取摘要"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S3-T3",
+          "name": "面板标准化与合并构建",
+          "category": "functional",
+          "priority": 3,
+          "creation_order": 8,
+          "status": "todo",
+          "description": "统一主键、时间字段、单位和列名，把多张 CSMAR 表合并成单一分析长表。",
+          "deliverable": "标准化 PanelDataset",
+          "steps": [
+            "实现日期、ID、单位和缺失值编码的标准化规则",
+            "按目标分析粒度执行多表合并和列重命名",
+            "拒绝未解析的多对多连接并输出合并摘要"
+          ],
+          "verification": [
+            "多表输入能生成单张长表",
+            "主键重复或多对多合并时会中止并报错"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        }
+      ]
     },
     {
       "id": "S4",
       "name": "描述统计与质量拦截",
       "goal": "完成基础统计、逻辑校验和异常数据拦截",
-      "features": []
+      "features": [
+        {
+          "id": "S4-T1",
+          "name": "数据质量检查与描述统计报告",
+          "category": "functional",
+          "priority": 1,
+          "creation_order": 9,
+          "status": "todo",
+          "description": "对合并后的面板生成描述统计和质量检查报告，并在严重问题时中止流程。",
+          "deliverable": "描述统计表与质量报告",
+          "steps": [
+            "实现缺失率、重复键、非法比例值和极值扫描",
+            "生成描述统计摘要与阻断级问题列表",
+            "输出回归前 pass or fail 决策"
+          ],
+          "verification": [
+            "脏数据 fixture 会触发失败并列出原因",
+            "正常数据会生成可读的描述统计与质量报告"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S4-T2",
+          "name": "Winsorization 与分析数据导出",
+          "category": "functional",
+          "priority": 2,
+          "creation_order": 10,
+          "status": "todo",
+          "description": "对连续变量执行有界缩尾，并导出可直接供 Stata 使用的分析数据文件。",
+          "deliverable": "Stata-ready 分析数据集",
+          "steps": [
+            "识别连续变量并应用配置化的上下分位缩尾",
+            "保留缩尾前后摘要供质量报告引用",
+            "导出 dta 或 csv 供后续回归执行使用"
+          ],
+          "verification": [
+            "连续变量被正确缩尾",
+            "输出文件可被后续执行器消费"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        }
+      ]
     },
     {
       "id": "S5",
       "name": "核心回归与反馈循环",
       "goal": "执行回归、对照预期并输出稳健性与异质性分析",
-      "features": []
+      "features": [
+        {
+          "id": "S5-T1",
+          "name": "Stata 模板渲染与执行器打通",
+          "category": "functional",
+          "priority": 1,
+          "creation_order": 11,
+          "status": "todo",
+          "description": "根据 ModelPlan 和分析数据集渲染 Stata do 文件，并通过执行器跑出最小结果工件。",
+          "deliverable": "do 文件、执行日志和结果文件路径",
+          "steps": [
+            "完善 baseline_regression.do.j2 所需输入参数",
+            "实现从 ModelPlan 到模板上下文的渲染逻辑",
+            "打通 Stata executor 适配层并收集日志工件"
+          ],
+          "verification": [
+            "模板渲染测试能产出可检查的 do 文件",
+            "mock executor 测试能返回日志或结果路径"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        },
+        {
+          "id": "S5-T2",
+          "name": "LangGraph 单次实证分析编排",
+          "category": "functional",
+          "priority": 2,
+          "creation_order": 12,
+          "status": "todo",
+          "description": "用 LangGraph 把从请求解析到回归执行的 happy path 串成一次完整研究运行，并返回最小 ResearchBundle。",
+          "deliverable": "可端到端运行的 LangGraph 工作流与 ResearchBundle",
+          "steps": [
+            "定义 LangGraph 节点、边和共享 ResearchState",
+            "按 S1 到 S5 顺序串联解析、抓取、质检和执行节点",
+            "输出包含关键工件路径和状态摘要的最小结果包"
+          ],
+          "verification": [
+            "fixture 驱动的端到端 smoke test 能从输入走到结果包",
+            "成功路径下输出包含 spec、数据集和回归工件摘要"
+          ],
+          "passes": false,
+          "updated_at": "2026-03-23"
+        }
+      ]
     }
   ],
   "feature_template": {
     "id": "Sx-Tx",
+    "name": "",
     "category": "functional",
+    "priority": 1,
+    "creation_order": 1,
+    "status": "todo",
     "description": "",
+    "deliverable": "",
     "steps": [],
-    "passes": false
+    "verification": [],
+    "passes": false,
+    "updated_at": "YYYY-MM-DD"
   }
 }
