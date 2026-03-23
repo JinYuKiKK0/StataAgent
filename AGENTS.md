@@ -25,7 +25,6 @@
 - `feature_list.json`：分阶段待办事项和验证状态。
 - `claude-progress.md`：紧凑的跨会话交接、架构决策和当前工作上下文。
 - `docs/README.md`：文档中心、阅读顺序和单一事实来源索引。
-- `docs/context-harness.md`：使用仓库文档作为上下文容器的规则。
 - `docs/product/research-workflow.md`：阶段语义、必需输出和失败检查点。
 - `docs/references/CSMAR_PYTHON.md`：供应商 SDK 参考材料和使用约束。
 
@@ -40,7 +39,6 @@
 ├── claude-progress.md
 └── docs/
     ├── README.md
-    ├── context-harness.md
     ├── product/
     │   └── research-workflow.md
     └── references/

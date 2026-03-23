@@ -21,7 +21,7 @@ StataAgent 是一个本地 Windows 实证分析代理。它将用户研究请求
 - 结构化模型和设置：`pydantic v2`、`pydantic-settings`
 - 数据处理：`pandas`、`numpy`、`pyarrow`、`pandera`
 - Stata 代码生成：`jinja2`
-- 本地持久化：`sqlite3`、`parquet`、`.dta`
+- 本地持久化：`postgresql`、`parquet`、`.dta`
 - CLI 和终端 UX：`typer`、`rich`
 - 日志和密钥：`structlog`、`python-keyring`
 - CSMAR 兼容层：专用的 `Python 3.6` 桥接进程，配合官方 `CSMAR-PYTHON`
@@ -133,7 +133,7 @@ requested
 
 ## 存储和工件
 
-- `sqlite3`：运行元数据、审计跟踪、缓存索引、查询指纹
+- `postgresql`：运行元数据、审计跟踪、缓存索引、查询指纹
 - `parquet`：获取的原始表、标准化表、中间连接
 - `.dta`：Stata 就绪分析表
 - `.do` 和日志文件：生成的 Stata 程序和执行跟踪
@@ -143,4 +143,3 @@ requested
 - 将工作流指令和仓库导航保留在 `AGENTS.md` 中。
 - 将顶层架构和栈决策保留在 `ARCHITECTURE.md` 中。
 - 将持久的支持知识保留在 `docs/` 中。
-- 不要重建单块 `PLAN.md`；按主题和所有权拆分持久知识。
