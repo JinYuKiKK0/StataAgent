@@ -3,21 +3,26 @@ repos:
     hooks:
       - id: ruff
         name: ruff
-        entry: uv run ruff check .
+        entry: python -m ruff check .
         language: system
         pass_filenames: false
       - id: pyright
         name: pyright
-        entry: uv run pyright
+        entry: python -m pyright
         language: system
         pass_filenames: false
       - id: import-linter
         name: import-linter
-        entry: uv run lint-imports
+        entry: python -m tools.run_import_linter
         language: system
         pass_filenames: false
       - id: architecture-tests
         name: architecture-tests
-        entry: uv run pytest tests/architecture -q
+        entry: pytest tests/architecture -q
+        language: system
+        pass_filenames: false
+      - id: harness
+        name: harness
+        entry: python -m tools.harness lint
         language: system
         pass_filenames: false

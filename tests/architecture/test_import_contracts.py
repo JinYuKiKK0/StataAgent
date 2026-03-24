@@ -6,8 +6,8 @@ def test_import_linter_contracts_pass() -> None:
     result = subprocess.run(
         [
             sys.executable,
-            "-c",
-            "from importlinter.cli import lint_imports; raise SystemExit(lint_imports())",
+            "-m",
+            "tools.run_import_linter",
         ],
         check=False,
         capture_output=True,

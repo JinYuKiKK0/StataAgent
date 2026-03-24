@@ -157,11 +157,11 @@ tests/
 
 本地提交和 CI 必须执行同一套 gate，顺序如下：
 
-1. `ruff check .`
-2. `pyright`
-3. `lint-imports`
+1. `python -m ruff check .`
+2. `python -m pyright`
+3. `python -m tools.run_import_linter`
 4. `pytest tests/architecture -q`
-5. `uv run python -m tools.harness lint`
+5. `python -m tools.harness lint`
 
 CI 建议拆成五个 job：
 
