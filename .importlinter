@@ -1,0 +1,11 @@
+[importlinter]
+root_package = stata_agent
+
+[importlinter:contract:top_level_layers]
+name = StataAgent top-level package layering
+type = layers
+layers =
+    stata_agent.interfaces
+    stata_agent.workflow
+    stata_agent.domains
+    stata_agent.providers
