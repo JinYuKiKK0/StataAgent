@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from stata_agent.domain.models import QueryPlan
+from stata_agent.domains.fetch.types import QueryPlan
 
 
 class CsmarBridgeClient:

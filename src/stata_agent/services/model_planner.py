@@ -1,4 +1,4 @@
-from stata_agent.domain.models import ResearchSpec
+from stata_agent.domains.spec.types import ResearchSpec
 
 
 class ModelPlanner:
@@ -6,4 +6,3 @@ class ModelPlanner:
         dependent = spec.dependent_variable or "y"
         independent = spec.independent_variables[0] if spec.independent_variables else "x"
         return f"{dependent} = beta * {independent} + controls + fe + error"
-

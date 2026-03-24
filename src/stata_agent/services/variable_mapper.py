@@ -1,4 +1,5 @@
-from stata_agent.domain.models import ResearchSpec, VariableBinding
+from stata_agent.domains.mapping.types import VariableBinding
+from stata_agent.domains.spec.types import ResearchSpec
 
 
 class VariableMapper:
@@ -15,4 +16,3 @@ class VariableMapper:
             )
             for variable in spec.independent_variables
         ]
-

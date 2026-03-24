@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field
 
+from stata_agent.domains.request.types import ResearchRequest
+from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domain.enums import RunStage
-from stata_agent.domain.models import ResearchRequest, ResearchSpec
 
 
 class ResearchState(BaseModel):
