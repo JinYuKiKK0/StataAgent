@@ -23,7 +23,7 @@ def test_package_exposes_core_contracts() -> None:
 
 
 def test_cli_help_is_available() -> None:
-    from stata_agent.cli import app
+    from stata_agent.interfaces.cli import app
 
     result = CliRunner().invoke(app, ["--help"])
 
@@ -34,7 +34,7 @@ def test_cli_help_is_available() -> None:
 def test_research_command_with_valid_input(monkeypatch: pytest.MonkeyPatch) -> None:
     from stata_agent.domains.request.types import ResearchRequest
     from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
-    from stata_agent.cli import app
+    from stata_agent.interfaces.cli import app
     from stata_agent.workflow.types import RunStage
 
     class SuccessfulOrchestrator:
@@ -84,7 +84,7 @@ def test_research_command_with_valid_input(monkeypatch: pytest.MonkeyPatch) -> N
 def test_research_command_with_parse_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     from stata_agent.domains.request.types import ResearchRequest
     from stata_agent.domains.spec.types import RequirementParseResult
-    from stata_agent.cli import app
+    from stata_agent.interfaces.cli import app
     from stata_agent.workflow.types import RunStage
 
     class FailingOrchestrator:
@@ -120,7 +120,7 @@ def test_research_command_with_parse_failure(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_research_command_with_missing_tongyi_settings(monkeypatch: pytest.MonkeyPatch) -> None:
-    from stata_agent.cli import app
+    from stata_agent.interfaces.cli import app
     from stata_agent.providers.settings import get_settings
 
     monkeypatch.delenv("DASHSCOPE_API_KEY")
@@ -143,7 +143,7 @@ def test_research_command_with_missing_tongyi_settings(monkeypatch: pytest.Monke
 
 
 def test_research_command_missing_required_fields() -> None:
-    from stata_agent.cli import app
+    from stata_agent.interfaces.cli import app
 
     # 测试缺少 --topic
     result = CliRunner().invoke(

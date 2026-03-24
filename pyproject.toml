@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-stata-agent = "stata_agent.cli:main"
+stata-agent = "stata_agent.interfaces.cli:main"
 
 [dependency-groups]
 dev = [

@@ -15,14 +15,14 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：已移除遗留 `src/stata_agent/domain/` 兼容层；正式契约仅保留在 `src/stata_agent/domains/`，`RunStage` 已迁入 `src/stata_agent/workflow/types.py`
+- 正在处理：已继续收口历史兼容层，删除顶层 `src/stata_agent/cli.py`、`config.py`、`logging.py` shim，以及不再使用的 `src/stata_agent/application/`、`src/stata_agent/adapters/`
 - 阶段：S1 架构收口
 - 分支：main
 - 关键文件：
-  - `src/stata_agent/domains/` — 现为唯一正式 domain contract 目录，按 request/spec/mapping/fetch/... 分域维护 `types.py`。
-  - `src/stata_agent/workflow/types.py` — `RunStage` 的新归属，避免 workflow 状态机继续依赖已删除的 legacy `domain/enums.py`。
-  - `src/stata_agent/interfaces/cli.py` / `src/stata_agent/services/result_judge.py` / `src/stata_agent/workflow/*.py` — 均已改为直接依赖 `domains/*` 或 `workflow/types.py`。
-  - `tests/architecture/test_boundary_contracts.py` / `tests/test_bootstrap.py` / `tests/test_workflow_orchestrator.py` — 已移除对 `stata_agent.domain.*` 的兼容层断言和引用。
+  - `pyproject.toml` — CLI 脚本入口已从 `stata_agent.cli:main` 改为 `stata_agent.interfaces.cli:main`
+  - `src/stata_agent/interfaces/cli.py` — 现为唯一 CLI 实现入口，不再经由顶层 shim 转发
+  - `src/stata_agent/providers/` / `src/stata_agent/workflow/` / `src/stata_agent/domains/` — 现为保留下来的正式 provider、workflow、domain 目录
+  - `tests/test_bootstrap.py` — 已改为直接依赖 `stata_agent.interfaces.cli`
 - 未解决的问题：
   - `pre-commit run --all-files` 在当前沙箱中需要显式设置 `PRE_COMMIT_HOME` 到仓库内可写目录；普通开发机默认缓存目录通常可直接工作
   - 真实 Tongyi API 需要用户在 `.env` 中提供可用的 `DASHSCOPE_API_KEY`；当前验证以注入式测试替身覆盖，不包含线上密钥调用
