@@ -20,7 +20,8 @@
 4. `ARCHITECTURE.md`
 5. `docs/README.md`
 6. `docs/product/research-workflow.md`
-7. 当任务涉及产品规则或供应商约束时，`Requirements.md` 或 `docs/references/CSMAR_PYTHON.md`
+7. 当任务涉及架构治理、Agent 约束或工程规则时，阅读 `docs/engineering/agent-harness.md`
+8. 当任务涉及产品规则或供应商约束时，阅读 `Requirements.md` 或 `docs/references/CSMAR_PYTHON.md`
 
 ## 渐进式披露
 
@@ -37,6 +38,7 @@
 - 会话工作流和仓库地图：`AGENTS.md`
 - 架构和技术栈：`ARCHITECTURE.md`
 - 上下文容器约定：`docs/README.md`
+- Agent harness 和工程约束：`docs/engineering/agent-harness.md`
 - 研究阶段语义：`docs/product/research-workflow.md`
 - 产品需求基线：`Requirements.md`
 - 供应商 SDK 约束：`docs/references/CSMAR_PYTHON.md`
@@ -56,6 +58,7 @@
 本仓库当前故意保持文档知识库较小：
 
 - `docs/README.md`
+- `docs/engineering/agent-harness.md`
 - `docs/product/research-workflow.md`
 - `docs/references/CSMAR_PYTHON.md`
 

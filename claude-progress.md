@@ -15,18 +15,16 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：针对 S1-T1 的前期交付进行防呆与健壮性修补排查
-- 阶段：S1（需求解析与数据定义）
+- 正在处理：补齐仓库级 agent harness 文档，定义 Agent 编码、架构边界与代码风格的机械约束方案
+- 阶段：治理设计（未推进新的产品 feature）
 - 分支：main
 - 关键文件：
-  - src/stata_agent/domain/models.py — `ResearchRequest` 追加了正则约束（数据契约收紧）。
-  - src/stata_agent/cli.py — 追加了对 Validation 异常的友好终端捕获提示。
-  - src/stata_agent/config.py — 第一性原理重构，仅从 `.env` 物理文件抽字典做校验。
-  - tests/test_bootstrap.py — 防呆负面测试做到了 `pytest` 100% 必须字段覆盖。
-  - .env — 初始化了本地依赖配置。
+  - docs/engineering/agent-harness.md — StataAgent 的 harness engineering 单一事实来源，覆盖目标目录模型、边界契约、taste invariants、lint/CI 方案与实施路线。
+  - docs/README.md — 已接入 harness 文档到阅读顺序与单一事实来源索引。
+  - AGENTS.md — 已补充 harness 文档到仓库导航入口。
 - 未解决的问题：
-  - 具体业务实现仍停留在骨架阶段，LangChain、LangGraph、CSMAR 和 Stata executor 仍未接入真实流程
-  - S1-T1 大门已筑起，下一优先级为 S1-T2（LangChain Parse）。
+  - 约束方案仍停留在文档设计层，`tools/harness`、`pre-commit`、`mypy`、`ruff` 和结构测试尚未落地
+  - 最高优先级产品 feature 仍为 S1-T2（LangChain Parse），本次未推进业务实现
 - 已安装依赖：通过 `uv` 管理的本地环境，包含 `pydantic`、`python-dotenv`、`rich`、`typer` 和 `pytest`
 - 开发服务器：不适用
 
