@@ -1,6 +1,5 @@
-from stata_agent.cli import main
+from stata_agent.interfaces.cli import main
 
 
 if __name__ == "__main__":
     main()
-

@@ -1,7 +1,3 @@
-from pathlib import Path
+from stata_agent.providers.stata import StataExecutorClient
 
-
-class StataExecutorClient:
-    def run(self, do_file: Path) -> Path:
-        return do_file.with_suffix(".log")
-
+__all__ = ["StataExecutorClient"]
