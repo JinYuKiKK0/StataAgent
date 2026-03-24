@@ -4,6 +4,8 @@
     "**/__pycache__",
     ".venv"
   ],
+  "venvPath": ".",
+  "venv": ".venv",
   "typeCheckingMode": "strict",
   "reportMissingTypeArgument": "error",
   "reportUnknownArgumentType": "error",
