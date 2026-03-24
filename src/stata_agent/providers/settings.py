@@ -1,8 +1,15 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import cast
 
-from dotenv import dotenv_values
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import AliasChoices, Field, SecretStr, ValidationError
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_ENV_LABELS = {
+    "workspace_dir": "WORKSPACE_DIR",
+    "dashscope_api_key": "DASHSCOPE_API_KEY",
+    "tongyi_model": "TONGYI_MODEL",
+}
 
 
 class SettingsError(RuntimeError):
@@ -11,20 +18,40 @@ class SettingsError(RuntimeError):
         self.details = details
 
 
-class Settings(BaseModel):
-    app_name: str = "StataAgent"
-    environment: str = "development"
-    workspace_dir: Path = Field(..., description="工作空间文件目录")
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    app_name: str = Field(default="StataAgent", validation_alias=AliasChoices("APP_NAME", "app_name"))
+    environment: str = Field(default="development", validation_alias=AliasChoices("ENVIRONMENT", "environment"))
+    workspace_dir: Path = Field(
+        ...,
+        description="工作空间文件目录",
+        validation_alias=AliasChoices("WORKSPACE_DIR", "workspace_dir"),
+    )
+    dashscope_api_key: SecretStr = Field(
+        ...,
+        description="Tongyi DashScope API key",
+        validation_alias=AliasChoices("DASHSCOPE_API_KEY", "dashscope_api_key"),
+    )
+    tongyi_model: str = Field(
+        ...,
+        description="Tongyi model name, e.g. qwen-plus",
+        validation_alias=AliasChoices("TONGYI_MODEL", "tongyi_model"),
+    )
 
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    env_file = Path(".env")
-    env_dict = dotenv_values(env_file) if env_file.exists() else {}
-    env_data = {key: value for key, value in env_dict.items() if value is not None}
-
     try:
-        return Settings.model_validate(env_data)
+        return Settings()  # pyright: ignore[reportCallIssue]
     except ValidationError as e:
-        details = [str(err) for err in e.errors()]
+        details: list[str] = []
+        for err in cast(list[dict[str, object]], e.errors()):
+            field = str(cast(tuple[object, ...], err["loc"])[0])
+            label = _ENV_LABELS.get(field, field)
+            details.append(f"{label}: {err['msg']}")
         raise SettingsError(details) from e

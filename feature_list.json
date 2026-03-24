@@ -42,7 +42,7 @@
           "category": "functional",
           "priority": 2,
           "creation_order": 2,
-          "status": "todo",
+          "status": "completed",
           "description": "使用 LangChain 结构化输出把自然语言题目、Y、X、时间范围和样本范围解析为初始研究规范。",
           "deliverable": "包含研究主题、核心变量、样本粒度候选和时间边界的 ResearchSpec",
           "steps": [
@@ -54,8 +54,8 @@
             "给定固定输入时可稳定产出完整字段",
             "无法满足约束的输入会返回可解释的解析失败"
           ],
-          "passes": false,
-          "updated_at": "2026-03-23"
+          "passes": true,
+          "updated_at": "2026-03-24"
         },
         {
           "id": "S1-T3",

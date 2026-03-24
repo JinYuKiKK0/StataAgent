@@ -17,12 +17,13 @@ StataAgent 是一个本地 Windows 实证分析代理。它将用户研究请求
 ## 技术栈
 
 - 主运行时：`Python 3.12`
-- 工作流编排：`langgraph`、`langchain-core`、`langchain-openai`
+- 工作流编排：`langgraph`、`langchain`、`langchain-community`
 - 结构化模型和设置：`pydantic v2`、`pydantic-settings`
 - 数据处理：`pandas`、`numpy`、`pyarrow`、`pandera`
 - Stata 代码生成：`jinja2`
 - 本地持久化：`postgresql`、`parquet`、`.dta`
 - CLI 和终端 UX：`typer`、`rich`
+- LLM 接入：Tongyi `DashScope`，通过 LangChain 统一模型接口与结构化输出
 - 日志和密钥：`structlog`、`python-keyring`
 - CSMAR 兼容层：专用的 `Python 3.6` 桥接进程，配合官方 `CSMAR-PYTHON`
 - Stata 执行集成：用于 `stata-executor-mcp` 的 Python MCP 客户端
@@ -60,11 +61,12 @@ StataAgent 是一个本地 Windows 实证分析代理。它将用户研究请求
 - 使用 LangGraph 作为规范的状态机运行时。
 - 在类型化的 `ResearchState` 中存储共享状态。
 - 保持每个阶段可恢复、可检查和可审计。
+- 当前最小可运行图先实现 `requested -> specified | failed` 的需求解析闭环。
 
 ### 研究规范层
 
-- 将混合用户输入转换为 `ResearchSpec`。
-- 锁定 `Y`、`X`、控制变量、预期符号、目标面板粒度、候选固定效应和安全重试边界的角色。
+- 使用 LangChain 结构化输出把用户请求转换为 `ResearchSpec`。
+- 锁定 `Y`、`X`、样本范围和时间边界，并生成控制变量候选与目标面板粒度候选。
 
 ### 变量映射层
 

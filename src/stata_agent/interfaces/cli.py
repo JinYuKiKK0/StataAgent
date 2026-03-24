@@ -5,6 +5,7 @@ from rich.table import Table
 from pydantic import ValidationError
 
 from stata_agent.domains.request.types import ResearchRequest
+from stata_agent.domain.enums import RunStage
 from stata_agent.providers.settings import SettingsError, get_settings
 from stata_agent.workflow.orchestrator import ApplicationOrchestrator
 from stata_agent.workflow.state import ResearchState
@@ -41,6 +42,7 @@ def research(
     ),
 ) -> None:
     """提交单次实证分析请求。"""
+    _load_settings()
     request = _build_request(
         topic=topic,
         dependent_variable=dependent_variable,
@@ -50,8 +52,10 @@ def research(
         empirical_requirements=empirical_requirements,
     )
     orchestrator = ApplicationOrchestrator()
-    state = orchestrator.create_initial_state(request)
+    state = orchestrator.run(request)
     _render_research_summary(state)
+    if state.stage is RunStage.FAILED:
+        raise typer.Exit(code=1)
 
 def main() -> None:
     app()
@@ -95,7 +99,10 @@ def _build_request(
 
 
 def _render_research_summary(state: ResearchState) -> None:
-    console.print("\n[bold green]✓ 请求已接收并验证通过[/bold green]\n")
+    if state.stage is RunStage.SPECIFIED:
+        console.print("\n[bold green]✓ 研究请求已完成需求解析[/bold green]\n")
+    else:
+        console.print("\n[bold red]✗ 研究请求在需求解析阶段失败[/bold red]\n")
 
     table = Table(title="研究请求摘要")
     table.add_column("字段", style="cyan")
@@ -110,4 +117,49 @@ def _render_research_summary(state: ResearchState) -> None:
     table.add_row("当前阶段", state.stage.value)
 
     console.print(table)
+    if state.spec is not None:
+        _render_spec_summary(state)
+    if state.parse_result is not None:
+        _render_parse_audit(state)
     console.print(f"\n[dim]工作流状态 ID: {state.stage}[/dim]")
+
+
+def _render_spec_summary(state: ResearchState) -> None:
+    if state.spec is None:
+        return
+
+    table = Table(title="ResearchSpec 摘要")
+    table.add_column("字段", style="cyan")
+    table.add_column("值", style="white")
+
+    table.add_row("解析主题", state.spec.topic)
+    table.add_row("样本范围", state.spec.entity_scope)
+    table.add_row("时间边界", f"{state.spec.time_start_year}-{state.spec.time_end_year}")
+    table.add_row("候选分析粒度", ", ".join(state.spec.analysis_grain_candidates))
+    table.add_row(
+        "控制变量候选",
+        ", ".join(state.spec.control_variable_candidates) if state.spec.control_variable_candidates else "无",
+    )
+
+    console.print(table)
+
+
+def _render_parse_audit(state: ResearchState) -> None:
+    if state.parse_result is None:
+        return
+
+    table = Table(title="需求解析审计")
+    table.add_column("字段", style="cyan")
+    table.add_column("值", style="white")
+
+    if state.parse_result.failure_reason is not None:
+        table.add_row("失败原因", state.parse_result.failure_reason)
+    if state.parse_result.parsing_error is not None:
+        table.add_row("结构化解析错误", state.parse_result.parsing_error)
+    if state.parse_result.warnings:
+        table.add_row("Warnings", " | ".join(state.parse_result.warnings))
+    if state.parse_result.raw_response_text:
+        table.add_row("原始响应", state.parse_result.raw_response_text)
+
+    if table.row_count > 0:
+        console.print(table)

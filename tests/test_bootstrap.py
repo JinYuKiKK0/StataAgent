@@ -1,5 +1,7 @@
 from typer.testing import CliRunner
 
+import pytest
+
 
 def test_package_exposes_core_contracts() -> None:
     from stata_agent import __version__
@@ -29,9 +31,36 @@ def test_cli_help_is_available() -> None:
     assert "StataAgent" in result.stdout
 
 
-def test_research_command_with_valid_input() -> None:
+def test_research_command_with_valid_input(monkeypatch: pytest.MonkeyPatch) -> None:
+    from stata_agent.domains.request.types import ResearchRequest
+    from stata_agent.domain.enums import RunStage
+    from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
     from stata_agent.cli import app
 
+    class SuccessfulOrchestrator:
+        def run(self, request: ResearchRequest):
+            from stata_agent.workflow.state import ResearchState
+
+            return ResearchState(
+                request=request,
+                stage=RunStage.SPECIFIED,
+                spec=ResearchSpec(
+                    topic=request.topic,
+                    dependent_variable=request.dependent_variable,
+                    independent_variables=request.independent_variables,
+                    entity_scope=request.entity_scope,
+                    time_start_year=2010,
+                    time_end_year=2023,
+                    control_variable_candidates=["资产规模", "资本充足率"],
+                    analysis_grain_candidates=["bank-year"],
+                ),
+                parse_result=RequirementParseResult(
+                    raw_response_text="structured output",
+                    warnings=["数字化口径需后续映射确认"],
+                ),
+            )
+
+    monkeypatch.setattr("stata_agent.interfaces.cli.ApplicationOrchestrator", SuccessfulOrchestrator)
     result = CliRunner().invoke(
         app,
         [
@@ -45,10 +74,72 @@ def test_research_command_with_valid_input() -> None:
     )
 
     assert result.exit_code == 0
-    assert "✓ 请求已接收并验证通过" in result.stdout
+    assert "✓ 研究请求已完成需求解析" in result.stdout
     assert "银行数字化转型与风险承担" in result.stdout
-    assert "ROA" in result.stdout
-    assert "数字化转型指数" in result.stdout
+    assert "ResearchSpec 摘要" in result.stdout
+    assert "bank-year" in result.stdout
+    assert "资产规模" in result.stdout
+
+
+def test_research_command_with_parse_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    from stata_agent.domains.request.types import ResearchRequest
+    from stata_agent.domain.enums import RunStage
+    from stata_agent.domains.spec.types import RequirementParseResult
+    from stata_agent.cli import app
+
+    class FailingOrchestrator:
+        def run(self, request: ResearchRequest):
+            from stata_agent.workflow.state import ResearchState
+
+            return ResearchState(
+                request=request,
+                stage=RunStage.FAILED,
+                parse_result=RequirementParseResult(
+                    raw_response_text="bad output",
+                    failure_reason="需求解析失败：模型没有提供候选分析粒度。",
+                ),
+                notes=["需求解析失败：模型没有提供候选分析粒度。"],
+            )
+
+    monkeypatch.setattr("stata_agent.interfaces.cli.ApplicationOrchestrator", FailingOrchestrator)
+    result = CliRunner().invoke(
+        app,
+        [
+            "research",
+            "--topic", "银行数字化转型与风险承担",
+            "--y", "ROA",
+            "--x", "数字化转型指数",
+            "--entity", "A股上市银行",
+            "--time", "2010-2023",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "需求解析阶段失败" in result.stdout
+    assert "模型没有提供候选分析粒度" in result.stdout
+
+
+def test_research_command_with_missing_tongyi_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    from stata_agent.cli import app
+    from stata_agent.providers.settings import get_settings
+
+    monkeypatch.delenv("DASHSCOPE_API_KEY")
+    get_settings.cache_clear()
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "research",
+            "--topic", "银行数字化转型与风险承担",
+            "--y", "ROA",
+            "--x", "数字化转型指数",
+            "--entity", "A股上市银行",
+            "--time", "2010-2023",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "DASHSCOPE_API_KEY" in result.stdout
 
 
 def test_research_command_missing_required_fields() -> None:
