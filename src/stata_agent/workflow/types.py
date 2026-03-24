@@ -13,4 +13,3 @@ class RunStage(str, Enum):
     JUDGED = "judged"
     COMPLETED = "completed"
     FAILED = "failed"
-

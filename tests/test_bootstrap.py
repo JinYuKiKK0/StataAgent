@@ -5,7 +5,7 @@ import pytest
 
 def test_package_exposes_core_contracts() -> None:
     from stata_agent import __version__
-    from stata_agent.domain.models import ResearchRequest
+    from stata_agent.domains.request.types import ResearchRequest
     from stata_agent.workflow.state import ResearchState
 
     request = ResearchRequest(
@@ -33,9 +33,9 @@ def test_cli_help_is_available() -> None:
 
 def test_research_command_with_valid_input(monkeypatch: pytest.MonkeyPatch) -> None:
     from stata_agent.domains.request.types import ResearchRequest
-    from stata_agent.domain.enums import RunStage
     from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
     from stata_agent.cli import app
+    from stata_agent.workflow.types import RunStage
 
     class SuccessfulOrchestrator:
         def run(self, request: ResearchRequest):
@@ -83,9 +83,9 @@ def test_research_command_with_valid_input(monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_research_command_with_parse_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     from stata_agent.domains.request.types import ResearchRequest
-    from stata_agent.domain.enums import RunStage
     from stata_agent.domains.spec.types import RequirementParseResult
     from stata_agent.cli import app
+    from stata_agent.workflow.types import RunStage
 
     class FailingOrchestrator:
         def run(self, request: ResearchRequest):

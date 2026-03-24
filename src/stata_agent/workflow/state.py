@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
-from stata_agent.domain.enums import RunStage
+from stata_agent.workflow.types import RunStage
 
 
 class ResearchState(BaseModel):

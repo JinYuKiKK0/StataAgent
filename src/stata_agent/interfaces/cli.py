@@ -5,10 +5,10 @@ from rich.table import Table
 from pydantic import ValidationError
 
 from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.domain.enums import RunStage
 from stata_agent.providers.settings import SettingsError, get_settings
 from stata_agent.workflow.orchestrator import ApplicationOrchestrator
 from stata_agent.workflow.state import ResearchState
+from stata_agent.workflow.types import RunStage
 
 app = typer.Typer(
     name="StataAgent",

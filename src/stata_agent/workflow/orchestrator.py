@@ -5,13 +5,13 @@ from typing import Protocol
 
 from langgraph.graph import END, START, StateGraph
 
-from stata_agent.domain.enums import RunStage
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import RequirementParseResult
 from stata_agent.providers.llm import TongyiResearchSpecGenerator
 from stata_agent.providers.settings import Settings, get_settings
 from stata_agent.services.requirement_parser import RequirementParser
 from stata_agent.workflow.state import ResearchState
+from stata_agent.workflow.types import RunStage
 
 
 class RequirementParserPort(Protocol):
