@@ -51,7 +51,25 @@ def test_orchestrator_runs_to_specified_state() -> None:
     assert state.stage is RunStage.SPECIFIED
     assert state.spec is not None
     assert state.parse_result is not None
+    assert state.variable_definitions is not None
+    assert state.data_requirements_draft is not None
     assert "需求解析已完成。" in state.notes
+    assert "变量定义与数据需求清单已生成。" in state.notes
+
+    assert state.data_requirements_draft.entity_scope == "A股上市银行"
+    assert state.data_requirements_draft.time_start_year == 2010
+    assert state.data_requirements_draft.time_end_year == 2023
+
+    item_roles = {item.role for item in state.data_requirements_draft.items}
+    assert "dependent" in item_roles
+    assert "independent" in item_roles
+    assert "control" in item_roles
+
+    pending_controls = [
+        item for item in state.data_requirements_draft.items if item.role == "control"
+    ]
+    assert pending_controls
+    assert all(item.slot_status == "pending_agent_completion" for item in pending_controls)
 
 
 def test_orchestrator_runs_to_failed_state() -> None:
@@ -62,6 +80,8 @@ def test_orchestrator_runs_to_failed_state() -> None:
     assert state.stage is RunStage.FAILED
     assert state.spec is None
     assert state.parse_result is not None
+    assert state.variable_definitions is None
+    assert state.data_requirements_draft is None
     assert "需求解析失败：Tongyi 未产出可用的研究规范。" in state.notes
 
 

@@ -125,6 +125,10 @@ def _render_research_summary(state: ResearchState) -> None:
     console.print(table)
     if state.spec is not None:
         _render_spec_summary(state)
+    if state.variable_definitions is not None:
+        _render_variable_definitions(state)
+    if state.data_requirements_draft is not None:
+        _render_data_requirements(state)
     if state.parse_result is not None:
         _render_parse_audit(state)
     console.print(f"\n[dim]工作流状态 ID: {state.stage}[/dim]")
@@ -169,3 +173,44 @@ def _render_parse_audit(state: ResearchState) -> None:
 
     if table.row_count > 0:
         console.print(table)
+
+
+def _render_variable_definitions(state: ResearchState) -> None:
+    if state.variable_definitions is None:
+        return
+
+    table = Table(title="变量定义表")
+    table.add_column("变量")
+    table.add_column("角色")
+    table.add_column("锁定")
+    table.add_column("槽位状态")
+    table.add_column("频率")
+    table.add_column("候选数据域")
+
+    for definition in state.variable_definitions:
+        table.add_row(
+            definition.variable_name,
+            definition.role,
+            "是" if definition.is_locked else "否",
+            definition.slot_status,
+            definition.frequency_hint,
+            definition.source_domain_hint,
+        )
+
+    console.print(table)
+
+
+def _render_data_requirements(state: ResearchState) -> None:
+    if state.data_requirements_draft is None:
+        return
+
+    summary = Table(title="数据需求表")
+    summary.add_column("字段", style="cyan")
+    summary.add_column("值", style="white")
+    summary.add_row("样本范围", state.data_requirements_draft.entity_scope)
+    summary.add_row(
+        "时间边界",
+        f"{state.data_requirements_draft.time_start_year}-{state.data_requirements_draft.time_end_year}",
+    )
+    summary.add_row("需求条目数", str(len(state.data_requirements_draft.items)))
+    console.print(summary)

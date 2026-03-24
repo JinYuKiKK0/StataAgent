@@ -32,8 +32,11 @@ def test_cli_help_is_available() -> None:
 
 
 def test_research_command_with_valid_input(monkeypatch: pytest.MonkeyPatch) -> None:
+    from stata_agent.domains.spec.types import DataRequirementItem
+    from stata_agent.domains.spec.types import DataRequirementsDraft
     from stata_agent.domains.request.types import ResearchRequest
     from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
+    from stata_agent.domains.spec.types import VariableDefinition
     from stata_agent.interfaces.cli import app
     from stata_agent.workflow.types import RunStage
 
@@ -58,6 +61,45 @@ def test_research_command_with_valid_input(monkeypatch: pytest.MonkeyPatch) -> N
                     raw_response_text="structured output",
                     warnings=["数字化口径需后续映射确认"],
                 ),
+                variable_definitions=[
+                    VariableDefinition(
+                        variable_name="ROA",
+                        role="dependent",
+                        is_locked=True,
+                        slot_status="ready",
+                        frequency_hint="annual",
+                        source_domain_hint="bank_financials",
+                    ),
+                    VariableDefinition(
+                        variable_name="资产规模",
+                        role="control",
+                        is_locked=False,
+                        slot_status="pending_agent_completion",
+                        frequency_hint="annual",
+                        source_domain_hint="bank_financials",
+                    ),
+                ],
+                data_requirements_draft=DataRequirementsDraft(
+                    entity_scope=request.entity_scope,
+                    time_start_year=2010,
+                    time_end_year=2023,
+                    items=[
+                        DataRequirementItem(
+                            variable_name="ROA",
+                            role="dependent",
+                            frequency_hint="annual",
+                            source_domain_hint="bank_financials",
+                            slot_status="ready",
+                        ),
+                        DataRequirementItem(
+                            variable_name="资产规模",
+                            role="control",
+                            frequency_hint="annual",
+                            source_domain_hint="bank_financials",
+                            slot_status="pending_agent_completion",
+                        ),
+                    ],
+                ),
             )
 
     monkeypatch.setattr("stata_agent.interfaces.cli.ApplicationOrchestrator", SuccessfulOrchestrator)
@@ -77,6 +119,8 @@ def test_research_command_with_valid_input(monkeypatch: pytest.MonkeyPatch) -> N
     assert "✓ 研究请求已完成需求解析" in result.stdout
     assert "银行数字化转型与风险承担" in result.stdout
     assert "ResearchSpec 摘要" in result.stdout
+    assert "变量定义表" in result.stdout
+    assert "数据需求表" in result.stdout
     assert "bank-year" in result.stdout
     assert "资产规模" in result.stdout
 

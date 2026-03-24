@@ -63,7 +63,7 @@
           "category": "documentation",
           "priority": 3,
           "creation_order": 3,
-          "status": "todo",
+          "status": "completed",
           "description": "基于 ResearchSpec 产出变量定义清单和数据需求草案，明确 Y、X 和待补控制变量位。",
           "deliverable": "变量定义表与数据需求表",
           "steps": [
@@ -75,8 +75,8 @@
             "生成结果包含 Y、X、时间范围和样本约束",
             "清单中明确标记待 agent 补全的控制变量槽位"
           ],
-          "passes": false,
-          "updated_at": "2026-03-23"
+          "passes": true,
+          "updated_at": "2026-03-24"
         }
       ]
     },

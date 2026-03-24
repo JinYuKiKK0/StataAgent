@@ -7,15 +7,23 @@ from langgraph.graph import END, START, StateGraph
 
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import RequirementParseResult
+from stata_agent.domains.spec.types import ResearchSpec
+from stata_agent.domains.spec.types import VariableRequirementsResult
 from stata_agent.providers.llm import TongyiResearchSpecGenerator
 from stata_agent.providers.settings import Settings, SettingsError, get_settings
 from stata_agent.services.requirement_parser import RequirementParser
+from stata_agent.services.variable_requirements_builder import VariableRequirementsBuilder
 from stata_agent.workflow.state import ResearchState
 from stata_agent.workflow.types import RunStage
 
 
 class RequirementParserPort(Protocol):
     def parse(self, request: ResearchRequest) -> RequirementParseResult:
+        ...
+
+
+class VariableRequirementsBuilderPort(Protocol):
+    def build(self, spec: ResearchSpec) -> VariableRequirementsResult:
         ...
 
 
@@ -29,10 +37,12 @@ class ApplicationOrchestrator:
     def __init__(
         self,
         parser: RequirementParserPort | None = None,
+        builder: VariableRequirementsBuilderPort | None = None,
         settings_factory: Callable[[], Settings] = get_settings,
     ) -> None:
         self._settings_factory = settings_factory
         self._parser = parser
+        self._builder = builder
         self._settings: Settings | None = None
         self._graph = self._build_graph()
 
@@ -53,8 +63,10 @@ class ApplicationOrchestrator:
     def _build_graph(self):
         workflow = StateGraph(ResearchState)
         workflow.add_node("parse_request", self._parse_request_node)
+        workflow.add_node("build_variable_requirements", self._build_variable_requirements_node)
         workflow.add_edge(START, "parse_request")
-        workflow.add_edge("parse_request", END)
+        workflow.add_edge("parse_request", "build_variable_requirements")
+        workflow.add_edge("build_variable_requirements", END)
         return workflow.compile()
 
     def _parse_request_node(self, state: ResearchState) -> ResearchState:
@@ -80,11 +92,31 @@ class ApplicationOrchestrator:
             }
         )
 
+    def _build_variable_requirements_node(self, state: ResearchState) -> ResearchState:
+        if state.spec is None:
+            return state
+
+        build_result = self._get_builder().build(state.spec)
+        notes = list(state.notes)
+        notes.append("变量定义与数据需求清单已生成。")
+        return state.model_copy(
+            update={
+                "variable_definitions": build_result.variable_definitions,
+                "data_requirements_draft": build_result.data_requirements_draft,
+                "notes": notes,
+            }
+        )
+
     def _get_parser(self) -> RequirementParserPort:
         if self._parser is None:
             generator = TongyiResearchSpecGenerator(self._load_settings())
             self._parser = RequirementParser(generator=generator)
         return self._parser
+
+    def _get_builder(self) -> VariableRequirementsBuilderPort:
+        if self._builder is None:
+            self._builder = VariableRequirementsBuilder()
+        return self._builder
 
     def _load_settings(self) -> Settings:
         if self._settings is None:
