@@ -20,6 +20,7 @@
 - 分支：main
 - 关键文件：
   - docs/engineering/agent-harness.md — StataAgent 的 harness engineering 单一事实来源，覆盖目标目录模型、边界契约、taste invariants、lint/CI 方案与实施路线。
+  - docs/engineering/2026-03-24-agent-harness-implementation-plan.md — 将 harness 设计拆成可执行 backlog，包含文件清单、任务切分、测试命令与推荐提交边界。
   - docs/README.md — 已接入 harness 文档到阅读顺序与单一事实来源索引。
   - AGENTS.md — 已补充 harness 文档到仓库导航入口。
 - 未解决的问题：

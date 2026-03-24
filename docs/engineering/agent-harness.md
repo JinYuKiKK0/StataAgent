@@ -4,6 +4,8 @@
 
 本文档是 StataAgent 的 agent harness 单一事实来源，定义用于约束 Agent 编码、架构演进和代码风格的机械化规则。目标不是微观规定实现细节，而是把项目不变量编码成 agent 无法绕过的硬性 gate。
 
+实施计划见 `docs/engineering/2026-03-24-agent-harness-implementation-plan.md`。
+
 本文档吸收 `docs/references/Harness-engineering.md` 的两条核心经验：
 
 - 仓库知识必须是系统记录，Agent 需要清晰、可导航的文档入口，而不是超长提示词。
