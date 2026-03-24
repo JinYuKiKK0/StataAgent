@@ -3,6 +3,8 @@ from pathlib import Path
 
 from tools.harness.diagnostics import Diagnostic
 from tools.harness.rule_boundaries import check_file as check_boundaries
+from tools.harness.rule_logging import check_file as check_logging
+from tools.harness.rule_taste import check_file as check_taste
 
 
 def iter_python_files(paths: Iterable[str]) -> list[Path]:
@@ -23,5 +25,7 @@ def run_rules(paths: Iterable[str]) -> list[Diagnostic]:
 
     for file_path in iter_python_files(paths):
         diagnostics.extend(check_boundaries(file_path))
+        diagnostics.extend(check_logging(file_path))
+        diagnostics.extend(check_taste(file_path))
 
     return diagnostics
