@@ -53,7 +53,6 @@ src/stata_agent/
 - `domains/` 负责稳定的跨阶段边界类型；新增研究域时优先在现有 `domains/` 下扩展，而不是发明新的顶层包。
 - `providers/` 是唯一允许直接接触 SDK、文件系统持久化、模型后端和执行器客户端的目录。
 - `templates/` 只保存模板和受控资产，不是通用 Python 代码落点。
-- 兼容 shim 只应作为一次性迁移止血手段。普通功能开发不得引入新的 shim 模块。
 - 顶层包导入边界由 `.importlinter` 和 `uv run python -m tools.run_import_linter` 机械执行，不在本文中重复维护软约束。
 
 ## 稳定数据契约

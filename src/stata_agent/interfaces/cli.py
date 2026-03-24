@@ -52,7 +52,7 @@ def research(
     )
     orchestrator = ApplicationOrchestrator()
     try:
-        state = orchestrator.run(request)
+        state: ResearchState = orchestrator.run(request)
     except WorkflowBootstrapError as exc:
         _raise_bootstrap_exit(exc)
     _render_research_summary(state)
