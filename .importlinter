@@ -7,16 +7,29 @@ type = layers
 layers =
     stata_agent.interfaces
     stata_agent.workflow
+    stata_agent.services
     stata_agent.providers
     stata_agent.domains
 
-[importlinter:contract:new_packages_avoid_legacy_shims]
-name = New packages must avoid legacy shim modules
+[importlinter:contract:interfaces_must_flow_through_workflow]
+name = Interfaces must not bypass workflow boundaries
+type = forbidden
+source_modules =
+    stata_agent.interfaces
+forbidden_modules =
+    stata_agent.services
+    stata_agent.providers
+allow_indirect_imports = true
+
+[importlinter:contract:active_packages_avoid_legacy_shims]
+name = Active packages must avoid legacy shim modules
 type = forbidden
 source_modules =
     stata_agent.interfaces
     stata_agent.workflow
+    stata_agent.services
     stata_agent.providers
+    stata_agent.domains
 forbidden_modules =
     stata_agent.application
     stata_agent.adapters

@@ -4,7 +4,7 @@
 
 本文档是 StataAgent 的 agent harness 单一事实来源，定义用于约束 Agent 编码、架构边界和代码风格的机械化规则。目标不是微观规定实现细节，而是把项目不变量编码成 Agent 无法绕过的硬性 gate。
 
-源码目录结构本身以 `ARCHITECTURE.md` 为准；本文件只定义在该固定结构内如何约束依赖方向、边界契约和坏味道。
+源码目录结构和稳定数据契约以 `ARCHITECTURE.md` 为准；顶层包导入边界以 `.importlinter` 为准；本文件只保留治理入口、工具分工、taste invariants 和规则维护方式。
 
 本文档吸收 `docs/references/Harness-engineering.md` 的两条核心经验：
 
@@ -19,85 +19,12 @@
 - 本地与 CI 同标准。Agent 在本地看到的失败条件，必须与 CI 完全一致。
 - 新坏味道先沉淀为文档规则，再升级为机械规则。治理资产通过 review 和故障反馈持续收紧。
 
-## 目录结构约束
+## 机械治理边界
 
-当前固定根目录如下：
-
-```text
-src/stata_agent/
-├── interfaces/          # CLI / Python API / 用户输入输出
-├── workflow/            # LangGraph 图、状态机、节点装配
-├── domains/             # 研究域边界契约和少量端口定义
-├── services/            # 当前正式业务逻辑目录
-├── providers/           # CSMAR / Stata / storage / logging / settings / LLM
-└── templates/           # 受版本控制的模板和执行资产
-```
-
-该结构的意义是为 Agent 提供稳定语义，而不是继续驱动迁移：
-
-- `interfaces/` 只负责用户交互和展示。
-- `workflow/` 只负责编排，不承载业务规则。
-- `domains/` 定义边界契约和少量端口。
-- `services/` 承载纯业务逻辑。
-- `providers/` 是唯一允许接触外部世界的层。
-- `templates/` 只保存模板资产。
-
-硬规则如下：
-
-- 未更新 `ARCHITECTURE.md` 前，不得在 `src/stata_agent/` 下新增平行顶层包。
-- 日常 feature 开发不得推动跨根目录迁移，也不得引入兼容 shim 来维持新旧结构并存。
-- `services/` 是当前业务逻辑的正式归属目录；不要再派生新的 `application/`、`adapters/`、`runtime/`、`use_cases/`、`core/` 等平行目录。
-- 禁止新增无语义目录和文件名，例如 `utils.py`、`helpers.py`、`common.py`、`misc.py`。
-
-## 架构依赖规则
-
-允许依赖方向如下：
-
-```text
-interfaces -> workflow -> services -> domains/*
-workflow ---------------------> domains/*
-workflow / services ---------> providers
-providers -------------------> domains/*/types
-```
-
-硬规则如下：
-
-- `types.py` 只能依赖标准库、`pydantic`、枚举和同域基础类型。
-- `services/` 不得访问文件系统、网络、数据库、CLI 输出、环境变量。
-- `workflow/` 不得直接实现需求解析、变量映射、质量判断等业务规则。
-- `interfaces/` 不得直接调用 `providers/`。
-- 一个 domain 只能导入另一个 domain 的 `types.py`，不得导入对方的服务模块、工作流模块或等价业务实现。
-- `providers/` 之外不得直接接入第三方 SDK 或基础设施客户端。
-- `templates/` 不得演化成通用 Python 工具目录。
-
-## 边界数据契约规则
-
-所有跨层输入输出都必须使用显式契约对象。主链路至少需要稳定的类型：
-
-- `ResearchRequest`
-- `ResearchSpec`
-- `VariableBinding`
-- `QueryPlan`
-- `PanelDataset`
-- `QualityDecision`
-- `StataRunPlan`
-- `ResearchBundle`
-- `ResearchState`
-
-硬规则如下：
-
-- CLI / API 输入必须先进入输入模型，不能把命令行参数直接穿透到 workflow。
-- 每个阶段必须输出显式契约对象，不允许以裸 `dict`、`Any`、`object` 作为主通道。
-- provider 的 request / response 必须由本项目定义，不能泄露第三方 SDK 对象。
-- `ResearchState` 只能保存跨阶段共享且可审计的字段，禁止塞入 logger、console、client、callback 等运行时对象。
-- 工作流节点不得向状态中临时塞未声明字段。
-
-必须拦截的反模式：
-
-- `parse(...) -> dict`
-- `state.extra["foo"] = ...`
-- 裸 `pandas.DataFrame` 直接跨层传播
-- `dict[str, Any]` 从 workflow 流到 domains 或 providers
+- `ARCHITECTURE.md` 定义固定源码目录结构和稳定数据契约；这里不再重复抄写。
+- 顶层包导入边界由 `.importlinter` 机械执行，入口命令为 `uv run python -m tools.run_import_linter`。
+- 边界对象建模、类型收紧和禁止裸对象扩散由 `pydantic`、`pyright` 和 `tools.harness` 共同执行。
+- 本文档只描述治理系统如何工作，不再承担架构依赖的软约束职责。
 
 ## Taste Invariants
 
@@ -124,7 +51,7 @@ uv run python -m tools.harness lint
 
 - `ruff`：基础静态规则、导入排序、禁用 `print` 等低成本检查。
 - `pyright`：类型边界、`Any` 扩散、返回值和 Optional 处理。
-- `import-linter`：架构级导入约束，负责层级依赖方向、跨域导入边界和受限模块访问。
+- `import-linter`：顶层包导入边界和遗留 shim 依赖禁令的机械执行器。
 - `pytest tests/architecture`：结构测试和工作流不变量测试。
 - `tools/harness`：仓库特有的 AST 级硬规则，包括边界契约、日志、文件职责和禁用模式。
 
@@ -143,20 +70,21 @@ tools/
     └── rule_docs.py
 tests/
 └── architecture/
-    ├── test_layer_dependencies.py
+    ├── test_import_contracts.py
     ├── test_boundary_contracts.py
-    └── test_workflow_invariants.py
+    ├── test_module_layout.py
+    └── test_toolchain_files.py
 ```
 
 ## pre-commit 与 CI 规则
 
 本地提交和 CI 必须执行同一套 gate，顺序如下：
 
-1. `python -m ruff check .`
-2. `python -m pyright`
-3. `python -m tools.run_import_linter`
-4. `pytest tests/architecture -q`
-5. `python -m tools.harness lint`
+1. `uv run python -m ruff check .`
+2. `uv run python -m pyright`
+3. `uv run python -m tools.run_import_linter`
+4. `uv run pytest tests/architecture -q`
+5. `uv run python -m tools.harness lint`
 
 CI 建议拆成五个 job：
 
@@ -191,8 +119,8 @@ CI 建议拆成五个 job：
 ```text
 SA1001 Illegal dependency: interfaces -> providers
 Found: src/stata_agent/interfaces/cli.py imports providers.storage
-Why: interfaces may not access providers directly; all side effects must flow through workflow/service boundaries.
-Fix: move this call into workflow or a service entrypoint, then inject the provider there.
+Why: top-level package imports are mechanically enforced by import-linter and this edge bypasses the configured boundary.
+Fix: move the dependency behind an allowed workflow/service boundary or adjust the architecture before changing the contract.
 ```
 
 ## 当前核心规则
@@ -200,7 +128,7 @@ Fix: move this call into workflow or a service entrypoint, then inject the provi
 当前必须持续保持的核心规则：
 
 - `SA1001` 禁止非法层级导入
-- `SA1002` 禁止跨域导入对方服务模块或工作流模块
+- `SA1002` 禁止活跃目录依赖 legacy shim
 - `SA1003` 禁止 `providers/` 之外接入外部 SDK
 - `SA2001` 跨边界函数禁止返回裸 `dict`
 - `SA2002` 跨边界函数禁止使用 `Any`

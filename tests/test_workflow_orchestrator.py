@@ -1,6 +1,9 @@
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
+from stata_agent.providers.settings import Settings
+from stata_agent.providers.settings import SettingsError
 from stata_agent.workflow.orchestrator import ApplicationOrchestrator
+from stata_agent.workflow.orchestrator import WorkflowBootstrapError
 from stata_agent.workflow.types import RunStage
 
 
@@ -60,3 +63,17 @@ def test_orchestrator_runs_to_failed_state() -> None:
     assert state.spec is None
     assert state.parse_result is not None
     assert "需求解析失败：Tongyi 未产出可用的研究规范。" in state.notes
+
+
+def test_orchestrator_wraps_settings_errors() -> None:
+    def failing_settings_factory() -> Settings:
+        raise SettingsError(["DASHSCOPE_API_KEY: Field required"])
+
+    orchestrator = ApplicationOrchestrator(settings_factory=failing_settings_factory)
+
+    try:
+        orchestrator.app_name()
+    except WorkflowBootstrapError as exc:
+        assert exc.details == ["DASHSCOPE_API_KEY: Field required"]
+    else:
+        raise AssertionError("Expected WorkflowBootstrapError to be raised")

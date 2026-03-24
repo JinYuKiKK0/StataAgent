@@ -54,28 +54,11 @@ src/stata_agent/
 - `providers/` 是唯一允许直接接触 SDK、文件系统持久化、模型后端和执行器客户端的目录。
 - `templates/` 只保存模板和受控资产，不是通用 Python 代码落点。
 - 兼容 shim 只应作为一次性迁移止血手段。普通功能开发不得引入新的 shim 模块。
-
-## 运行时分层边界
-
-```text
-interfaces -> workflow -> services -> domains
-workflow ---------------------> domains
-workflow / services ---------> providers
-```
-
-每层职责固定如下：
-
-- `interfaces/` 负责接收输入、触发工作流、展示结果；不得直接接入 `providers/`。
-- `workflow/` 负责状态机和阶段编排；不得在这里内联需求解析、变量映射、质量判断等核心业务规则。
-- `services/` 负责纯业务逻辑，输入输出应保持显式契约，可被 CLI 之外的调用方复用。
-- `domains/` 负责研究请求、研究规范、数据绑定、质量决策等稳定类型，不保存运行时客户端或临时胶水状态。
-- `providers/` 封装所有副作用和基础设施交互。
-
-更细的机械约束和 lint gate 见 `docs/engineering/agent-harness.md`。
+- 顶层包导入边界由 `.importlinter` 和 `uv run python -m tools.run_import_linter` 机械执行，不在本文中重复维护软约束。
 
 ## 稳定数据契约
 
-跨阶段主链路必须围绕以下类型演进，而不是以裸 `dict`、隐式字段或散落的 `DataFrame` 传播：
+当前稳定数据契约定义如下：
 
 - `ResearchRequest`
 - `ResearchSpec`
@@ -86,11 +69,3 @@ workflow / services ---------> providers
 - `StataRunPlan`
 - `ResearchBundle`
 - `ResearchState`
-
-## 文档边界
-
-- `AGENTS.md`：会话工作流、起手检查项和仓库导航
-- `ARCHITECTURE.md`：固定源码目录结构、分层边界、稳定契约
-- `docs/product/research-workflow.md`：阶段语义、运行状态机、工件与失败检查点
-- `docs/engineering/agent-harness.md`：Agent 编码约束、架构 gate 和代码风格规则
-- `docs/references/CSMAR_PYTHON.md`：供应商 SDK 约束与调用参考

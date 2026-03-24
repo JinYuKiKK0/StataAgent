@@ -3,10 +3,10 @@ from rich.console import Console
 from rich.table import Table
 
 from pydantic import ValidationError
+from typing import NoReturn
 
 from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.providers.settings import SettingsError, get_settings
-from stata_agent.workflow.orchestrator import ApplicationOrchestrator
+from stata_agent.workflow.orchestrator import ApplicationOrchestrator, WorkflowBootstrapError
 from stata_agent.workflow.state import ResearchState
 from stata_agent.workflow.types import RunStage
 
@@ -26,8 +26,8 @@ def entrypoint(ctx: typer.Context) -> None:
 
 @app.command()
 def about() -> None:
-    settings = _load_settings()
-    console.print(f"{settings.app_name} project skeleton is ready.")
+    orchestrator = ApplicationOrchestrator()
+    console.print(f"{_load_app_name(orchestrator)} project skeleton is ready.")
 
 
 @app.command()
@@ -42,7 +42,6 @@ def research(
     ),
 ) -> None:
     """提交单次实证分析请求。"""
-    _load_settings()
     request = _build_request(
         topic=topic,
         dependent_variable=dependent_variable,
@@ -52,7 +51,10 @@ def research(
         empirical_requirements=empirical_requirements,
     )
     orchestrator = ApplicationOrchestrator()
-    state = orchestrator.run(request)
+    try:
+        state = orchestrator.run(request)
+    except WorkflowBootstrapError as exc:
+        _raise_bootstrap_exit(exc)
     _render_research_summary(state)
     if state.stage is RunStage.FAILED:
         raise typer.Exit(code=1)
@@ -61,15 +63,19 @@ def main() -> None:
     app()
 
 
-def _load_settings():
+def _load_app_name(orchestrator: ApplicationOrchestrator) -> str:
     try:
-        return get_settings()
-    except SettingsError as exc:
-        console.print("\n[bold red]✗ 配置层启动阻截：配置环境校验失败[/bold red]")
-        console.print("[yellow]确保项目根目录下存在 `.env` 文件，且其包含如下受约束配置：[/yellow]")
-        for detail in exc.details:
-            console.print(f"  - [cyan]{detail}[/cyan]")
-        raise typer.Exit(code=1) from exc
+        return orchestrator.app_name()
+    except WorkflowBootstrapError as exc:
+        _raise_bootstrap_exit(exc)
+
+
+def _raise_bootstrap_exit(exc: WorkflowBootstrapError) -> NoReturn:
+    console.print("\n[bold red]✗ 配置层启动阻截：配置环境校验失败[/bold red]")
+    console.print("[yellow]确保项目根目录下存在 `.env` 文件，且其包含如下受约束配置：[/yellow]")
+    for detail in exc.details:
+        console.print(f"  - [cyan]{detail}[/cyan]")
+    raise typer.Exit(code=1) from exc
 
 
 def _build_request(

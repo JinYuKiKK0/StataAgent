@@ -8,7 +8,7 @@ from langgraph.graph import END, START, StateGraph
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import RequirementParseResult
 from stata_agent.providers.llm import TongyiResearchSpecGenerator
-from stata_agent.providers.settings import Settings, get_settings
+from stata_agent.providers.settings import Settings, SettingsError, get_settings
 from stata_agent.services.requirement_parser import RequirementParser
 from stata_agent.workflow.state import ResearchState
 from stata_agent.workflow.types import RunStage
@@ -19,6 +19,12 @@ class RequirementParserPort(Protocol):
         ...
 
 
+class WorkflowBootstrapError(RuntimeError):
+    def __init__(self, details: list[str]) -> None:
+        super().__init__("工作流启动配置校验失败")
+        self.details = details
+
+
 class ApplicationOrchestrator:
     def __init__(
         self,
@@ -27,6 +33,7 @@ class ApplicationOrchestrator:
     ) -> None:
         self._settings_factory = settings_factory
         self._parser = parser
+        self._settings: Settings | None = None
         self._graph = self._build_graph()
 
     def create_initial_state(self, request: ResearchRequest) -> ResearchState:
@@ -39,6 +46,9 @@ class ApplicationOrchestrator:
         if isinstance(result, ResearchState):
             return result
         return ResearchState.model_validate(result)
+
+    def app_name(self) -> str:
+        return self._load_settings().app_name
 
     def _build_graph(self):
         workflow = StateGraph(ResearchState)
@@ -72,6 +82,14 @@ class ApplicationOrchestrator:
 
     def _get_parser(self) -> RequirementParserPort:
         if self._parser is None:
-            generator = TongyiResearchSpecGenerator(self._settings_factory())
+            generator = TongyiResearchSpecGenerator(self._load_settings())
             self._parser = RequirementParser(generator=generator)
         return self._parser
+
+    def _load_settings(self) -> Settings:
+        if self._settings is None:
+            try:
+                self._settings = self._settings_factory()
+            except SettingsError as exc:
+                raise WorkflowBootstrapError(exc.details) from exc
+        return self._settings

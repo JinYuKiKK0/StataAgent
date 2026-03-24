@@ -1,6 +1,6 @@
-from stata_agent.workflow.types import RunStage
+from typing import Literal
 
 
 class ResultJudge:
-    def final_stage(self, passed: bool) -> RunStage:
-        return RunStage.COMPLETED if passed else RunStage.FAILED
+    def final_stage(self, passed: bool) -> Literal["completed", "failed"]:
+        return "completed" if passed else "failed"

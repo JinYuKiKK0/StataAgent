@@ -15,14 +15,14 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：已将 `ARCHITECTURE.md` 收口为固定源码目录结构和分层边界的单一事实来源，并把运行状态机与阶段工件要求下沉到 `docs/product/research-workflow.md`
+- 正在处理：已去除 `agent-harness.md` 对目录结构、架构依赖和稳定数据契约的重复复述；顶层包依赖现由 `.importlinter` 机械执行，并已收掉 `interfaces -> providers.settings` 与 `services -> workflow.types` 的现存违例
 - 阶段：S1 架构收口
 - 分支：main
 - 关键文件：
-  - `ARCHITECTURE.md` — 现固定 `src/stata_agent/` 的正式根目录为 `interfaces/`、`workflow/`、`domains/`、`services/`、`providers/`、`templates/`
-  - `docs/engineering/agent-harness.md` — 现只保留稳定 harness 规则，不再承载迁移目标目录模型或实施计划
-  - `docs/product/research-workflow.md` — 现承接运行状态机和阶段工件检查点
-  - `AGENTS.md` / `docs/README.md` — 已同步新的文档边界和阅读导航
+  - `.importlinter` — 现匹配正式顶层结构 `interfaces / workflow / services / providers / domains`，并显式禁止活跃目录依赖 legacy shim
+  - `src/stata_agent/workflow/orchestrator.py` — 现包裹配置启动错误，作为 `interfaces` 访问设置的唯一允许入口
+  - `src/stata_agent/interfaces/cli.py` — 已移除对 `providers.settings` 的直接依赖
+  - `ARCHITECTURE.md` / `docs/engineering/agent-harness.md` — 现分别承担“定义一次”与“治理执行”职责，不再重复维护依赖规则
 - 未解决的问题：
   - `pre-commit run --all-files` 在当前沙箱中需要显式设置 `PRE_COMMIT_HOME` 到仓库内可写目录；普通开发机默认缓存目录通常可直接工作
   - 真实 Tongyi API 需要用户在 `.env` 中提供可用的 `DASHSCOPE_API_KEY`；当前验证以注入式测试替身覆盖，不包含线上密钥调用
