@@ -4,7 +4,7 @@ from rich.table import Table
 
 from pydantic import ValidationError
 
-from stata_agent.domain.models import ResearchRequest
+from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.providers.settings import get_settings
 from stata_agent.workflow.orchestrator import ApplicationOrchestrator
 

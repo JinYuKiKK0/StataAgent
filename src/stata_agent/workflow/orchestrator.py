@@ -1,4 +1,4 @@
-from stata_agent.domain.models import ResearchRequest
+from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.workflow.state import ResearchState
 
 
