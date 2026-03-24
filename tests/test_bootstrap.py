@@ -4,7 +4,7 @@ from typer.testing import CliRunner
 def test_package_exposes_core_contracts() -> None:
     from stata_agent import __version__
     from stata_agent.domain.models import ResearchRequest
-    from stata_agent.workflows.states import ResearchState
+    from stata_agent.workflow.state import ResearchState
 
     request = ResearchRequest(
         topic="银行数字化转型与风险承担",
@@ -128,4 +128,3 @@ def test_research_command_missing_required_fields() -> None:
 
     assert result.exit_code != 0
     assert "--time" in result.stderr or "Error" in result.stderr
-

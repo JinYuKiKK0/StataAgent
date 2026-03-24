@@ -25,6 +25,7 @@
   - tools/harness/ — 已落地最小可用自定义 harness，当前实现 `SA2001`、`SA2002`、`SA3001`、`SA3002`、`SA3003`、`SA3004`、`SA3005`、`SA4001`、`SA4002`。
   - tools/run_import_linter.py — 提供跨平台、非 `uv` 别名依赖的 import-linter 执行入口。
   - .pre-commit-config.yaml / .github/workflows/harness.yml — 已接入 `pyright`、`import-linter`、architecture tests 和 harness CLI 的阻断入口。
+  - src/stata_agent/workflow/ — 已成为唯一保留的工作流包；旧 `src/stata_agent/workflows/` shim 已移除。
   - docs/README.md — 已接入 harness 文档到阅读顺序与单一事实来源索引。
   - AGENTS.md — 已补充 harness 文档到仓库导航入口。
 - 未解决的问题：
