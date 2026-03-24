@@ -4,7 +4,7 @@
 
 StataAgent 是一个本地 Windows 实证分析代理。它将用户研究请求转化为结构化研究规范，仅通过 CSMAR 获取数据，将数据标准化并合并为一个可分析的长表，生成参数化的 Stata 代码，通过 `stata-executor-mcp` 执行代码，并返回可审计的结果包。
 
-`AGENTS.md` 是导航地图。本文件是系统形态、技术栈、运行时边界、状态转换和文档所有权的顶层技术单一事实来源。
+`AGENTS.md` 是会话入口和导航地图。本文件只固定顶层系统边界、源码目录结构、分层职责和稳定契约，避免新上下文窗口中的 Agent 擅自迁移包结构或引入兼容 shim。更细的工作流状态、阶段工件和工程 gate 放在 `docs/` 中按需阅读。
 
 ## 系统边界
 
@@ -16,132 +16,81 @@ StataAgent 是一个本地 Windows 实证分析代理。它将用户研究请求
 
 ## 技术栈
 
-- 主运行时：`Python 3.12`
-- 工作流编排：`langgraph`、`langchain`、`langchain-community`
-- 结构化模型和设置：`pydantic v2`、`pydantic-settings`
-- 数据处理：`pandas`、`numpy`、`pyarrow`、`pandera`
-- Stata 代码生成：`jinja2`
-- 本地持久化：`postgresql`、`parquet`、`.dta`
-- CLI 和终端 UX：`typer`、`rich`
-- LLM 接入：Tongyi `DashScope`，通过 LangChain 统一模型接口与结构化输出
-- 日志和密钥：`structlog`、`python-keyring`
-- CSMAR 兼容层：专用的 `Python 3.6` 桥接进程，配合官方 `CSMAR-PYTHON`
-- Stata 执行集成：用于 `stata-executor-mcp` 的 Python MCP 客户端
-- 测试栈：`pytest`、`pytest-mock`、`pytest-cov`
+- 运行时与编排：`Python 3.12`、`langgraph`、`langchain`、`langchain-community`
+- 契约与配置：`pydantic v2`、`pydantic-settings`
+- 数据与渲染：`pandas`、`numpy`、`pyarrow`、`pandera`、`jinja2`
+- 交互与运维：`typer`、`rich`、`structlog`、`python-keyring`
+- 外部集成：Tongyi `DashScope`、官方 `CSMAR-PYTHON`（经 Python 3.6 桥接）、`stata-executor-mcp`
+- 测试与治理：`pytest`、`pyright`、`import-linter`、`ruff`、`pre-commit`
 
-## 运行时拓扑
+## 固定源码目录结构
+
+以下结构是当前唯一允许的顶层源码布局。未先更新本文件前，不得新增平行顶层包、批量迁移 `.py` 模块，或通过 shim 维持“双结构并存”。
 
 ```text
-用户请求
-  -> CLI / Python API
-  -> LangGraph 编排器
-     -> 需求解析
-     -> 变量映射
-     -> CSMAR 查询规划
-     -> CSMAR 桥接
-     -> 数据标准化和面板合并
-     -> 质量检查点
-     -> 模型规划
-     -> Stata 模板渲染
-     -> stata-executor-mcp
-     -> 结果判断和审计
-  -> 研究包
+src/stata_agent/
+├── __main__.py
+├── interfaces/   # CLI / Python API 入口与输出格式化
+├── workflow/     # LangGraph 编排、ResearchState、状态推进
+├── domains/      # 按研究域划分的边界契约与少量端口定义
+│   ├── request/
+│   ├── spec/
+│   ├── mapping/
+│   ├── fetch/
+│   ├── panel/
+│   ├── quality/
+│   ├── modeling/
+│   ├── execution/
+│   └── judgement/
+├── services/     # 当前业务逻辑的正式归属目录
+├── providers/    # LLM、CSMAR、Stata、存储、日志、设置等外部集成
+└── templates/    # 受版本控制的模板与执行资产
 ```
 
-## 运行时层次
+约束如下：
 
-### 接口层
+- `services/` 是当前纯业务逻辑的正式归属目录；不要在常规 feature 开发中把它迁到新的 `application/`、`adapters/`、`runtime/`、`use_cases/` 等平行根目录。
+- `domains/` 负责稳定的跨阶段边界类型；新增研究域时优先在现有 `domains/` 下扩展，而不是发明新的顶层包。
+- `providers/` 是唯一允许直接接触 SDK、文件系统持久化、模型后端和执行器客户端的目录。
+- `templates/` 只保存模板和受控资产，不是通用 Python 代码落点。
+- 兼容 shim 只应作为一次性迁移止血手段。普通功能开发不得引入新的 shim 模块。
 
-- 从 CLI 或 Python 接受 `ResearchRequest`。
-- 验证最低必需输入，如主题、实证要求和范围提示。
-- 为每次执行创建运行 ID 和工作区。
-
-### 工作流层
-
-- 使用 LangGraph 作为规范的状态机运行时。
-- 在类型化的 `ResearchState` 中存储共享状态。
-- 保持每个阶段可恢复、可检查和可审计。
-- 当前最小可运行图先实现 `requested -> specified | failed` 的需求解析闭环。
-
-### 研究规范层
-
-- 使用 LangChain 结构化输出把用户请求转换为 `ResearchSpec`。
-- 锁定 `Y`、`X`、样本范围和时间边界，并生成控制变量候选与目标面板粒度候选。
-
-### 变量映射层
-
-- 将研究变量解析为 CSMAR 表和字段。
-- 首先使用内部变量字典，然后回退到 CSMAR 元数据检查。
-- 输出包含源表、字段、键粒度、频率、单位和置信度的 `VariableBinding` 记录。
-
-### CSMAR 访问层
-
-- 在专用的 Python 3.6 桥接后运行，因为供应商 SDK 针对该环境。
-- 接受 `CsmarFetchRequest` JSON 并返回 `CsmarFetchResult` JSON 以及物化数据路径。
-- 处理分页、查询指纹识别、冷却感知缓存和原始工件存储。
-
-### 数据管道层
-
-- 标准化日期、ID、单位、缺失值编码和列名。
-- 将所有源合并到一个目标分析粒度。
-- 拒绝未解析的多对多连接，而不是静默扩展面板。
-
-### 质量检查点层
-
-- 在回归运行之前生成描述性统计和验证发现。
-- 强制检查重复键、无效比率、不可能值、缺失阈值和极端异常值。
-- 对连续变量应用有界的缩尾处理并将其记录在审计跟踪中。
-
-### 建模和执行层
-
-- 首先构建 `ModelPlan`，然后从模板渲染 `.do` 文件。
-- 在预飞行环境检查后通过 `stata-executor-mcp` 运行 Stata。
-- 在运行工作区下收集日志、结果表和导出的工件。
-
-### 判断和审计层
-
-- 将输出与先前的理论期望进行比较。
-- 仅允许有界的自动重试：固定效应、标准误差、安全控制修剪和预定义的样本筛选器。
-- 生成包含工件、决策和重试历史的最终 `ResearchBundle`。
-
-## 工作流状态流程
-
-规范的状态机是：
+## 运行时分层边界
 
 ```text
-requested
--> specified
--> mapped
--> fetched
--> standardized
--> validated
--> modeled
--> executed
--> judged
--> completed | failed
+interfaces -> workflow -> services -> domains
+workflow ---------------------> domains
+workflow / services ---------> providers
 ```
 
-每个阶段必须输出机器可读的工件或决策记录。任何阶段都不应仅依赖隐藏的提示上下文作为输出。
+每层职责固定如下：
 
-## 核心数据契约
+- `interfaces/` 负责接收输入、触发工作流、展示结果；不得直接接入 `providers/`。
+- `workflow/` 负责状态机和阶段编排；不得在这里内联需求解析、变量映射、质量判断等核心业务规则。
+- `services/` 负责纯业务逻辑，输入输出应保持显式契约，可被 CLI 之外的调用方复用。
+- `domains/` 负责研究请求、研究规范、数据绑定、质量决策等稳定类型，不保存运行时客户端或临时胶水状态。
+- `providers/` 封装所有副作用和基础设施交互。
 
-- `ResearchRequest`：原始用户问题陈述加上结构化提示
-- `ResearchSpec`：规范化的研究设计和分析约束
-- `VariableBinding`：包含来源和置信度的所选 CSMAR 字段绑定
-- `QueryPlan`：表、字段、筛选条件、分页和缓存指纹
-- `PanelDataset`：具有谱系和覆盖元数据的最终分析粒度长表
-- `StataRunPlan`：输入数据集路径、模板参数、回归步骤、输出期望
-- `ResearchBundle`：端到端结果包，包含规范、数据工件、代码工件、日志、表和最终判断
+更细的机械约束和 lint gate 见 `docs/engineering/agent-harness.md`。
 
-## 存储和工件
+## 稳定数据契约
 
-- `postgresql`：运行元数据、审计跟踪、缓存索引、查询指纹
-- `parquet`：获取的原始表、标准化表、中间连接
-- `.dta`：Stata 就绪分析表
-- `.do` 和日志文件：生成的 Stata 程序和执行跟踪
+跨阶段主链路必须围绕以下类型演进，而不是以裸 `dict`、隐式字段或散落的 `DataFrame` 传播：
+
+- `ResearchRequest`
+- `ResearchSpec`
+- `VariableBinding`
+- `QueryPlan`
+- `PanelDataset`
+- `QualityDecision`
+- `StataRunPlan`
+- `ResearchBundle`
+- `ResearchState`
 
 ## 文档边界
 
-- 将工作流指令和仓库导航保留在 `AGENTS.md` 中。
-- 将顶层架构和栈决策保留在 `ARCHITECTURE.md` 中。
-- 将持久的支持知识保留在 `docs/` 中。
+- `AGENTS.md`：会话工作流、起手检查项和仓库导航
+- `ARCHITECTURE.md`：固定源码目录结构、分层边界、稳定契约
+- `docs/product/research-workflow.md`：阶段语义、运行状态机、工件与失败检查点
+- `docs/engineering/agent-harness.md`：Agent 编码约束、架构 gate 和代码风格规则
+- `docs/references/CSMAR_PYTHON.md`：供应商 SDK 约束与调用参考

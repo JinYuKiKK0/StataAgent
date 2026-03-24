@@ -15,14 +15,14 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：已继续收口历史兼容层，删除顶层 `src/stata_agent/cli.py`、`config.py`、`logging.py` shim，以及不再使用的 `src/stata_agent/application/`、`src/stata_agent/adapters/`
+- 正在处理：已将 `ARCHITECTURE.md` 收口为固定源码目录结构和分层边界的单一事实来源，并把运行状态机与阶段工件要求下沉到 `docs/product/research-workflow.md`
 - 阶段：S1 架构收口
 - 分支：main
 - 关键文件：
-  - `pyproject.toml` — CLI 脚本入口已从 `stata_agent.cli:main` 改为 `stata_agent.interfaces.cli:main`
-  - `src/stata_agent/interfaces/cli.py` — 现为唯一 CLI 实现入口，不再经由顶层 shim 转发
-  - `src/stata_agent/providers/` / `src/stata_agent/workflow/` / `src/stata_agent/domains/` — 现为保留下来的正式 provider、workflow、domain 目录
-  - `tests/test_bootstrap.py` — 已改为直接依赖 `stata_agent.interfaces.cli`
+  - `ARCHITECTURE.md` — 现固定 `src/stata_agent/` 的正式根目录为 `interfaces/`、`workflow/`、`domains/`、`services/`、`providers/`、`templates/`
+  - `docs/engineering/agent-harness.md` — 现只保留稳定 harness 规则，不再承载迁移目标目录模型或实施计划
+  - `docs/product/research-workflow.md` — 现承接运行状态机和阶段工件检查点
+  - `AGENTS.md` / `docs/README.md` — 已同步新的文档边界和阅读导航
 - 未解决的问题：
   - `pre-commit run --all-files` 在当前沙箱中需要显式设置 `PRE_COMMIT_HOME` 到仓库内可写目录；普通开发机默认缓存目录通常可直接工作
   - 真实 Tongyi API 需要用户在 `.env` 中提供可用的 `DASHSCOPE_API_KEY`；当前验证以注入式测试替身覆盖，不包含线上密钥调用

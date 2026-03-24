@@ -2,9 +2,9 @@
 
 ## 目的
 
-本文档是 StataAgent 的 agent harness 单一事实来源，定义用于约束 Agent 编码、架构演进和代码风格的机械化规则。目标不是微观规定实现细节，而是把项目不变量编码成 agent 无法绕过的硬性 gate。
+本文档是 StataAgent 的 agent harness 单一事实来源，定义用于约束 Agent 编码、架构边界和代码风格的机械化规则。目标不是微观规定实现细节，而是把项目不变量编码成 Agent 无法绕过的硬性 gate。
 
-实施计划见 `docs/engineering/2026-03-24-agent-harness-implementation-plan.md`。
+源码目录结构本身以 `ARCHITECTURE.md` 为准；本文件只定义在该固定结构内如何约束依赖方向、边界契约和坏味道。
 
 本文档吸收 `docs/references/Harness-engineering.md` 的两条核心经验：
 
@@ -19,61 +19,56 @@
 - 本地与 CI 同标准。Agent 在本地看到的失败条件，必须与 CI 完全一致。
 - 新坏味道先沉淀为文档规则，再升级为机械规则。治理资产通过 review 和故障反馈持续收紧。
 
-## 目标目录模型
+## 目录结构约束
+
+当前固定根目录如下：
 
 ```text
 src/stata_agent/
 ├── interfaces/          # CLI / Python API / 用户输入输出
 ├── workflow/            # LangGraph 图、状态机、节点装配
-├── domains/
-│   ├── request/
-│   │   ├── types.py
-│   │   ├── ports.py
-│   │   ├── service.py
-│   │   └── runtime.py
-│   ├── spec/
-│   ├── mapping/
-│   ├── fetch/
-│   ├── panel/
-│   ├── quality/
-│   ├── modeling/
-│   ├── execution/
-│   └── judgement/
+├── domains/             # 研究域边界契约和少量端口定义
+├── services/            # 当前正式业务逻辑目录
 ├── providers/           # CSMAR / Stata / storage / logging / settings / LLM
-└── testing/             # 共享 fixture factory / harness helper
+└── templates/           # 受版本控制的模板和执行资产
 ```
 
-该结构的意义是为 Agent 提供稳定语义：
+该结构的意义是为 Agent 提供稳定语义，而不是继续驱动迁移：
 
 - `interfaces/` 只负责用户交互和展示。
 - `workflow/` 只负责编排，不承载业务规则。
-- `domains/*/types.py` 定义边界契约。
-- `domains/*/service.py` 只承载纯业务逻辑。
-- `domains/*/runtime.py` 负责装配 service、ports 和 providers。
+- `domains/` 定义边界契约和少量端口。
+- `services/` 承载纯业务逻辑。
 - `providers/` 是唯一允许接触外部世界的层。
+- `templates/` 只保存模板资产。
 
-禁止再新增无语义目录和文件名，例如 `utils.py`、`helpers.py`、`common.py`、`misc.py`。
+硬规则如下：
+
+- 未更新 `ARCHITECTURE.md` 前，不得在 `src/stata_agent/` 下新增平行顶层包。
+- 日常 feature 开发不得推动跨根目录迁移，也不得引入兼容 shim 来维持新旧结构并存。
+- `services/` 是当前业务逻辑的正式归属目录；不要再派生新的 `application/`、`adapters/`、`runtime/`、`use_cases/`、`core/` 等平行目录。
+- 禁止新增无语义目录和文件名，例如 `utils.py`、`helpers.py`、`common.py`、`misc.py`。
 
 ## 架构依赖规则
 
 允许依赖方向如下：
 
 ```text
-interfaces -> workflow -> domains/*/runtime -> domains/*/service -> domains/*/types
-                                     |                    |
-                                     v                    v
-                                 providers <-------- domains/*/ports
+interfaces -> workflow -> services -> domains/*
+workflow ---------------------> domains/*
+workflow / services ---------> providers
+providers -------------------> domains/*/types
 ```
 
 硬规则如下：
 
 - `types.py` 只能依赖标准库、`pydantic`、枚举和同域基础类型。
-- `service.py` 不得访问文件系统、网络、数据库、CLI 输出、环境变量。
-- `runtime.py` 可以装配 provider，但不得直接承担富文本输出和用户交互。
+- `services/` 不得访问文件系统、网络、数据库、CLI 输出、环境变量。
 - `workflow/` 不得直接实现需求解析、变量映射、质量判断等业务规则。
 - `interfaces/` 不得直接调用 `providers/`。
-- 一个 domain 只能导入另一个 domain 的 `types.py`，不得导入对方的 `service.py` 或 `runtime.py`。
+- 一个 domain 只能导入另一个 domain 的 `types.py`，不得导入对方的服务模块、工作流模块或等价业务实现。
 - `providers/` 之外不得直接接入第三方 SDK 或基础设施客户端。
+- `templates/` 不得演化成通用 Python 工具目录。
 
 ## 边界数据契约规则
 
@@ -109,7 +104,7 @@ interfaces -> workflow -> domains/*/runtime -> domains/*/service -> domains/*/ty
 这些规则不是人类审美，而是用于降低 Agent 漫游和代码漂移：
 
 - 边界模型命名只能使用受控后缀：`Request`、`Response`、`Spec`、`Plan`、`Result`、`Bundle`、`Decision`。
-- 一个文件只承载一种角色；`types.py` 不得混入 provider 调用，`service.py` 不得输出 rich 或 console。
+- 一个文件只承载一种角色；`types.py` 不得混入 provider 调用，`services/*` 不得输出 rich 或 console。
 - 业务文件超过 250 行直接失败，测试文件超过 350 行直接失败。
 - 业务函数超过 40 行直接失败。
 - 非接口层禁止 `print()`、`Console.print()`、`sys.exit()`。
@@ -196,16 +191,16 @@ CI 建议拆成五个 job：
 ```text
 SA1001 Illegal dependency: interfaces -> providers
 Found: src/stata_agent/interfaces/cli.py imports providers.storage
-Why: interfaces may not access providers directly; all side effects must flow through workflow/runtime boundaries.
-Fix: move this call into workflow runtime or expose an application service interface.
+Why: interfaces may not access providers directly; all side effects must flow through workflow/service boundaries.
+Fix: move this call into workflow or a service entrypoint, then inject the provider there.
 ```
 
-## 第一批必须上线的规则
+## 当前核心规则
 
-第一期只上线最关键的 12 条规则：
+当前必须持续保持的核心规则：
 
 - `SA1001` 禁止非法层级导入
-- `SA1002` 禁止跨域导入对方 `service.py` 或 `runtime.py`
+- `SA1002` 禁止跨域导入对方服务模块或工作流模块
 - `SA1003` 禁止 `providers/` 之外接入外部 SDK
 - `SA2001` 跨边界函数禁止返回裸 `dict`
 - `SA2002` 跨边界函数禁止使用 `Any`
@@ -217,47 +212,9 @@ Fix: move this call into workflow runtime or expose an application service inter
 - `SA4001` 禁止万能文件名
 - `SA4002` 文件长度和函数长度超限直接失败
 
-## 实施顺序
-
-### 阶段 0：先做目录和职责收口
-
-先把当前仓库收敛到目标目录语义，再打开硬性 gate。否则新规则会先阻断现有骨架。
-
-### 阶段 1：上线最小可用 harness
-
-新增 `tools/harness`、`tests/architecture`、`ruff`、`pyright`、`import-linter`、`pre-commit`，先落第一批 12 条规则。
-
-### 阶段 2：收紧工作流边界契约
-
-把 `ResearchRequest` 到 `ResearchBundle` 的主链路类型完全定型，禁止隐式字段和裸对象。
-
-### 阶段 3：补齐 taste invariants
-
-在架构稳定后增加文件长度、函数长度、结构化日志和异常处理等规则。
-
-### 阶段 4：建立治理升级闭环
-
-治理规则按以下路径升级：
-
-```text
-review comment -> docs rule -> harness rule -> CI gate
-```
-
-同类问题重复出现两次后，应考虑升级为自定义规则。
-
-## 与当前仓库的直接改造建议
-
-当前仓库已经具备“文档系统作为系统记录”的基础，但仍缺少机械约束。优先改造点：
-
-- 将 `src/stata_agent/services/` 拆分到 `domains/*/service.py`
-- 将 `src/stata_agent/adapters/` 收敛到 `providers/`
-- 将 `src/stata_agent/workflows/` 收敛到 `workflow/`
-- 将 `src/stata_agent/domain/models.py` 按边界归属拆到各 domain 的 `types.py`
-- 将 `src/stata_agent/config.py` 中的 console 输出和进程退出移回接口层
-- 将 `src/stata_agent/logging.py` 收敛为结构化日志 provider
-
 ## 文档维护规则
 
-- 本文档是 StataAgent agent harness 的单一事实来源。
+- `ARCHITECTURE.md` 负责固定源码目录结构和文档边界；本文件不再承载迁移计划。
+- 本文档是 StataAgent agent harness 规则的单一事实来源。
 - 当 review、故障或回归暴露出新的共性坏味道时，先更新本文档，再决定是否升级为规则。
 - 当规则已机械化后，应保证本文档、`tools/harness` 和 CI 配置同步。

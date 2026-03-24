@@ -7,7 +7,7 @@
 本仓库使用上下文容器模型：
 
 - `AGENTS.md` 是地图，不是百科全书。
-- `ARCHITECTURE.md` 是顶层技术单一事实来源。
+- `ARCHITECTURE.md` 固定源码目录结构和顶层边界。
 - `docs/` 保存代理按需渐进式发现的持久知识。
 
 目标是保持注入上下文小而稳定、可导航，同时按需提供更深入知识。
@@ -30,16 +30,16 @@
 1. 阅读 `AGENTS.md` 了解工作流和导航。
 2. 阅读 `claude-progress.md` 了解紧凑的当前会话状态。
 3. 阅读 `feature_list.json` 了解任务排序和通过标准。
-4. 阅读 `ARCHITECTURE.md` 了解系统边界和运行时职责。
+4. 阅读 `ARCHITECTURE.md` 了解系统边界、固定源码结构和分层职责。
 5. 仅阅读当前任务所需的专注文档。
 
 ## 单一事实来源
 
 - 会话工作流和仓库地图：`AGENTS.md`
-- 架构和技术栈：`ARCHITECTURE.md`
+- 架构、固定目录结构和顶层契约：`ARCHITECTURE.md`
 - 上下文容器约定：`docs/README.md`
 - Agent harness 和工程约束：`docs/engineering/agent-harness.md`
-- 研究阶段语义：`docs/product/research-workflow.md`
+- 研究阶段语义、状态机和工件检查点：`docs/product/research-workflow.md`
 - 产品需求基线：`Requirements.md`
 - 供应商 SDK 约束：`docs/references/CSMAR_PYTHON.md`
 - 紧凑的跨会话交接：`claude-progress.md`
@@ -47,7 +47,7 @@
 ## 文档编写规则
 
 - 保持 `AGENTS.md` 简短。添加链接和边界，而不是论文。
-- 将架构决策集中在 `ARCHITECTURE.md`。
+- 将固定目录结构和顶层边界集中在 `ARCHITECTURE.md`。
 - 按主题拆分持久知识，避免再引入单一大而全计划文档。
 - 每个主题保留单一事实来源；交叉链接而不是复制。
 - 保持 `claude-progress.md` 紧凑，不在其中附加逐会话叙述；按时间线依赖 git 历史。

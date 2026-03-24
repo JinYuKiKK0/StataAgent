@@ -20,16 +20,16 @@
 ## 仓库导航
 
 - `AGENTS.md`：会话工作流和仓库导航入口点。
-- `ARCHITECTURE.md`：顶层架构、技术栈、运行时边界和工作流状态流程。
+- `ARCHITECTURE.md`：顶层架构、固定目录结构和分层边界。
 - `Requirements.md`：产品需求和五阶段实证分析流程。
 - `feature_list.json`：分阶段待办事项和验证状态。
 - `claude-progress.md`：紧凑的跨会话交接、架构决策和当前工作上下文。
 - `docs/README.md`：文档中心、阅读顺序和单一事实来源索引。
 - `docs/engineering/agent-harness.md`：Agent 编码、架构和代码风格的强制约束设计。
-- `docs/product/research-workflow.md`：阶段语义、必需输出和失败检查点。
+- `docs/product/research-workflow.md`：阶段语义、运行状态机和失败检查点。
 - `docs/references/CSMAR_PYTHON.md`：供应商 SDK 参考材料和使用约束。
 
-## 目录结构
+## 项目文档目录结构
 
 ```text
 .
@@ -45,5 +45,6 @@
     ├── product/
     │   └── research-workflow.md
     └── references/
-        └── CSMAR_PYTHON.md
+        ├── CSMAR_PYTHON.md
+        └── Harness-engineering.md
 ```
