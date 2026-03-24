@@ -23,7 +23,7 @@
   - docs/README.md — 已接入 harness 文档到阅读顺序与单一事实来源索引。
   - AGENTS.md — 已补充 harness 文档到仓库导航入口。
 - 未解决的问题：
-  - 约束方案仍停留在文档设计层，`tools/harness`、`pre-commit`、`mypy`、`ruff` 和结构测试尚未落地
+  - 约束方案仍停留在文档设计层，`tools/harness`、`pre-commit`、`pyright`、`import-linter`、`ruff` 和结构测试尚未落地
   - 最高优先级产品 feature 仍为 S1-T2（LangChain Parse），本次未推进业务实现
 - 已安装依赖：通过 `uv` 管理的本地环境，包含 `pydantic`、`python-dotenv`、`rich`、`typer` 和 `pytest`
 - 开发服务器：不适用

@@ -123,12 +123,13 @@ interfaces -> workflow -> domains/*/runtime -> domains/*/service -> domains/*/ty
 uv run python -m tools.harness lint
 ```
 
-内部由四类工具分工：
+内部由五类工具分工：
 
 - `ruff`：基础静态规则、导入排序、禁用 `print` 等低成本检查。
-- `mypy`：类型边界、`Any` 扩散、返回值和 Optional 处理。
+- `pyright`：类型边界、`Any` 扩散、返回值和 Optional 处理。
+- `import-linter`：架构级导入约束，负责层级依赖方向、跨域导入边界和受限模块访问。
 - `pytest tests/architecture`：结构测试和工作流不变量测试。
-- `tools/harness`：仓库特有的硬规则，包括层级依赖、边界契约、日志与文件职责。
+- `tools/harness`：仓库特有的 AST 级硬规则，包括边界契约、日志、文件职责和禁用模式。
 
 建议治理目录：
 
@@ -155,13 +156,15 @@ tests/
 本地提交和 CI 必须执行同一套 gate，顺序如下：
 
 1. `ruff check .`
-2. `mypy src`
-3. `pytest tests/architecture -q`
-4. `uv run python -m tools.harness lint`
+2. `pyright`
+3. `lint-imports`
+4. `pytest tests/architecture -q`
+5. `uv run python -m tools.harness lint`
 
-CI 建议拆成四个 job：
+CI 建议拆成五个 job：
 
 - `static`
+- `imports`
 - `architecture`
 - `harness`
 - `tests`
@@ -220,7 +223,7 @@ Fix: move this call into workflow runtime or expose an application service inter
 
 ### 阶段 1：上线最小可用 harness
 
-新增 `tools/harness`、`tests/architecture`、`ruff`、`mypy`、`pre-commit`，先落第一批 12 条规则。
+新增 `tools/harness`、`tests/architecture`、`ruff`、`pyright`、`import-linter`、`pre-commit`，先落第一批 12 条规则。
 
 ### 阶段 2：收紧工作流边界契约
 
