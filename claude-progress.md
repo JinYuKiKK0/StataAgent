@@ -15,14 +15,12 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：S1-T3 已完成，新增变量定义与数据需求草案生成能力，并接入工作流与 CLI 展示
-- 阶段：S1 收口完成，进入 S2
+- 正在处理：完成 LangChain/LangGraph 最小工程加固，补齐核心依赖显式声明并将工作流节点更新改为 LangGraph 推荐的局部状态更新
+- 阶段：S2 进行中（S2-T1 仍是下一优先功能），本次为后续 S5-T4 编排与 HITL/持久化预留基础
 - 分支：main
 - 关键文件：
-  - `src/stata_agent/domains/spec/types.py` — 新增 `VariableDefinition`、`DataRequirementItem`、`DataRequirementsDraft`、`VariableRequirementsResult`
-  - `src/stata_agent/services/variable_requirements_builder.py` — 基于 `ResearchSpec` 生成变量定义表与数据需求表（含频率和数据域提示）
-  - `src/stata_agent/workflow/orchestrator.py` / `src/stata_agent/workflow/state.py` — parse 后自动产出并写入 T3 清单字段
-  - `src/stata_agent/interfaces/cli.py` — `research` 命令新增“变量定义表”“数据需求表”可视化输出
+  - `pyproject.toml` — 显式新增 `langchain-core` 与 `langsmith` 依赖，维持 LangChain/LangGraph 1.x 版本区间
+  - `src/stata_agent/workflow/orchestrator.py` — `StateGraph.compile` 接入 `InMemorySaver`；`run` 调用增加 `thread_id`；节点返回值改为 partial update dict
 - 未解决的问题：
   - `pre-commit run --all-files` 在当前沙箱中需要显式设置 `PRE_COMMIT_HOME` 到仓库内可写目录；普通开发机默认缓存目录通常可直接工作
   - 真实 Tongyi API 需要用户在 `.env` 中提供可用的 `DASHSCOPE_API_KEY`；当前验证以注入式测试替身覆盖，不包含线上密钥调用

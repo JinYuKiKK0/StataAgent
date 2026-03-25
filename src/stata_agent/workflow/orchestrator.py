@@ -2,7 +2,9 @@
 
 from collections.abc import Callable
 from typing import Protocol
+from uuid import uuid4
 
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from stata_agent.domains.request.types import ResearchRequest
@@ -44,6 +46,7 @@ class ApplicationOrchestrator:
         self._parser = parser
         self._builder = builder
         self._settings: Settings | None = None
+        self._checkpointer = InMemorySaver()
         self._graph = self._build_graph()
 
     def create_initial_state(self, request: ResearchRequest) -> ResearchState:
@@ -52,7 +55,7 @@ class ApplicationOrchestrator:
 
     def run(self, request: ResearchRequest) -> ResearchState:
         initial_state = self.create_initial_state(request)
-        result = self._graph.invoke(initial_state)
+        result = self._graph.invoke(initial_state, config=self._build_run_config())
         if isinstance(result, ResearchState):
             return result
         return ResearchState.model_validate(result)
@@ -67,45 +70,42 @@ class ApplicationOrchestrator:
         workflow.add_edge(START, "parse_request")
         workflow.add_edge("parse_request", "build_variable_requirements")
         workflow.add_edge("build_variable_requirements", END)
-        return workflow.compile()
+        return workflow.compile(checkpointer=self._checkpointer)
 
-    def _parse_request_node(self, state: ResearchState) -> ResearchState:
+    def _parse_request_node(self, state: ResearchState) -> dict[str, object]:
         result = self._get_parser().parse(state.request)
         notes = list(state.notes)
         if result.failure_reason is not None:
             notes.append(result.failure_reason)
-            return state.model_copy(
-                update={
-                    "parse_result": result,
-                    "stage": RunStage.FAILED,
-                    "notes": notes,
-                }
-            )
-
-        notes.append("需求解析已完成。")
-        return state.model_copy(
-            update={
-                "spec": result.spec,
+            return {
                 "parse_result": result,
-                "stage": RunStage.SPECIFIED,
+                "stage": RunStage.FAILED,
                 "notes": notes,
             }
-        )
 
-    def _build_variable_requirements_node(self, state: ResearchState) -> ResearchState:
+        notes.append("需求解析已完成。")
+        return {
+            "spec": result.spec,
+            "parse_result": result,
+            "stage": RunStage.SPECIFIED,
+            "notes": notes,
+        }
+
+    def _build_variable_requirements_node(self, state: ResearchState) -> dict[str, object]:
         if state.spec is None:
-            return state
+            return {}
 
         build_result = self._get_builder().build(state.spec)
         notes = list(state.notes)
         notes.append("变量定义与数据需求清单已生成。")
-        return state.model_copy(
-            update={
-                "variable_definitions": build_result.variable_definitions,
-                "data_requirements_draft": build_result.data_requirements_draft,
-                "notes": notes,
-            }
-        )
+        return {
+            "variable_definitions": build_result.variable_definitions,
+            "data_requirements_draft": build_result.data_requirements_draft,
+            "notes": notes,
+        }
+
+    def _build_run_config(self) -> dict[str, dict[str, str]]:
+        return {"configurable": {"thread_id": f"run-{uuid4()}"}}
 
     def _get_parser(self) -> RequirementParserPort:
         if self._parser is None:
