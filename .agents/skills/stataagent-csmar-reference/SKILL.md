@@ -16,5 +16,3 @@ Use this skill when the task is about:
 - upstream SDK limitations that affect StataAgent design
 
 Read `../../../docs/product/empirical-analysis-workflow.md` only when you need to connect a vendor limitation back to a workflow stage or checkpoint.
-
-Do not duplicate SDK facts in this skill. Treat the CSMAR reference document as the single source of truth.

@@ -20,5 +20,3 @@ Read adjacent documents only when needed:
 - Read `../../../ARCHITECTURE.md` for fixed source layout and stable contracts.
 - Read `../../../docs/references/Harness-engineering.md` only when the task needs the design rationale behind the harness approach.
 - Read `../../../docs/product/empirical-analysis-workflow.md` only when a rule depends on stage semantics or workflow checkpoints.
-
-Do not restate rules here. Treat the engineering document as the single source of truth.

@@ -19,5 +19,3 @@ Read adjacent documents only when the task crosses boundaries:
 
 - Read `../../../docs/references/CSMAR_PYTHON.md` when workflow behavior depends on CSMAR interface limits.
 - Read `../../../docs/engineering/agent-harness.md` when the question shifts from workflow semantics to engineering enforcement.
-
-Do not duplicate workflow facts in this skill. Treat the product document as the single source of truth.
