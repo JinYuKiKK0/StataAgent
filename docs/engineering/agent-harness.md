@@ -4,7 +4,7 @@
 
 本文档是 StataAgent 的 agent harness 单一事实来源，定义用于约束 Agent 编码、架构边界和代码风格的机械化规则。目标不是微观规定实现细节，而是把项目不变量编码成 Agent 无法绕过的硬性 gate。
 
-源码目录结构和稳定数据契约以 `ARCHITECTURE.md` 为准；顶层包导入边界以 `.importlinter` 为准；本文件只保留治理入口、工具分工、taste invariants 和规则维护方式。
+源码目录结构和稳定数据契约以 `ARCHITECTURE.md` 为准；研究阶段语义和工件检查点以 `docs/product/empirical-analysis-workflow.md` 为准；顶层包导入边界以 `.importlinter` 为准；本文件只保留治理入口、工具分工、taste invariants 和规则维护方式。
 
 本文档吸收 `docs/references/Harness-engineering.md` 的两条核心经验：
 

@@ -9,4 +9,20 @@ build/
 *.pyo
 *.pyd
 
+
+langchain_docs/
+.trae/
+.claude/
+.agents/
+!.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/stataagent-csmar-reference/
+!.agents/skills/stataagent-csmar-reference/SKILL.md
+!.agents/skills/stataagent-empirical-workflow/
+!.agents/skills/stataagent-empirical-workflow/SKILL.md
+!.agents/skills/stataagent-engineering/
+!.agents/skills/stataagent-engineering/SKILL.md
 .env
+uv.lock

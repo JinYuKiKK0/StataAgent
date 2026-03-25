@@ -8,19 +8,20 @@
 
 - 当前阶段：S2（理论预判与模型构建）
 - 总体进度：3/18 features 完成（S1-T1、S1-T2、S1-T3）
-- 最后更新：2026-03-24
+- 最后更新：2026-03-25
 - 阻塞问题：无；下一优先任务为 `S2-T1`
 
 ## 当前上下文
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：完成 LangChain/LangGraph 最小工程加固，补齐核心依赖显式声明并将工作流节点更新改为 LangGraph 推荐的局部状态更新
-- 阶段：S2 进行中（S2-T1 仍是下一优先功能），本次为后续 S5-T4 编排与 HITL/持久化预留基础
+- 正在处理：完成知识库重构，删除文档目录索引与根部需求文档，把产品需求和阶段状态机合并到 `docs/product/empirical-analysis-workflow.md`
+- 阶段：S2 进行中（`S2-T1` 仍是下一优先功能）；本次仅重构文档与项目私有 skill 入口，不变更业务实现
 - 分支：main
 - 关键文件：
-  - `pyproject.toml` — 显式新增 `langchain-core` 与 `langsmith` 依赖，维持 LangChain/LangGraph 1.x 版本区间
-  - `src/stata_agent/workflow/orchestrator.py` — `StateGraph.compile` 接入 `InMemorySaver`；`run` 调用增加 `thread_id`；节点返回值改为 partial update dict
+  - `AGENTS.md` — 删除 `docs` 目录结构导航，改为只保留会话工作流、稳定入口和 3 个项目 skill 的按需加载入口
+  - `docs/product/empirical-analysis-workflow.md` — 产品流程单一事实来源，收敛 S1-S5 阶段需求、状态机、工件和检查点
+  - `.agents/skills/stataagent-empirical-workflow/SKILL.md`、`.agents/skills/stataagent-engineering/SKILL.md`、`.agents/skills/stataagent-csmar-reference/SKILL.md` — 项目私有渐进加载入口
 - 未解决的问题：
   - `pre-commit run --all-files` 在当前沙箱中需要显式设置 `PRE_COMMIT_HOME` 到仓库内可写目录；普通开发机默认缓存目录通常可直接工作
   - 真实 Tongyi API 需要用户在 `.env` 中提供可用的 `DASHSCOPE_API_KEY`；当前验证以注入式测试替身覆盖，不包含线上密钥调用
