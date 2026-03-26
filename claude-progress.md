@@ -8,19 +8,19 @@
 
 - 当前阶段：S2（理论预判与模型构建）
 - 总体进度：3/18 features 完成（S1-T1、S1-T2、S1-T3）
-- 最后更新：2026-03-25
+- 最后更新：2026-03-26
 - 阻塞问题：无；下一优先任务为 `S2-T1`
 
 ## 当前上下文
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：按用户要求收敛 `docs/product/empirical-analysis-workflow-v2.md`，保留三阶段叙事形式，同时补上 `Hard/Soft Contract`、Gateway 审批对象、核心 X/Y 探针失败即中止、`D3` 组装审计节点，以及 `E3` 技术性有界重试节点
-- 阶段：S2 进行中（`S2-T1` 仍是下一优先功能）；本次仅修改 v2 工作流提案文档与交接，不变更业务实现与 feature 状态
+- 正在处理：将 `docs/product/empirical-analysis-workflow-v2.md` 升格为正式工作流基线，并为正式文档补入 Mermaid 状态机执行链路；当前 `v2` 与正式基线文档内容保持一致
+- 阶段：S2 进行中（`S2-T1` 仍是下一优先功能）；本次仅更新工作流基线文档与交接，不变更业务实现与 feature 状态
 - 分支：main
 - 关键文件：
-  - `docs/product/empirical-analysis-workflow-v2.md` — V2 提案文档；保留原有文风，补齐最低可行数据契约、软硬边界、可选扩展模块边界与技术性重试约束
-  - `docs/product/empirical-analysis-workflow.md` — 当前产品流程单一事实来源；本次仅作为对照参考，未在本次任务中更新
+  - `docs/product/empirical-analysis-workflow-v2.md` — 已补入 Mermaid 状态机执行链路，并作为正式基线内容的编辑源
+  - `docs/product/empirical-analysis-workflow.md` — 当前产品流程单一事实来源；现已完全替换为与 `v2` 一致的工作流定义
   - `AGENTS.md` — 会话工作流和项目 skill 入口；本次按其要求补充交接
 - 未解决的问题：
   - `pre-commit run --all-files` 在当前沙箱中需要显式设置 `PRE_COMMIT_HOME` 到仓库内可写目录；普通开发机默认缓存目录通常可直接工作
