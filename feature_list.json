@@ -82,7 +82,7 @@
             "在 mock CSMAR 元数据下能为 Y、X 生成非空映射结果",
             "核心字段不存在时会返回可解释的映射失败"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "S1-T5",

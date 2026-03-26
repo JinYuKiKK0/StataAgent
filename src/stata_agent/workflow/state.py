@@ -1,3 +1,5 @@
+from stata_agent.domains.mapping.types import VariableBinding
+from stata_agent.domains.mapping.types import VariableMappingResult
 from pydantic import BaseModel, Field
 
 from stata_agent.domains.request.types import ResearchRequest
@@ -15,4 +17,6 @@ class ResearchState(BaseModel):
     parse_result: RequirementParseResult | None = None
     variable_definitions: list[VariableDefinition] | None = None
     data_requirements_draft: DataRequirementsDraft | None = None
+    variable_bindings: list[VariableBinding] | None = None
+    variable_mapping_result: VariableMappingResult | None = None
     notes: list[str] = Field(default_factory=list)
