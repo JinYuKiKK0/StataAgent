@@ -1,6 +1,7 @@
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
+from stata_agent.domains.fetch.types import ProbeCoverageResult
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.mapping.types import VariableMappingResult
 from stata_agent.providers.settings import Settings
@@ -73,6 +74,36 @@ class FailingMapper:
         )
 
 
+class SuccessfulProbeExecutor:
+    def execute_coverage(
+        self,
+        spec: ResearchSpec,
+        variable_bindings: list[VariableBinding],
+    ) -> ProbeCoverageResult:
+        return ProbeCoverageResult(
+            hard_coverage_rate=1.0,
+            soft_coverage_rate=1.0,
+            key_alignment_ready=True,
+            target_grain_ready=True,
+        )
+
+
+class FailingProbeExecutor:
+    def execute_coverage(
+        self,
+        spec: ResearchSpec,
+        variable_bindings: list[VariableBinding],
+    ) -> ProbeCoverageResult:
+        return ProbeCoverageResult(
+            hard_coverage_rate=0.5,
+            soft_coverage_rate=1.0,
+            key_alignment_ready=False,
+            target_grain_ready=True,
+            hard_gaps=["ROA"],
+            failure_reason="探针失败：Hard Contract 变量不可得：ROA。",
+        )
+
+
 def _build_request() -> ResearchRequest:
     return ResearchRequest(
         topic="银行数字化转型与风险承担",
@@ -85,20 +116,26 @@ def _build_request() -> ResearchRequest:
 
 
 def test_orchestrator_runs_to_specified_state() -> None:
-    orchestrator = ApplicationOrchestrator(parser=SuccessfulParser(), mapper=SuccessfulMapper())
+    orchestrator = ApplicationOrchestrator(
+        parser=SuccessfulParser(),
+        mapper=SuccessfulMapper(),
+        probe_executor=SuccessfulProbeExecutor(),
+    )
 
     state = orchestrator.run(_build_request())
 
-    assert state.stage is RunStage.MAPPED
+    assert state.stage is RunStage.PROBED
     assert state.spec is not None
     assert state.parse_result is not None
     assert state.variable_definitions is not None
     assert state.data_requirements_draft is not None
     assert state.variable_bindings is not None
     assert state.variable_mapping_result is not None
+    assert state.probe_coverage_result is not None
     assert "需求解析已完成。" in state.notes
     assert "变量定义与数据需求清单已生成。" in state.notes
     assert "CSMAR 探针级变量映射已完成。" in state.notes
+    assert "探针执行与覆盖摘要已完成。" in state.notes
 
     assert state.data_requirements_draft.entity_scope == "A股上市银行"
     assert state.data_requirements_draft.time_start_year == 2010
@@ -140,6 +177,21 @@ def test_orchestrator_fails_on_hard_contract_mapping_gap() -> None:
     assert state.variable_mapping_result.failure_reason is not None
     assert state.variable_bindings is None
     assert "核心变量缺失触发 fail-fast。" in state.notes
+
+
+def test_orchestrator_fails_on_probe_coverage_gap() -> None:
+    orchestrator = ApplicationOrchestrator(
+        parser=SuccessfulParser(),
+        mapper=SuccessfulMapper(),
+        probe_executor=FailingProbeExecutor(),
+    )
+
+    state = orchestrator.run(_build_request())
+
+    assert state.stage is RunStage.FAILED
+    assert state.probe_coverage_result is not None
+    assert state.probe_coverage_result.failure_reason is not None
+    assert "Hard Contract 变量不可得" in state.notes[-1]
 
 
 def test_orchestrator_wraps_settings_errors() -> None:

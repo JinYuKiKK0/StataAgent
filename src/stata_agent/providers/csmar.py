@@ -65,8 +65,16 @@ _DEFAULT_CATALOG: tuple[_CatalogField, ...] = (
 
 
 class CsmarBridgeClient:
-    def __init__(self, catalog: tuple[_CatalogField, ...] = _DEFAULT_CATALOG) -> None:
+    def __init__(
+        self,
+        catalog: tuple[_CatalogField, ...] = _DEFAULT_CATALOG,
+        *,
+        query_count_overrides: dict[tuple[str, str], int] | None = None,
+        inaccessible_fields: set[tuple[str, str]] | None = None,
+    ) -> None:
         self._catalog = catalog
+        self._query_count_overrides = query_count_overrides or {}
+        self._inaccessible_fields = inaccessible_fields or set()
 
     def fetch(self, plan: QueryPlan, output_dir: Path) -> Path:
         return output_dir / f"{plan.table_name}.parquet"
@@ -99,3 +107,17 @@ class CsmarBridgeClient:
             item.table_name == table_name and item.field_name == field_name
             for item in self._catalog
         )
+
+    def query_count(self, table_name: str, field_name: str) -> int:
+        key = (table_name, field_name)
+        if key in self._inaccessible_fields:
+            raise CsmarMetadataError(
+                f"字段不可访问：{table_name}.{field_name} 无法执行 queryCount 探针。"
+            )
+
+        if key in self._query_count_overrides:
+            return self._query_count_overrides[key]
+
+        if self.field_exists(table_name, field_name):
+            return 100
+        raise CsmarMetadataError(f"字段不存在：{table_name}.{field_name}")

@@ -8,7 +8,9 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langchain_core.runnables.config import RunnableConfig
 
+from stata_agent.domains.fetch.types import ProbeCoverageResult
 from stata_agent.domains.mapping.ports import CsmarMetadataProviderPort
+from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.mapping.types import VariableMappingResult
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import RequirementParseResult
@@ -18,6 +20,7 @@ from stata_agent.domains.spec.types import VariableRequirementsResult
 from stata_agent.providers.csmar import CsmarBridgeClient
 from stata_agent.providers.llm import TongyiResearchSpecGenerator
 from stata_agent.providers.settings import Settings, SettingsError, get_settings
+from stata_agent.services.probe_executor import ProbeExecutor
 from stata_agent.services.requirement_parser import RequirementParser
 from stata_agent.services.variable_mapper import VariableMapper
 from stata_agent.services.variable_requirements_builder import VariableRequirementsBuilder
@@ -45,6 +48,15 @@ class VariableMapperPort(Protocol):
         ...
 
 
+class ProbeExecutorPort(Protocol):
+    def execute_coverage(
+        self,
+        spec: ResearchSpec,
+        variable_bindings: list[VariableBinding],
+    ) -> ProbeCoverageResult:
+        ...
+
+
 class WorkflowBootstrapError(RuntimeError):
     def __init__(self, details: list[str]) -> None:
         super().__init__("工作流启动配置校验失败")
@@ -57,6 +69,7 @@ class ApplicationOrchestrator:
         parser: RequirementParserPort | None = None,
         builder: VariableRequirementsBuilderPort | None = None,
         mapper: VariableMapperPort | None = None,
+        probe_executor: ProbeExecutorPort | None = None,
         csmar_provider: CsmarMetadataProviderPort | None = None,
         settings_factory: Callable[[], Settings] = get_settings,
     ) -> None:
@@ -64,6 +77,7 @@ class ApplicationOrchestrator:
         self._parser = parser
         self._builder = builder
         self._mapper = mapper
+        self._probe_executor = probe_executor
         self._csmar_provider = csmar_provider
         self._settings: Settings | None = None
         self._checkpointer = InMemorySaver()
@@ -88,10 +102,12 @@ class ApplicationOrchestrator:
         workflow.add_node("parse_request", self._parse_request_node)
         workflow.add_node("build_variable_requirements", self._build_variable_requirements_node)
         workflow.add_node("map_variables", self._map_variables_node)
+        workflow.add_node("probe_coverage", self._probe_coverage_node)
         workflow.add_edge(START, "parse_request")
         workflow.add_edge("parse_request", "build_variable_requirements")
         workflow.add_edge("build_variable_requirements", "map_variables")
-        workflow.add_edge("map_variables", END)
+        workflow.add_edge("map_variables", "probe_coverage")
+        workflow.add_edge("probe_coverage", END)
         return workflow.compile(checkpointer=self._checkpointer)
 
     def _parse_request_node(self, state: ResearchState) -> ResearchState:
@@ -163,6 +179,35 @@ class ApplicationOrchestrator:
             }
         )
 
+    def _probe_coverage_node(self, state: ResearchState) -> ResearchState:
+        if state.spec is None or state.variable_bindings is None:
+            return state
+
+        coverage_result = self._get_probe_executor().execute_coverage(
+            spec=state.spec,
+            variable_bindings=state.variable_bindings,
+        )
+        notes = list(state.notes)
+        notes.extend(coverage_result.warnings)
+        if coverage_result.failure_reason is not None:
+            notes.append(coverage_result.failure_reason)
+            return state.model_copy(
+                update={
+                    "probe_coverage_result": coverage_result,
+                    "stage": RunStage.FAILED,
+                    "notes": notes,
+                }
+            )
+
+        notes.append("探针执行与覆盖摘要已完成。")
+        return state.model_copy(
+            update={
+                "probe_coverage_result": coverage_result,
+                "stage": RunStage.PROBED,
+                "notes": notes,
+            }
+        )
+
     def _build_run_config(self) -> RunnableConfig:
         return {"configurable": {"thread_id": f"run-{uuid4()}"}}
 
@@ -181,6 +226,11 @@ class ApplicationOrchestrator:
         if self._mapper is None:
             self._mapper = VariableMapper(metadata_provider=self._get_csmar_provider())
         return self._mapper
+
+    def _get_probe_executor(self) -> ProbeExecutorPort:
+        if self._probe_executor is None:
+            self._probe_executor = ProbeExecutor(metadata_provider=self._get_csmar_provider())
+        return self._probe_executor
 
     def _get_csmar_provider(self) -> CsmarMetadataProviderPort:
         if self._csmar_provider is None:

@@ -1,3 +1,4 @@
+from stata_agent.domains.fetch.types import ProbeCoverageResult
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.mapping.types import VariableMappingResult
 from pydantic import BaseModel, Field
@@ -19,4 +20,5 @@ class ResearchState(BaseModel):
     data_requirements_draft: DataRequirementsDraft | None = None
     variable_bindings: list[VariableBinding] | None = None
     variable_mapping_result: VariableMappingResult | None = None
+    probe_coverage_result: ProbeCoverageResult | None = None
     notes: list[str] = Field(default_factory=list)

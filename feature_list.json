@@ -99,7 +99,7 @@
             "Hard Contract 变量或关键主键不可得时会触发明确失败",
             "Soft Contract 变量覆盖不足时会留下摘要而不是直接中止"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "S1-T6",

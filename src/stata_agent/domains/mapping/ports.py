@@ -9,3 +9,6 @@ class CsmarMetadataProviderPort(Protocol):
 
     def field_exists(self, table_name: str, field_name: str) -> bool:
         ...
+
+    def query_count(self, table_name: str, field_name: str) -> int:
+        ...

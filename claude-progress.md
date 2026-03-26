@@ -7,23 +7,25 @@
 ## 项目状态
 
 - 当前阶段：S1（需求解析与最低可行数据契约）
-- 总体进度：4/24 features 完成（S1-T1、S1-T2、S1-T3、S1-T4）
+- 总体进度：5/24 features 完成（S1-T1、S1-T2、S1-T3、S1-T4、S1-T5）
 - 最后更新：2026-03-26
-- 阻塞问题：无；下一优先任务为 `S1-T5`
+- 阻塞问题：无；下一优先任务为 `S1-T6`
 
 ## 当前上下文
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：完成 `S1-T4`（CSMAR 探针级变量映射）全链路落地，新增映射契约、provider 元数据探针、映射服务与编排节点。
+- 正在处理：完成 `S1-T5`（探针执行与覆盖摘要）全链路落地，新增 queryCount 探针、覆盖摘要契约、探针执行服务与编排节点。
 - 阶段：S1（需求解析与最低可行数据契约）
 - 分支：main
 - 关键文件：
-  - `feature_list.json` — `S1-T4` 已设置 `passes: true`；下一优先任务按列表顺序为 `S1-T5`（探针执行与覆盖摘要）。
-  - `src/stata_agent/domains/mapping/types.py` — 扩展 `VariableBinding` 并新增 `VariableMappingResult`/`CsmarFieldCandidate`。
-  - `src/stata_agent/providers/csmar.py` — 新增元数据候选检索与字段存在性探针能力。
-  - `src/stata_agent/services/variable_mapper.py` — 实现 Hard/Soft Contract 判定与 fail-fast 映射逻辑。
-  - `src/stata_agent/workflow/orchestrator.py` — 新增 `map_variables` 节点并推进到 `RunStage.MAPPED`。
+  - `feature_list.json` — `S1-T5` 已设置 `passes: true`；下一优先任务按列表顺序为 `S1-T6`（最低可行数据契约构建）。
+  - `src/stata_agent/domains/fetch/types.py` — 新增 `VariableProbeResult` 与 `ProbeCoverageResult` 契约。
+  - `src/stata_agent/providers/csmar.py` — 新增 `query_count` 探针能力和可注入覆盖行为。
+  - `src/stata_agent/services/probe_executor.py` — 实现探针执行、覆盖率汇总与 Hard fail-fast 决策。
+  - `src/stata_agent/workflow/orchestrator.py` — 新增 `probe_coverage` 节点并推进到 `RunStage.PROBED`。
+  - `src/stata_agent/workflow/state.py` / `src/stata_agent/workflow/types.py` — 增加探针摘要状态字段与 `PROBED` 阶段。
+  - `tests/test_probe_executor.py` / `tests/test_workflow_orchestrator.py` — 补齐 S1-T5 核心路径测试。
   - `docs/product/empirical-analysis-workflow.md` — 当前产品流程单一事实来源。
   - `AGENTS.md` — 会话工作流逻辑；现在按照列表顺序选择下一项。
 - 未解决的问题：

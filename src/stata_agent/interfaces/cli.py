@@ -105,7 +105,7 @@ def _build_request(
 
 
 def _render_research_summary(state: ResearchState) -> None:
-    if state.stage is RunStage.SPECIFIED:
+    if state.stage is not RunStage.FAILED:
         console.print("\n[bold green]✓ 研究请求已完成需求解析[/bold green]\n")
     else:
         console.print("\n[bold red]✗ 研究请求在需求解析阶段失败[/bold red]\n")
@@ -131,6 +131,8 @@ def _render_research_summary(state: ResearchState) -> None:
         _render_data_requirements(state)
     if state.parse_result is not None:
         _render_parse_audit(state)
+    if state.probe_coverage_result is not None:
+        _render_probe_coverage(state)
     console.print(f"\n[dim]工作流状态 ID: {state.stage}[/dim]")
 
 
@@ -213,4 +215,32 @@ def _render_data_requirements(state: ResearchState) -> None:
         f"{state.data_requirements_draft.time_start_year}-{state.data_requirements_draft.time_end_year}",
     )
     summary.add_row("需求条目数", str(len(state.data_requirements_draft.items)))
+    console.print(summary)
+
+
+def _render_probe_coverage(state: ResearchState) -> None:
+    if state.probe_coverage_result is None:
+        return
+
+    summary = Table(title="探针覆盖摘要")
+    summary.add_column("字段", style="cyan")
+    summary.add_column("值", style="white")
+    summary.add_row("Hard 覆盖率", f"{state.probe_coverage_result.hard_coverage_rate:.0%}")
+    summary.add_row("Soft 覆盖率", f"{state.probe_coverage_result.soft_coverage_rate:.0%}")
+    summary.add_row(
+        "关键主键可对齐",
+        "是" if state.probe_coverage_result.key_alignment_ready else "否",
+    )
+    summary.add_row(
+        "目标粒度可得",
+        "是" if state.probe_coverage_result.target_grain_ready else "否",
+    )
+    summary.add_row(
+        "Hard 缺口",
+        "、".join(state.probe_coverage_result.hard_gaps) if state.probe_coverage_result.hard_gaps else "无",
+    )
+    summary.add_row(
+        "Soft 缺口",
+        "、".join(state.probe_coverage_result.soft_gaps) if state.probe_coverage_result.soft_gaps else "无",
+    )
     console.print(summary)
