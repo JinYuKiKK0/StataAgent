@@ -1,4 +1,5 @@
 from stata_agent.domains.fetch.types import DataContractBundle
+from stata_agent.domains.fetch.types import GatewayRecord
 from stata_agent.domains.fetch.types import ProbeCoverageResult
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.mapping.types import VariableMappingResult
@@ -23,4 +24,5 @@ class ResearchState(BaseModel):
     variable_mapping_result: VariableMappingResult | None = None
     probe_coverage_result: ProbeCoverageResult | None = None
     data_contract_bundle: DataContractBundle | None = None
+    gateway_record: GatewayRecord | None = None
     notes: list[str] = Field(default_factory=list)

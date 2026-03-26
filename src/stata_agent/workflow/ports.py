@@ -14,13 +14,11 @@ from stata_agent.workflow.state import ResearchState
 
 
 class RequirementParserPort(Protocol):
-    def parse(self, request: ResearchRequest) -> RequirementParseResult:
-        ...
+    def parse(self, request: ResearchRequest) -> RequirementParseResult: ...
 
 
 class VariableRequirementsBuilderPort(Protocol):
-    def build(self, spec: ResearchSpec) -> VariableRequirementsResult:
-        ...
+    def build(self, spec: ResearchSpec) -> VariableRequirementsResult: ...
 
 
 class VariableMapperPort(Protocol):
@@ -29,8 +27,7 @@ class VariableMapperPort(Protocol):
         request: ResearchRequest,
         spec: ResearchSpec,
         variable_definitions: list[VariableDefinition],
-    ) -> VariableMappingResult:
-        ...
+    ) -> VariableMappingResult: ...
 
 
 class ProbeExecutorPort(Protocol):
@@ -38,8 +35,7 @@ class ProbeExecutorPort(Protocol):
         self,
         spec: ResearchSpec,
         variable_bindings: list[VariableBinding],
-    ) -> ProbeCoverageResult:
-        ...
+    ) -> ProbeCoverageResult: ...
 
 
 class DataContractBuilderPort(Protocol):
@@ -50,23 +46,19 @@ class DataContractBuilderPort(Protocol):
         variable_definitions: list[VariableDefinition],
         variable_bindings: list[VariableBinding],
         probe_coverage: ProbeCoverageResult,
-    ) -> DataContractBundle:
-        ...
+    ) -> DataContractBundle: ...
 
 
 class Phase1OrchestratorPort(Protocol):
-    def run_feasibility(self, state: ResearchState) -> ResearchState:
-        ...
+    def run_feasibility(self, state: ResearchState) -> ResearchState: ...
 
 
 class Phase2OrchestratorPort(Protocol):
-    def run_modeling(self, state: ResearchState) -> ResearchState:
-        ...
+    def run_modeling(self, state: ResearchState) -> ResearchState: ...
 
 
 class Phase3OrchestratorPort(Protocol):
-    def run_execution(self, state: ResearchState) -> ResearchState:
-        ...
+    def run_execution(self, state: ResearchState) -> ResearchState: ...
 
 
 __all__ = [

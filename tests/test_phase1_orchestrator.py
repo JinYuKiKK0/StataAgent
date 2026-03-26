@@ -166,7 +166,9 @@ def _build_orchestrator(
 
 
 def test_phase1_runs_to_contracted_state() -> None:
-    state = _build_orchestrator().run_feasibility(ResearchState(request=_build_request()))
+    state = _build_orchestrator().run_feasibility(
+        ResearchState(request=_build_request())
+    )
 
     assert state.stage is RunStage.CONTRACTED
     assert state.spec is not None

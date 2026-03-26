@@ -63,7 +63,9 @@ class VariableMapper:
         hard_variables: set[str],
     ) -> VariableBinding | None:
         try:
-            candidates = self._metadata_provider.find_field_candidates(definition.variable_name)
+            candidates = self._metadata_provider.find_field_candidates(
+                definition.variable_name
+            )
         except CsmarMetadataError:
             return None
         if not candidates:
@@ -105,7 +107,9 @@ class VariableMapper:
         )
         return scored[0] if scored else None
 
-    def _compute_confidence(self, candidate: CsmarFieldCandidate, frequency_hint: str) -> float:
+    def _compute_confidence(
+        self, candidate: CsmarFieldCandidate, frequency_hint: str
+    ) -> float:
         score = 0.5
         if candidate.alias_hit:
             score += 0.3
@@ -113,7 +117,9 @@ class VariableMapper:
             score += 0.2
         return min(score, 1.0)
 
-    def _build_evidence(self, candidate: CsmarFieldCandidate, frequency_hint: str) -> str:
+    def _build_evidence(
+        self, candidate: CsmarFieldCandidate, frequency_hint: str
+    ) -> str:
         frequency_ok = "是" if frequency_hint in candidate.frequency_tags else "否"
         alias_ok = "是" if candidate.alias_hit else "否"
         return f"alias命中={alias_ok}; frequency匹配={frequency_ok}; 候选字段={candidate.field_name}"

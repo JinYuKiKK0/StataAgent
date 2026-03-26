@@ -1,5 +1,7 @@
 from stata_agent.domains.spec.types import ResearchSpec
-from stata_agent.services.variable_requirements_builder import VariableRequirementsBuilder
+from stata_agent.services.variable_requirements_builder import (
+    VariableRequirementsBuilder,
+)
 
 
 def _build_spec() -> ResearchSpec:
@@ -32,8 +34,12 @@ def test_builder_marks_core_variables_as_ready_and_locked() -> None:
 
     result = builder.build(_build_spec())
 
-    dependent = next(item for item in result.variable_definitions if item.role == "dependent")
-    independent = next(item for item in result.variable_definitions if item.role == "independent")
+    dependent = next(
+        item for item in result.variable_definitions if item.role == "dependent"
+    )
+    independent = next(
+        item for item in result.variable_definitions if item.role == "independent"
+    )
 
     assert dependent.variable_name == "ROA"
     assert dependent.is_locked is True
@@ -58,7 +64,9 @@ def test_builder_applies_frequency_heuristic_and_unknown_fallback() -> None:
     builder = VariableRequirementsBuilder()
     result = builder.build(_build_spec())
 
-    assert all(item.frequency_hint == "quarterly" for item in result.variable_definitions)
+    assert all(
+        item.frequency_hint == "quarterly" for item in result.variable_definitions
+    )
 
     annual_free_spec = _build_spec().model_copy(
         update={
@@ -68,6 +76,8 @@ def test_builder_applies_frequency_heuristic_and_unknown_fallback() -> None:
     )
     annual_free_result = builder.build(annual_free_spec)
     fallback_control = next(
-        item for item in annual_free_result.variable_definitions if item.variable_name == "资产规模"
+        item
+        for item in annual_free_result.variable_definitions
+        if item.variable_name == "资产规模"
     )
     assert fallback_control.frequency_hint == "unknown"

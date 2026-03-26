@@ -17,7 +17,9 @@ class DataContractBuilder:
     ) -> DataContractBundle:
         hard_variables = _collect_hard_variables(variable_definitions)
         soft_variables = _collect_soft_variables(variable_definitions)
-        allowed_soft_removals = _collect_allowed_soft_removals(soft_variables, probe_coverage)
+        allowed_soft_removals = _collect_allowed_soft_removals(
+            soft_variables, probe_coverage
+        )
         substitution_log = _collect_substitution_log(variable_bindings)
         residual_risks = _collect_residual_risks(probe_coverage)
 
@@ -41,11 +43,15 @@ class DataContractBuilder:
         )
 
 
-def _collect_hard_variables(variable_definitions: list[VariableDefinition]) -> list[str]:
+def _collect_hard_variables(
+    variable_definitions: list[VariableDefinition],
+) -> list[str]:
     return [item.variable_name for item in variable_definitions if item.is_locked]
 
 
-def _collect_soft_variables(variable_definitions: list[VariableDefinition]) -> list[str]:
+def _collect_soft_variables(
+    variable_definitions: list[VariableDefinition],
+) -> list[str]:
     return [item.variable_name for item in variable_definitions if not item.is_locked]
 
 
@@ -62,7 +68,9 @@ def _collect_substitution_log(variable_bindings: list[VariableBinding]) -> list[
     for binding in variable_bindings:
         if binding.substituted_from is None:
             continue
-        records.append(f"{binding.substituted_from} -> {binding.variable_name} ({binding.table_name}.{binding.field_name})")
+        records.append(
+            f"{binding.substituted_from} -> {binding.variable_name} ({binding.table_name}.{binding.field_name})"
+        )
     return records
 
 

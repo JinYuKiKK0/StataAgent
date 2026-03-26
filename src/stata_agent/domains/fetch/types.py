@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel, Field
 
 from stata_agent.domains.mapping.types import VariableBinding
@@ -28,7 +30,9 @@ def _empty_probe_results() -> list[VariableProbeResult]:
 
 
 class ProbeCoverageResult(BaseModel):
-    probe_results: list[VariableProbeResult] = Field(default_factory=_empty_probe_results)
+    probe_results: list[VariableProbeResult] = Field(
+        default_factory=_empty_probe_results
+    )
     hard_coverage_rate: float = 0.0
     soft_coverage_rate: float = 0.0
     hard_gaps: list[str] = Field(default_factory=list)
@@ -56,9 +60,25 @@ class DataContractBundle(BaseModel):
     time_start_year: int
     time_end_year: int
     empirical_requirements: str
-    variable_definitions: list[VariableDefinition] = Field(default_factory=_empty_variable_definitions)
-    variable_bindings: list[VariableBinding] = Field(default_factory=_empty_variable_bindings)
+    variable_definitions: list[VariableDefinition] = Field(
+        default_factory=_empty_variable_definitions
+    )
+    variable_bindings: list[VariableBinding] = Field(
+        default_factory=_empty_variable_bindings
+    )
     probe_coverage: ProbeCoverageResult
     substitution_log: list[str] = Field(default_factory=list)
     residual_risks: list[str] = Field(default_factory=list)
     spec: ResearchSpec
+
+
+class GatewayDecision(str, Enum):
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class GatewayRecord(BaseModel):
+    """Gateway 审批决策记录，持久化到 ResearchState。"""
+
+    decision: GatewayDecision
+    reason: str = ""

@@ -26,12 +26,17 @@ class VariableRequirementsBuilder:
 def _build_definitions(spec: ResearchSpec) -> list[VariableDefinition]:
     definitions: list[VariableDefinition] = []
     definitions.append(_build_core_variable(spec, spec.dependent_variable, "dependent"))
-    definitions.extend(_build_core_variable(spec, value, "independent") for value in spec.independent_variables)
+    definitions.extend(
+        _build_core_variable(spec, value, "independent")
+        for value in spec.independent_variables
+    )
     definitions.extend(_build_control_variables(spec))
     return definitions
 
 
-def _build_core_variable(spec: ResearchSpec, variable_name: str, role: str) -> VariableDefinition:
+def _build_core_variable(
+    spec: ResearchSpec, variable_name: str, role: str
+) -> VariableDefinition:
     cleaned_name = variable_name.strip()
     return VariableDefinition(
         variable_name=cleaned_name,
@@ -61,7 +66,10 @@ def _build_control_variables(spec: ResearchSpec) -> list[VariableDefinition]:
 
 
 def _normalize_controls(spec: ResearchSpec) -> list[str]:
-    forbidden = {spec.dependent_variable.strip(), *[value.strip() for value in spec.independent_variables]}
+    forbidden = {
+        spec.dependent_variable.strip(),
+        *[value.strip() for value in spec.independent_variables],
+    }
     normalized: list[str] = []
     seen: set[str] = set()
     for candidate in spec.control_variable_candidates:
@@ -87,7 +95,9 @@ def _infer_frequency_hint(topic: str, variable_name: str) -> str:
     text = f"{topic} {variable_name}".strip().lower()
     if _contains_any(text, ["月", "month", "monthly", "m1", "m2", "m3"]):
         return "monthly"
-    if _contains_any(text, ["季", "季度", "quarter", "quarterly", "q1", "q2", "q3", "q4"]):
+    if _contains_any(
+        text, ["季", "季度", "quarter", "quarterly", "q1", "q2", "q3", "q4"]
+    ):
         return "quarterly"
     if _contains_any(text, ["年", "年度", "annual", "yearly"]):
         return "annual"

@@ -25,8 +25,13 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = Field(default="StataAgent", validation_alias=AliasChoices("APP_NAME", "app_name"))
-    environment: str = Field(default="development", validation_alias=AliasChoices("ENVIRONMENT", "environment"))
+    app_name: str = Field(
+        default="StataAgent", validation_alias=AliasChoices("APP_NAME", "app_name")
+    )
+    environment: str = Field(
+        default="development",
+        validation_alias=AliasChoices("ENVIRONMENT", "environment"),
+    )
     workspace_dir: Path = Field(
         ...,
         description="工作空间文件目录",

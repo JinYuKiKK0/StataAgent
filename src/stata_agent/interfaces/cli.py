@@ -6,7 +6,10 @@ from pydantic import ValidationError
 from typing import NoReturn
 
 from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.workflow.orchestrator import ApplicationOrchestrator, WorkflowBootstrapError
+from stata_agent.workflow.orchestrator import (
+    ApplicationOrchestrator,
+    WorkflowBootstrapError,
+)
 from stata_agent.workflow.state import ResearchState
 from stata_agent.workflow.types import RunStage
 
@@ -32,10 +35,16 @@ def about() -> None:
 
 @app.command()
 def research(
-    topic: str = typer.Option(..., "--topic", "-t", help="研究题目，如：银行数字化转型与风险承担"),
+    topic: str = typer.Option(
+        ..., "--topic", "-t", help="研究题目，如：银行数字化转型与风险承担"
+    ),
     dependent_variable: str = typer.Option(..., "--y", "-y", help="因变量 Y，如：ROA"),
-    independent_variables: list[str] = typer.Option(..., "--x", "-x", help="自变量 X 列表，可多次指定"),
-    entity_scope: str = typer.Option(..., "--entity", "-e", help="样本范围，如：A股上市公司"),
+    independent_variables: list[str] = typer.Option(
+        ..., "--x", "-x", help="自变量 X 列表，可多次指定"
+    ),
+    entity_scope: str = typer.Option(
+        ..., "--entity", "-e", help="样本范围，如：A股上市公司"
+    ),
     time_range: str = typer.Option(..., "--time", "-r", help="时间范围，如：2010-2023"),
     empirical_requirements: str = typer.Option(
         "构建基准回归模型", "--requirements", "-R", help="实证要求"
@@ -52,12 +61,20 @@ def research(
     )
     orchestrator = ApplicationOrchestrator()
     try:
-        state: ResearchState = orchestrator.run(request)
+        state, thread_id = orchestrator.run(request)
     except WorkflowBootstrapError as exc:
         _raise_bootstrap_exit(exc)
+
+    # Gateway 审批中断处理
+    if state.stage is RunStage.CONTRACTED:
+        _render_contract_for_approval(state)
+        decision = _prompt_gateway_decision()
+        state = orchestrator.resume(thread_id, decision)
+
     _render_research_summary(state)
     if state.stage is RunStage.FAILED:
         raise typer.Exit(code=1)
+
 
 def main() -> None:
     app()
@@ -72,7 +89,9 @@ def _load_app_name(orchestrator: ApplicationOrchestrator) -> str:
 
 def _raise_bootstrap_exit(exc: WorkflowBootstrapError) -> NoReturn:
     console.print("\n[bold red]✗ 配置层启动阻截：配置环境校验失败[/bold red]")
-    console.print("[yellow]确保项目根目录下存在 `.env` 文件，且其包含如下受约束配置：[/yellow]")
+    console.print(
+        "[yellow]确保项目根目录下存在 `.env` 文件，且其包含如下受约束配置：[/yellow]"
+    )
     for detail in exc.details:
         console.print(f"  - [cyan]{detail}[/cyan]")
     raise typer.Exit(code=1) from exc
@@ -146,11 +165,15 @@ def _render_spec_summary(state: ResearchState) -> None:
 
     table.add_row("解析主题", state.spec.topic)
     table.add_row("样本范围", state.spec.entity_scope)
-    table.add_row("时间边界", f"{state.spec.time_start_year}-{state.spec.time_end_year}")
+    table.add_row(
+        "时间边界", f"{state.spec.time_start_year}-{state.spec.time_end_year}"
+    )
     table.add_row("候选分析粒度", ", ".join(state.spec.analysis_grain_candidates))
     table.add_row(
         "控制变量候选",
-        ", ".join(state.spec.control_variable_candidates) if state.spec.control_variable_candidates else "无",
+        ", ".join(state.spec.control_variable_candidates)
+        if state.spec.control_variable_candidates
+        else "无",
     )
 
     console.print(table)
@@ -225,8 +248,12 @@ def _render_probe_coverage(state: ResearchState) -> None:
     summary = Table(title="探针覆盖摘要")
     summary.add_column("字段", style="cyan")
     summary.add_column("值", style="white")
-    summary.add_row("Hard 覆盖率", f"{state.probe_coverage_result.hard_coverage_rate:.0%}")
-    summary.add_row("Soft 覆盖率", f"{state.probe_coverage_result.soft_coverage_rate:.0%}")
+    summary.add_row(
+        "Hard 覆盖率", f"{state.probe_coverage_result.hard_coverage_rate:.0%}"
+    )
+    summary.add_row(
+        "Soft 覆盖率", f"{state.probe_coverage_result.soft_coverage_rate:.0%}"
+    )
     summary.add_row(
         "关键主键可对齐",
         "是" if state.probe_coverage_result.key_alignment_ready else "否",
@@ -237,10 +264,56 @@ def _render_probe_coverage(state: ResearchState) -> None:
     )
     summary.add_row(
         "Hard 缺口",
-        "、".join(state.probe_coverage_result.hard_gaps) if state.probe_coverage_result.hard_gaps else "无",
+        "、".join(state.probe_coverage_result.hard_gaps)
+        if state.probe_coverage_result.hard_gaps
+        else "无",
     )
     summary.add_row(
         "Soft 缺口",
-        "、".join(state.probe_coverage_result.soft_gaps) if state.probe_coverage_result.soft_gaps else "无",
+        "、".join(state.probe_coverage_result.soft_gaps)
+        if state.probe_coverage_result.soft_gaps
+        else "无",
     )
     console.print(summary)
+
+
+def _render_contract_for_approval(state: ResearchState) -> None:
+    """呈递最低可行数据契约供用户审核。"""
+    contract = state.data_contract_bundle
+    if contract is None:
+        return
+
+    console.print(
+        "\n[bold yellow]⚠ Gateway 审批：请审核最低可行数据契约[/bold yellow]\n"
+    )
+
+    table = Table(title="最低可行数据契约")
+    table.add_column("字段", style="cyan")
+    table.add_column("值", style="white")
+
+    table.add_row("分析粒度", contract.analysis_grain)
+    table.add_row("样本范围", contract.entity_scope)
+    table.add_row("时间范围", f"{contract.time_start_year}-{contract.time_end_year}")
+    table.add_row(
+        "Hard Contract 变量", "、".join(contract.hard_contract_variables) or "无"
+    )
+    table.add_row(
+        "Soft Contract 变量", "、".join(contract.soft_contract_variables) or "无"
+    )
+    table.add_row("允许自动剔除", "、".join(contract.allowed_soft_removals) or "无")
+    table.add_row("残余风险", "、".join(contract.residual_risks) or "无")
+    table.add_row("替代记录", "、".join(contract.substitution_log) or "无")
+
+    console.print(table)
+
+
+def _prompt_gateway_decision() -> dict[str, str]:
+    """交互式收集用户的 Approve/Reject 决策。"""
+    approved = typer.confirm("是否批准该数据契约？")
+    reason = ""
+    if not approved:
+        reason = typer.prompt("请输入驳回原因", default="")
+    return {
+        "decision": "approved" if approved else "rejected",
+        "reason": reason,
+    }

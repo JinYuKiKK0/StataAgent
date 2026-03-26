@@ -16,17 +16,27 @@ class ProbeExecutor:
         variable_bindings: list[VariableBinding],
     ) -> ProbeCoverageResult:
         probe_results = [self._probe_binding(binding) for binding in variable_bindings]
-        hard_results = [result for result in probe_results if result.contract_tier == "hard"]
-        soft_results = [result for result in probe_results if result.contract_tier == "soft"]
+        hard_results = [
+            result for result in probe_results if result.contract_tier == "hard"
+        ]
+        soft_results = [
+            result for result in probe_results if result.contract_tier == "soft"
+        ]
 
-        hard_gaps = [result.variable_name for result in hard_results if not result.is_accessible]
-        soft_gaps = [result.variable_name for result in soft_results if not result.is_accessible]
+        hard_gaps = [
+            result.variable_name for result in hard_results if not result.is_accessible
+        ]
+        soft_gaps = [
+            result.variable_name for result in soft_results if not result.is_accessible
+        ]
         hard_coverage_rate = self._coverage_rate(hard_results)
         soft_coverage_rate = self._coverage_rate(soft_results)
 
         key_alignment_ready = not hard_gaps
         target_grain_ready = self._is_target_grain_ready(spec, hard_results)
-        failure_reason = self._build_failure_reason(hard_gaps, key_alignment_ready, target_grain_ready)
+        failure_reason = self._build_failure_reason(
+            hard_gaps, key_alignment_ready, target_grain_ready
+        )
 
         return ProbeCoverageResult(
             probe_results=probe_results,
@@ -41,7 +51,9 @@ class ProbeExecutor:
         )
 
     def _probe_binding(self, binding: VariableBinding) -> VariableProbeResult:
-        if not self._metadata_provider.field_exists(binding.table_name, binding.field_name):
+        if not self._metadata_provider.field_exists(
+            binding.table_name, binding.field_name
+        ):
             return self._build_probe_failure(
                 binding,
                 field_exists=False,
@@ -49,7 +61,9 @@ class ProbeExecutor:
             )
 
         try:
-            count = self._metadata_provider.query_count(binding.table_name, binding.field_name)
+            count = self._metadata_provider.query_count(
+                binding.table_name, binding.field_name
+            )
         except CsmarMetadataError as exc:
             return self._build_probe_failure(
                 binding,
@@ -86,7 +100,9 @@ class ProbeExecutor:
             failure_reason=failure_reason,
         )
 
-    def _build_probe_success(self, binding: VariableBinding, count: int) -> VariableProbeResult:
+    def _build_probe_success(
+        self, binding: VariableBinding, count: int
+    ) -> VariableProbeResult:
         return VariableProbeResult(
             variable_name=binding.variable_name,
             contract_tier=binding.contract_tier,

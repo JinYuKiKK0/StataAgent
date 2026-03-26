@@ -31,17 +31,25 @@ class RequirementParser:
             update={
                 "topic": result.spec.topic.strip(),
                 "dependent_variable": request.dependent_variable,
-                "independent_variables": [variable.strip() for variable in request.independent_variables],
+                "independent_variables": [
+                    variable.strip() for variable in request.independent_variables
+                ],
                 "entity_scope": request.entity_scope.strip(),
                 "time_start_year": expected_start_year,
                 "time_end_year": expected_end_year,
-                "control_variable_candidates": _normalize_candidates(result.spec.control_variable_candidates),
-                "analysis_grain_candidates": _normalize_candidates(result.spec.analysis_grain_candidates),
+                "control_variable_candidates": _normalize_candidates(
+                    result.spec.control_variable_candidates
+                ),
+                "analysis_grain_candidates": _normalize_candidates(
+                    result.spec.analysis_grain_candidates
+                ),
             }
         )
         return result.model_copy(update={"spec": normalized_spec})
 
-    def _failure_result(self, result: RequirementParseResult, reason: str) -> RequirementParseResult:
+    def _failure_result(
+        self, result: RequirementParseResult, reason: str
+    ) -> RequirementParseResult:
         warnings = list(result.warnings)
         if reason not in warnings:
             warnings.append(reason)
@@ -68,18 +76,25 @@ def _validate_spec_against_request(
 ) -> str | None:
     if spec.dependent_variable.strip() != request.dependent_variable.strip():
         return "需求解析失败：模型改写了用户给定的因变量。"
-    if [value.strip() for value in spec.independent_variables] != [value.strip() for value in request.independent_variables]:
+    if [value.strip() for value in spec.independent_variables] != [
+        value.strip() for value in request.independent_variables
+    ]:
         return "需求解析失败：模型改写了用户给定的自变量。"
     if spec.entity_scope.strip() != request.entity_scope.strip():
         return "需求解析失败：模型改写了用户给定的样本范围。"
-    if spec.time_start_year != expected_start_year or spec.time_end_year != expected_end_year:
+    if (
+        spec.time_start_year != expected_start_year
+        or spec.time_end_year != expected_end_year
+    ):
         return "需求解析失败：模型改写了用户给定的时间范围。"
     if not spec.analysis_grain_candidates:
         return "需求解析失败：模型没有提供候选分析粒度。"
 
     forbidden_controls = {request.dependent_variable, *request.independent_variables}
     overlapping_controls = [
-        candidate for candidate in spec.control_variable_candidates if candidate in forbidden_controls
+        candidate
+        for candidate in spec.control_variable_candidates
+        if candidate in forbidden_controls
     ]
     if overlapping_controls:
         return "需求解析失败：控制变量候选与用户指定的核心变量重复。"
@@ -96,4 +111,3 @@ def _normalize_candidates(values: list[str]) -> list[str]:
         normalized.append(cleaned)
         seen.add(cleaned)
     return normalized
-

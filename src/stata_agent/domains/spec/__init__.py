@@ -7,11 +7,11 @@ from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.domains.spec.types import VariableRequirementsResult
 
 __all__ = [
-	"DataRequirementItem",
-	"DataRequirementsDraft",
-	"RequirementParseResult",
-	"ResearchSpec",
-	"ResearchSpecGenerator",
-	"VariableDefinition",
-	"VariableRequirementsResult",
+    "DataRequirementItem",
+    "DataRequirementsDraft",
+    "RequirementParseResult",
+    "ResearchSpec",
+    "ResearchSpecGenerator",
+    "VariableDefinition",
+    "VariableRequirementsResult",
 ]

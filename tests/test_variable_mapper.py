@@ -102,7 +102,9 @@ def _build_definitions() -> list[VariableDefinition]:
 def test_mapper_generates_non_empty_bindings_for_y_and_x() -> None:
     mapper = VariableMapper(metadata_provider=MetadataProviderWithCoverage())
 
-    result = mapper.map_probe_bindings(_build_request(), _build_spec(), _build_definitions())
+    result = mapper.map_probe_bindings(
+        _build_request(), _build_spec(), _build_definitions()
+    )
 
     assert result.failure_reason is None
     assert result.bindings
@@ -130,9 +132,7 @@ def test_mapper_fails_fast_when_hard_contract_field_missing() -> None:
 def test_mapper_keeps_soft_gap_summary_without_aborting() -> None:
     mapper = VariableMapper(metadata_provider=MetadataProviderWithCoverage())
     definitions = [
-        item
-        for item in _build_definitions()
-        if item.variable_name != "资本充足率"
+        item for item in _build_definitions() if item.variable_name != "资本充足率"
     ]
     definitions.append(
         VariableDefinition(

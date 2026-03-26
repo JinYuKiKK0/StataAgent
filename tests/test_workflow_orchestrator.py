@@ -1,7 +1,7 @@
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
-from stata_agent.domains.fetch.types import ProbeCoverageResult
+from stata_agent.domains.fetch.types import GatewayDecision, ProbeCoverageResult
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.mapping.types import VariableMappingResult
 from stata_agent.providers.settings import Settings
@@ -115,15 +115,17 @@ def _build_request() -> ResearchRequest:
     )
 
 
-def test_orchestrator_runs_to_specified_state() -> None:
+def test_orchestrator_happy_path_pauses_at_gateway() -> None:
+    """Happy path: Phase1 成功 → 工作流命中 Gateway interrupt → 返回 CONTRACTED 状态。"""
     orchestrator = ApplicationOrchestrator(
         parser=SuccessfulParser(),
         mapper=SuccessfulMapper(),
         probe_executor=SuccessfulProbeExecutor(),
     )
 
-    state = orchestrator.run(_build_request())
+    state, thread_id = orchestrator.run(_build_request())
 
+    # 工作流在 Gateway 中断后返回当前 checkpoint 状态
     assert state.stage is RunStage.CONTRACTED
     assert state.spec is not None
     assert state.parse_result is not None
@@ -152,16 +154,65 @@ def test_orchestrator_runs_to_specified_state() -> None:
         item for item in state.data_requirements_draft.items if item.role == "control"
     ]
     assert pending_controls
-    assert all(item.slot_status == "pending_agent_completion" for item in pending_controls)
-    assert state.data_contract_bundle.hard_contract_variables == ["ROA", "数字化转型指数"]
+    assert all(
+        item.slot_status == "pending_agent_completion" for item in pending_controls
+    )
+    assert state.data_contract_bundle.hard_contract_variables == [
+        "ROA",
+        "数字化转型指数",
+    ]
+    assert thread_id.startswith("run-")
 
 
-def test_orchestrator_runs_to_failed_state() -> None:
-    orchestrator = ApplicationOrchestrator(parser=FailingParser())
+def test_gateway_approve_advances_to_approved_stage() -> None:
+    """Approve 后 stage == APPROVED，gateway_record 正确记录。"""
+    orchestrator = ApplicationOrchestrator(
+        parser=SuccessfulParser(),
+        mapper=SuccessfulMapper(),
+        probe_executor=SuccessfulProbeExecutor(),
+    )
 
-    state = orchestrator.run(_build_request())
+    state, thread_id = orchestrator.run(_build_request())
+    assert state.stage is RunStage.CONTRACTED
+
+    state = orchestrator.resume(thread_id, {"decision": "approved", "reason": ""})
+
+    assert state.stage is RunStage.APPROVED
+    assert state.gateway_record is not None
+    assert state.gateway_record.decision is GatewayDecision.APPROVED
+    assert "Gateway 审批通过，数据契约已锁定。" in state.notes
+
+
+def test_gateway_reject_fails_with_reason() -> None:
+    """Reject 后 stage == FAILED，gateway_record 包含驳回原因。"""
+    orchestrator = ApplicationOrchestrator(
+        parser=SuccessfulParser(),
+        mapper=SuccessfulMapper(),
+        probe_executor=SuccessfulProbeExecutor(),
+    )
+
+    state, thread_id = orchestrator.run(_build_request())
+    assert state.stage is RunStage.CONTRACTED
+
+    state = orchestrator.resume(
+        thread_id, {"decision": "rejected", "reason": "变量覆盖不满足预期"}
+    )
 
     assert state.stage is RunStage.FAILED
+    assert state.gateway_record is not None
+    assert state.gateway_record.decision is GatewayDecision.REJECTED
+    assert state.gateway_record.reason == "变量覆盖不满足预期"
+    assert "Gateway 审批被驳回：变量覆盖不满足预期" in state.notes
+
+
+def test_phase1_failure_skips_gateway() -> None:
+    """Phase1 失败时直接到 END，不进入 Gateway 节点。"""
+    orchestrator = ApplicationOrchestrator(parser=FailingParser())
+
+    state, _ = orchestrator.run(_build_request())
+
+    assert state.stage is RunStage.FAILED
+    assert state.gateway_record is None
     assert state.spec is None
     assert state.parse_result is not None
     assert state.variable_definitions is None
@@ -171,9 +222,11 @@ def test_orchestrator_runs_to_failed_state() -> None:
 
 
 def test_orchestrator_fails_on_hard_contract_mapping_gap() -> None:
-    orchestrator = ApplicationOrchestrator(parser=SuccessfulParser(), mapper=FailingMapper())
+    orchestrator = ApplicationOrchestrator(
+        parser=SuccessfulParser(), mapper=FailingMapper()
+    )
 
-    state = orchestrator.run(_build_request())
+    state, _ = orchestrator.run(_build_request())
 
     assert state.stage is RunStage.FAILED
     assert state.variable_mapping_result is not None
@@ -189,7 +242,7 @@ def test_orchestrator_fails_on_probe_coverage_gap() -> None:
         probe_executor=FailingProbeExecutor(),
     )
 
-    state = orchestrator.run(_build_request())
+    state, _ = orchestrator.run(_build_request())
 
     assert state.stage is RunStage.FAILED
     assert state.probe_coverage_result is not None

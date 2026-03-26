@@ -127,7 +127,9 @@ def test_builder_generates_contract_bundle() -> None:
     assert result.time_end_year == 2023
     assert result.hard_contract_variables == ["ROA", "数字化转型指数"]
     assert result.allowed_soft_removals == ["资本充足率"]
-    assert result.substitution_log == ["风险加权资本比率 -> 资本充足率 (FS_Combas.CAPITAL_ADEQUACY)"]
+    assert result.substitution_log == [
+        "风险加权资本比率 -> 资本充足率 (FS_Combas.CAPITAL_ADEQUACY)"
+    ]
 
 
 def test_builder_keeps_core_variables_outside_soft_removals() -> None:

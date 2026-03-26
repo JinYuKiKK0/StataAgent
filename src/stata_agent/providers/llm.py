@@ -16,12 +16,18 @@ from stata_agent.providers.settings import Settings
 class _RequirementSpecPayload(BaseModel):
     topic: str = Field(..., description="归一化后的研究主题")
     dependent_variable: str = Field(..., description="因变量 Y，必须与输入保持一致")
-    independent_variables: list[str] = Field(default_factory=list, description="自变量 X，必须与输入保持一致")
+    independent_variables: list[str] = Field(
+        default_factory=list, description="自变量 X，必须与输入保持一致"
+    )
     entity_scope: str = Field(..., description="样本范围，必须与输入保持一致")
     time_start_year: int = Field(..., description="起始年份")
     time_end_year: int = Field(..., description="结束年份")
-    analysis_grain_candidates: list[str] = Field(default_factory=list, description="候选分析粒度")
-    control_variable_candidates: list[str] = Field(default_factory=list, description="控制变量候选列表")
+    analysis_grain_candidates: list[str] = Field(
+        default_factory=list, description="候选分析粒度"
+    )
+    control_variable_candidates: list[str] = Field(
+        default_factory=list, description="控制变量候选列表"
+    )
     warnings: list[str] = Field(default_factory=list, description="仅保留真实不确定性")
 
 
@@ -62,7 +68,9 @@ class TongyiResearchSpecGenerator:
             api_key=settings.dashscope_api_key,
             model_kwargs={"temperature": 0},
         )
-        self._chain = prompt | model.with_structured_output(_RequirementSpecPayload, include_raw=True)
+        self._chain = prompt | model.with_structured_output(
+            _RequirementSpecPayload, include_raw=True
+        )
 
     def parse_request(self, request: ResearchRequest) -> RequirementParseResult:
         response = cast(

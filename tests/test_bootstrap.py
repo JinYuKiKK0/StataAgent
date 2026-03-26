@@ -44,7 +44,7 @@ def test_research_command_with_valid_input(monkeypatch: pytest.MonkeyPatch) -> N
         def run(self, request: ResearchRequest):
             from stata_agent.workflow.state import ResearchState
 
-            return ResearchState(
+            state = ResearchState(
                 request=request,
                 stage=RunStage.SPECIFIED,
                 spec=ResearchSpec(
@@ -101,17 +101,25 @@ def test_research_command_with_valid_input(monkeypatch: pytest.MonkeyPatch) -> N
                     ],
                 ),
             )
+            return state, "test-thread-1"
 
-    monkeypatch.setattr("stata_agent.interfaces.cli.ApplicationOrchestrator", SuccessfulOrchestrator)
+    monkeypatch.setattr(
+        "stata_agent.interfaces.cli.ApplicationOrchestrator", SuccessfulOrchestrator
+    )
     result = CliRunner().invoke(
         app,
         [
             "research",
-            "--topic", "银行数字化转型与风险承担",
-            "--y", "ROA",
-            "--x", "数字化转型指数",
-            "--entity", "A股上市银行",
-            "--time", "2010-2023",
+            "--topic",
+            "银行数字化转型与风险承担",
+            "--y",
+            "ROA",
+            "--x",
+            "数字化转型指数",
+            "--entity",
+            "A股上市银行",
+            "--time",
+            "2010-2023",
         ],
     )
 
@@ -135,7 +143,7 @@ def test_research_command_with_parse_failure(monkeypatch: pytest.MonkeyPatch) ->
         def run(self, request: ResearchRequest):
             from stata_agent.workflow.state import ResearchState
 
-            return ResearchState(
+            state = ResearchState(
                 request=request,
                 stage=RunStage.FAILED,
                 parse_result=RequirementParseResult(
@@ -144,17 +152,25 @@ def test_research_command_with_parse_failure(monkeypatch: pytest.MonkeyPatch) ->
                 ),
                 notes=["需求解析失败：模型没有提供候选分析粒度。"],
             )
+            return state, "test-thread-2"
 
-    monkeypatch.setattr("stata_agent.interfaces.cli.ApplicationOrchestrator", FailingOrchestrator)
+    monkeypatch.setattr(
+        "stata_agent.interfaces.cli.ApplicationOrchestrator", FailingOrchestrator
+    )
     result = CliRunner().invoke(
         app,
         [
             "research",
-            "--topic", "银行数字化转型与风险承担",
-            "--y", "ROA",
-            "--x", "数字化转型指数",
-            "--entity", "A股上市银行",
-            "--time", "2010-2023",
+            "--topic",
+            "银行数字化转型与风险承担",
+            "--y",
+            "ROA",
+            "--x",
+            "数字化转型指数",
+            "--entity",
+            "A股上市银行",
+            "--time",
+            "2010-2023",
         ],
     )
 
@@ -163,7 +179,9 @@ def test_research_command_with_parse_failure(monkeypatch: pytest.MonkeyPatch) ->
     assert "模型没有提供候选分析粒度" in result.stdout
 
 
-def test_research_command_with_missing_tongyi_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_research_command_with_missing_tongyi_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from stata_agent.interfaces.cli import app
     from stata_agent.providers.settings import get_settings
 
@@ -174,11 +192,16 @@ def test_research_command_with_missing_tongyi_settings(monkeypatch: pytest.Monke
         app,
         [
             "research",
-            "--topic", "银行数字化转型与风险承担",
-            "--y", "ROA",
-            "--x", "数字化转型指数",
-            "--entity", "A股上市银行",
-            "--time", "2010-2023",
+            "--topic",
+            "银行数字化转型与风险承担",
+            "--y",
+            "ROA",
+            "--x",
+            "数字化转型指数",
+            "--entity",
+            "A股上市银行",
+            "--time",
+            "2010-2023",
         ],
     )
 
@@ -194,10 +217,14 @@ def test_research_command_missing_required_fields() -> None:
         app,
         [
             "research",
-            "--y", "ROA",
-            "--x", "数字化转型指数",
-            "--entity", "A股上市银行",
-            "--time", "2010-2023",
+            "--y",
+            "ROA",
+            "--x",
+            "数字化转型指数",
+            "--entity",
+            "A股上市银行",
+            "--time",
+            "2010-2023",
         ],
     )
 
@@ -209,10 +236,14 @@ def test_research_command_missing_required_fields() -> None:
         app,
         [
             "research",
-            "--topic", "银行数字化转型与风险承担",
-            "--x", "数字化转型指数",
-            "--entity", "A股上市银行",
-            "--time", "2010-2023",
+            "--topic",
+            "银行数字化转型与风险承担",
+            "--x",
+            "数字化转型指数",
+            "--entity",
+            "A股上市银行",
+            "--time",
+            "2010-2023",
         ],
     )
 
@@ -224,10 +255,14 @@ def test_research_command_missing_required_fields() -> None:
         app,
         [
             "research",
-            "--topic", "银行数字化转型与风险承担",
-            "--y", "ROA",
-            "--entity", "A股上市银行",
-            "--time", "2010-2023",
+            "--topic",
+            "银行数字化转型与风险承担",
+            "--y",
+            "ROA",
+            "--entity",
+            "A股上市银行",
+            "--time",
+            "2010-2023",
         ],
     )
 
@@ -239,10 +274,14 @@ def test_research_command_missing_required_fields() -> None:
         app,
         [
             "research",
-            "--topic", "银行数字化转型与风险承担",
-            "--y", "ROA",
-            "--x", "数字化转型指数",
-            "--time", "2010-2023",
+            "--topic",
+            "银行数字化转型与风险承担",
+            "--y",
+            "ROA",
+            "--x",
+            "数字化转型指数",
+            "--time",
+            "2010-2023",
         ],
     )
 
@@ -254,10 +293,14 @@ def test_research_command_missing_required_fields() -> None:
         app,
         [
             "research",
-            "--topic", "银行数字化转型与风险承担",
-            "--y", "ROA",
-            "--x", "数字化转型指数",
-            "--entity", "A股上市银行",
+            "--topic",
+            "银行数字化转型与风险承担",
+            "--y",
+            "ROA",
+            "--x",
+            "数字化转型指数",
+            "--entity",
+            "A股上市银行",
         ],
     )
 

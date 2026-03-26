@@ -131,7 +131,7 @@
             "Approve 后工作流可恢复并锁定数据契约",
             "Reject 后工作流会返回契约形成前阶段并保留决策记录"
           ],
-          "passes": false
+          "passes": true
         }
       ]
     },
