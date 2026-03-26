@@ -10,6 +10,7 @@ from stata_agent.domains.spec.types import RequirementParseResult
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.domains.spec.types import VariableRequirementsResult
+from stata_agent.workflow.state import ResearchState
 
 
 class RequirementParserPort(Protocol):
@@ -53,9 +54,27 @@ class DataContractBuilderPort(Protocol):
         ...
 
 
+class Phase1OrchestratorPort(Protocol):
+    def run_feasibility(self, state: ResearchState) -> ResearchState:
+        ...
+
+
+class Phase2OrchestratorPort(Protocol):
+    def run_modeling(self, state: ResearchState) -> ResearchState:
+        ...
+
+
+class Phase3OrchestratorPort(Protocol):
+    def run_execution(self, state: ResearchState) -> ResearchState:
+        ...
+
+
 __all__ = [
     "CsmarMetadataProviderPort",
     "DataContractBuilderPort",
+    "Phase1OrchestratorPort",
+    "Phase2OrchestratorPort",
+    "Phase3OrchestratorPort",
     "ProbeExecutorPort",
     "RequirementParserPort",
     "VariableMapperPort",

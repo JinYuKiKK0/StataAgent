@@ -32,6 +32,7 @@ src/stata_agent/
 ├── __main__.py
 ├── interfaces/   # CLI / Python API 入口与输出格式化
 ├── workflow/     # LangGraph 编排、ResearchState、状态推进
+│   └── stages/   # 分阶段编排子模块（可行性/建模/执行）
 ├── domains/      # 按研究域划分的边界契约与少量端口定义
 │   ├── request/
 │   ├── spec/
