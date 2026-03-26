@@ -6,8 +6,9 @@
   "governance": {
     "single_task_per_session": true,
     "passes_must_follow_verification": true,
-    "mutable_fields_only": ["status", "passes", "updated_at"],
-    "task_ordering": ["stage", "priority", "creation_order"]
+    "mutable_fields_only": [
+      "passes"
+    ]
   },
   "stages": [
     {
@@ -19,9 +20,6 @@
           "id": "S1-T1",
           "name": "研究请求输入契约与 CLI 入口",
           "category": "technical",
-          "priority": 1,
-          "creation_order": 1,
-          "status": "completed",
           "description": "提供单次实证分析 MVP 的入口，要求用户提交自然语言题目，并强制填写 Y、X、时间范围和样本范围。",
           "deliverable": "可校验的 ResearchRequest 与 CLI 输入路径",
           "steps": [
@@ -33,16 +31,12 @@
             "缺少任一必填字段时 CLI 返回明确错误",
             "合法输入能生成初始 ResearchState"
           ],
-          "passes": true,
-          "updated_at": "2026-03-23"
+          "passes": true
         },
         {
           "id": "S1-T2",
           "name": "LangChain 需求解析为 ResearchSpec",
           "category": "functional",
-          "priority": 2,
-          "creation_order": 2,
-          "status": "completed",
           "description": "使用 LangChain 结构化输出把自然语言题目、Y、X、时间范围和样本范围解析为初始研究规范。",
           "deliverable": "包含研究主题、核心变量、样本粒度候选和时间边界的 ResearchSpec",
           "steps": [
@@ -54,16 +48,12 @@
             "给定固定输入时可稳定产出完整字段",
             "无法满足约束的输入会返回可解释的解析失败"
           ],
-          "passes": true,
-          "updated_at": "2026-03-24"
+          "passes": true
         },
         {
           "id": "S1-T3",
           "name": "变量定义与数据需求清单生成",
           "category": "documentation",
-          "priority": 3,
-          "creation_order": 3,
-          "status": "completed",
           "description": "基于 ResearchSpec 产出变量定义清单和数据需求草案，明确 Y、X 和待补控制变量位。",
           "deliverable": "变量定义表与数据需求表",
           "steps": [
@@ -75,16 +65,12 @@
             "生成结果包含 Y、X、时间范围和样本约束",
             "清单中明确标记待 agent 补全的控制变量槽位"
           ],
-          "passes": true,
-          "updated_at": "2026-03-24"
+          "passes": true
         },
         {
           "id": "S1-T4",
           "name": "CSMAR 探针级变量映射",
           "category": "technical",
-          "priority": 4,
-          "creation_order": 4,
-          "status": "todo",
           "description": "把变量定义清单映射到可用于轻量级探针的 CSMAR 字段与表，为后续覆盖探测提供可审计输入。",
           "deliverable": "用于探针阶段的 VariableBinding 列表",
           "steps": [
@@ -96,16 +82,12 @@
             "在 mock CSMAR 元数据下能为 Y、X 生成非空映射结果",
             "核心字段不存在时会返回可解释的映射失败"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S1-T5",
           "name": "探针执行与覆盖摘要",
           "category": "functional",
-          "priority": 5,
-          "creation_order": 5,
-          "status": "todo",
           "description": "基于探针级映射执行元数据、计数或极小样本探测，输出覆盖摘要并对 Hard Contract 缺口快速失败。",
           "deliverable": "探针覆盖摘要与 fail-fast 决策",
           "steps": [
@@ -117,16 +99,12 @@
             "Hard Contract 变量或关键主键不可得时会触发明确失败",
             "Soft Contract 变量覆盖不足时会留下摘要而不是直接中止"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S1-T6",
           "name": "最低可行数据契约构建",
           "category": "functional",
-          "priority": 6,
-          "creation_order": 6,
-          "status": "todo",
           "description": "把变量草案、探针覆盖摘要和替代记录整合为最低可行数据契约，显式区分 Hard Contract 与 Soft Contract。",
           "deliverable": "可审计的最低可行数据契约包",
           "steps": [
@@ -138,16 +116,12 @@
             "生成结果包含 Gateway 审批所需的全部字段",
             "核心变量不会出现在 Soft Contract 的允许自动剔除列表中"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S1-T7",
           "name": "Gateway 审批中断与恢复",
           "category": "technical",
-          "priority": 7,
-          "creation_order": 7,
-          "status": "todo",
           "description": "在最低可行数据契约形成后引入唯一强制的人类审批关卡，并支持审批通过或驳回后的恢复路径。",
           "deliverable": "可恢复的 Gateway 决策记录",
           "steps": [
@@ -159,8 +133,7 @@
             "Approve 后工作流可恢复并锁定数据契约",
             "Reject 后工作流会返回契约形成前阶段并保留决策记录"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         }
       ]
     },
@@ -173,9 +146,6 @@
           "id": "S2-T1",
           "name": "理论预期与基准方程摘要",
           "category": "documentation",
-          "priority": 1,
-          "creation_order": 8,
-          "status": "todo",
           "description": "根据已批准的数据契约产出单次实证分析所需的理论预期、符号方向和基准方程摘要。",
           "deliverable": "模型设计摘要与基准方程说明",
           "steps": [
@@ -187,16 +157,12 @@
             "典型面板题目可生成非空理论预期说明",
             "结果包含核心系数方向与基准方程文本"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S2-T2",
           "name": "基准模型计划生成",
           "category": "technical",
-          "priority": 2,
-          "creation_order": 9,
-          "status": "todo",
           "description": "根据已锁定的数据契约生成基准回归模型计划，包括固定效应、聚类方案和执行所需参数。",
           "deliverable": "基准回归 ModelPlan",
           "steps": [
@@ -208,16 +174,12 @@
             "典型面板题目可生成非空 ModelPlan",
             "输出包含固定效应和标准误设定"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S2-T3",
           "name": "执行边界计划生成",
           "category": "functional",
-          "priority": 3,
-          "creation_order": 10,
-          "status": "todo",
           "description": "在回归前预声明技术性重试白名单，并根据用户输入的实证部分要求生成可选扩展分析计划。",
           "deliverable": "执行边界计划",
           "steps": [
@@ -229,8 +191,7 @@
             "不显著或符号违背预期不会被标记为自动重试触发条件",
             "用户未要求的扩展模块会在计划中明确禁用"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         }
       ]
     },
@@ -243,9 +204,6 @@
           "id": "S3-T1",
           "name": "正式 VariableBinding 与 QueryPlan 生成",
           "category": "technical",
-          "priority": 1,
-          "creation_order": 11,
-          "status": "todo",
           "description": "把已批准的数据契约转化为正式 VariableBinding 和可执行 QueryPlan，为批量抓取提供唯一输入。",
           "deliverable": "VariableBinding 列表与 QueryPlan",
           "steps": [
@@ -257,16 +215,12 @@
             "在 mock CSMAR 元数据下能生成完整 QueryPlan",
             "不存在的字段或年份会触发明确失败"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S3-T2",
           "name": "批量抓取执行与抓取审计",
           "category": "technical",
-          "priority": 2,
-          "creation_order": 12,
-          "status": "todo",
           "description": "执行正式 QueryPlan，处理分页、超时和断点续传，并把原始结果与抓取审计落地为本地工件。",
           "deliverable": "抓取结果文件与抓取审计元数据",
           "steps": [
@@ -278,16 +232,12 @@
             "mock bridge 或 fixture 数据能写出预期工件文件",
             "分页或超时场景会留下可审计的重试记录"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S3-T3",
           "name": "字段标准化与中间表落盘",
           "category": "technical",
-          "priority": 3,
-          "creation_order": 13,
-          "status": "todo",
           "description": "把原始抓取结果标准化为统一命名、单位、缺失值编码和时间格式的中间表资产。",
           "deliverable": "标准化中间表资产",
           "steps": [
@@ -299,16 +249,12 @@
             "输入表能转换为统一字段命名和格式",
             "标准化结果保留关键主键和时间维度"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S3-T4",
           "name": "面板组装与装配审计",
           "category": "functional",
-          "priority": 4,
-          "creation_order": 14,
-          "status": "todo",
           "description": "把标准化中间表组装为单一分析长表，并在 Soft Contract 变量导致样本断崖时执行白名单剔除与装配审计。",
           "deliverable": "PanelDataset 与装配审计记录",
           "steps": [
@@ -320,8 +266,7 @@
             "主键重复、多对多合并或 Hard Contract 破坏时会中止并报错",
             "Soft Contract 白名单变量触发样本断崖时会被剔除并留下审计记录"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         }
       ]
     },
@@ -334,9 +279,6 @@
           "id": "S4-T1",
           "name": "数据质量规则执行与 QualityDecision",
           "category": "functional",
-          "priority": 1,
-          "creation_order": 15,
-          "status": "todo",
           "description": "对组装后的面板执行缺失、重复键、非法值和极值规则检查，并输出回归前的 QualityDecision。",
           "deliverable": "QualityDecision 与阻断原因列表",
           "steps": [
@@ -348,16 +290,12 @@
             "脏数据 fixture 会触发失败并列出原因",
             "正常数据会返回可继续执行的通过决策"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S4-T2",
           "name": "描述统计与质量报告导出",
           "category": "documentation",
-          "priority": 2,
-          "creation_order": 16,
-          "status": "todo",
           "description": "把描述统计结果和质量检查结论组织为稳定可消费的报告资产。",
           "deliverable": "描述统计表与质量报告",
           "steps": [
@@ -369,16 +307,12 @@
             "正常数据会生成可读的描述统计与质量报告",
             "阻断场景下报告包含失败原因"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S4-T3",
           "name": "Winsorization 与分析数据导出",
           "category": "functional",
-          "priority": 3,
-          "creation_order": 17,
-          "status": "todo",
           "description": "对连续变量执行有界缩尾，并导出可直接供 Stata 使用的分析数据文件。",
           "deliverable": "Stata-ready 分析数据集",
           "steps": [
@@ -390,8 +324,7 @@
             "连续变量被正确缩尾",
             "输出文件可被后续执行器消费"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         }
       ]
     },
@@ -404,9 +337,6 @@
           "id": "S5-T1",
           "name": "StataRunPlan 与基准 do 文件渲染",
           "category": "technical",
-          "priority": 1,
-          "creation_order": 18,
-          "status": "todo",
           "description": "根据 ModelPlan 和分析数据集参数生成 StataRunPlan，并渲染基准回归 do 文件。",
           "deliverable": "StataRunPlan 与可执行的基准 do 文件",
           "steps": [
@@ -418,16 +348,12 @@
             "模板渲染测试能产出可检查的 do 文件",
             "渲染结果包含核心变量、控制变量和固定效应参数"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S5-T2",
           "name": "Stata 执行器集成",
           "category": "technical",
-          "priority": 2,
-          "creation_order": 19,
-          "status": "todo",
           "description": "把基准回归 do 文件提交给 Stata 执行器并收集日志与结果工件路径。",
           "deliverable": "执行日志与结果文件路径",
           "steps": [
@@ -439,16 +365,12 @@
             "mock executor 测试能返回日志或结果路径",
             "执行失败时能返回可诊断的错误信息"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S5-T3",
           "name": "基准结果解析与判断摘要",
           "category": "functional",
-          "priority": 3,
-          "creation_order": 20,
-          "status": "todo",
           "description": "解析基准回归输出并结合理论预期生成最小判断摘要，保留不可覆盖的基线结果。",
           "deliverable": "结果判断摘要",
           "steps": [
@@ -460,16 +382,12 @@
             "给定结果 fixture 能提取核心回归指标",
             "摘要包含系数方向、显著性和简要判断"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S5-T4",
           "name": "技术性有界重试控制器",
           "category": "functional",
-          "priority": 4,
-          "creation_order": 21,
-          "status": "todo",
           "description": "仅在执行边界计划允许的技术性问题场景下触发有界重试，并输出完整的重试审计记录。",
           "deliverable": "技术性重试控制结果与审计日志",
           "steps": [
@@ -481,16 +399,12 @@
             "明确技术性问题会触发不超过上限的重试",
             "仅仅不显著或符号违背预期时不会自动进入重试"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S5-T5",
           "name": "按请求执行可选扩展分析",
           "category": "functional",
-          "priority": 5,
-          "creation_order": 22,
-          "status": "todo",
           "description": "根据执行边界计划按需执行异质性、稳健性或中介等可选扩展分析，而不是默认全量运行。",
           "deliverable": "扩展分析结果包",
           "steps": [
@@ -502,16 +416,12 @@
             "用户未请求的扩展模块不会执行",
             "请求异质性或稳健性时会生成对应的非空结果"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S5-T6",
           "name": "LangGraph 单次实证分析编排",
           "category": "technical",
-          "priority": 6,
-          "creation_order": 23,
-          "status": "todo",
           "description": "用 LangGraph 把最低可行数据契约、建模、抓取、质检、执行和判断节点串成一次完整研究运行。",
           "deliverable": "可端到端运行的 LangGraph 工作流",
           "steps": [
@@ -523,16 +433,12 @@
             "工作流能按新状态机顺序执行到结果判断节点",
             "成功路径下输出包含关键工件摘要和状态迁移记录"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         },
         {
           "id": "S5-T7",
           "name": "端到端 smoke harness 与可复用 fixture 资产",
           "category": "testing",
-          "priority": 7,
-          "creation_order": 24,
-          "status": "todo",
           "description": "建立可跨多个后续 feature 复用的端到端 smoke harness、mock 适配器和固定测试数据资产。",
           "deliverable": "可复用的端到端测试资产",
           "steps": [
@@ -544,8 +450,7 @@
             "新建 harness 可驱动最小工作流 smoke test",
             "测试资产能被多个 feature 复用"
           ],
-          "passes": false,
-          "updated_at": "2026-03-26"
+          "passes": false
         }
       ]
     }
@@ -554,14 +459,10 @@
     "id": "Sx-Tx",
     "name": "",
     "category": "technical",
-    "priority": 1,
-    "creation_order": 1,
-    "status": "todo",
     "description": "",
     "deliverable": "",
     "steps": [],
     "verification": [],
-    "passes": false,
-    "updated_at": "YYYY-MM-DD"
+    "passes": false
   }
 }

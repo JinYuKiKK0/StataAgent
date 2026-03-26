@@ -15,13 +15,13 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：按新工作流状态机重划 `feature_list.json`，保留已完成的 `S1-T1/T2/T3`，将未完成部分拆成最小可交付且可测试的功能单元
-- 阶段：工作流重构后重新补齐 S1，新的最高优先未完成功能为 `S1-T4`（CSMAR 探针级变量映射）
+- 正在处理：简化 `feature_list.json` 结构，移除冗余治理字段（priority, creation_order, status, updated_at），以 `passes` 字段作为唯一进度标识。
+- 阶段：S1（需求解析与最低可行数据契约）
 - 分支：main
 - 关键文件：
-  - `feature_list.json` — 已按新工作流重切 feature，恢复 `status/priority/creation_order/updated_at` 治理字段，并把未完成项拆分为 21 个最小可交付单元
-  - `docs/product/empirical-analysis-workflow.md` — 当前产品流程单一事实来源；本次据此重排 feature 清单
-  - `AGENTS.md` — 会话工作流和项目 skill 入口；本次按其任务排序规则重置下一优先功能
+  - `feature_list.json` — 已移除冗余字段，保留 `passes` 作为核心进度。下一优先任务按列表顺序为 `S1-T4`（CSMAR 探针级变量映射）。
+  - `docs/product/empirical-analysis-workflow.md` — 当前产品流程单一事实来源。
+  - `AGENTS.md` — 会话工作流逻辑；现在按照列表顺序选择下一项。
 - 未解决的问题：
   - `pre-commit run --all-files` 在当前沙箱中需要显式设置 `PRE_COMMIT_HOME` 到仓库内可写目录；普通开发机默认缓存目录通常可直接工作
   - 真实 Tongyi API 需要用户在 `.env` 中提供可用的 `DASHSCOPE_API_KEY`；当前验证以注入式测试替身覆盖，不包含线上密钥调用
