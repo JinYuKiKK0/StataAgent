@@ -6,9 +6,7 @@
   "governance": {
     "single_task_per_session": true,
     "passes_must_follow_verification": true,
-    "mutable_fields_only": [
-      "passes"
-    ]
+    "mutable_fields_only": ["passes"]
   },
   "stages": [
     {
@@ -116,7 +114,7 @@
             "生成结果包含 Gateway 审批所需的全部字段",
             "核心变量不会出现在 Soft Contract 的允许自动剔除列表中"
           ],
-          "passes": false
+          "passes": true
         },
         {
           "id": "S1-T7",
@@ -320,10 +318,7 @@
             "保留缩尾前后摘要供质量报告引用",
             "导出 dta 或 csv 供后续回归执行使用"
           ],
-          "verification": [
-            "连续变量被正确缩尾",
-            "输出文件可被后续执行器消费"
-          ],
+          "verification": ["连续变量被正确缩尾", "输出文件可被后续执行器消费"],
           "passes": false
         }
       ]

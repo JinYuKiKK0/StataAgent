@@ -124,7 +124,7 @@ def test_orchestrator_runs_to_specified_state() -> None:
 
     state = orchestrator.run(_build_request())
 
-    assert state.stage is RunStage.PROBED
+    assert state.stage is RunStage.CONTRACTED
     assert state.spec is not None
     assert state.parse_result is not None
     assert state.variable_definitions is not None
@@ -132,10 +132,12 @@ def test_orchestrator_runs_to_specified_state() -> None:
     assert state.variable_bindings is not None
     assert state.variable_mapping_result is not None
     assert state.probe_coverage_result is not None
+    assert state.data_contract_bundle is not None
     assert "需求解析已完成。" in state.notes
     assert "变量定义与数据需求清单已生成。" in state.notes
     assert "CSMAR 探针级变量映射已完成。" in state.notes
     assert "探针执行与覆盖摘要已完成。" in state.notes
+    assert "最低可行数据契约已生成。" in state.notes
 
     assert state.data_requirements_draft.entity_scope == "A股上市银行"
     assert state.data_requirements_draft.time_start_year == 2010
@@ -151,6 +153,7 @@ def test_orchestrator_runs_to_specified_state() -> None:
     ]
     assert pending_controls
     assert all(item.slot_status == "pending_agent_completion" for item in pending_controls)
+    assert state.data_contract_bundle.hard_contract_variables == ["ROA", "数字化转型指数"]
 
 
 def test_orchestrator_runs_to_failed_state() -> None:

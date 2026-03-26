@@ -42,6 +42,9 @@ class MetadataProviderWithCoverage:
     def field_exists(self, table_name: str, field_name: str) -> bool:
         return field_name not in self._missing_fields
 
+    def query_count(self, table_name: str, field_name: str) -> int:
+        return 100
+
 
 def _build_request(empirical_requirements: str = "构建基准回归模型") -> ResearchRequest:
     return ResearchRequest(

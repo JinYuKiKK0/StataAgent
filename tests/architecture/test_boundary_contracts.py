@@ -1,4 +1,5 @@
 def test_research_state_uses_domain_contracts() -> None:
+    from stata_agent.domains.fetch.types import DataContractBundle
     from stata_agent.domains.fetch.types import ProbeCoverageResult
     from stata_agent.domains.mapping.types import VariableBinding
     from stata_agent.domains.mapping.types import VariableMappingResult
@@ -17,3 +18,4 @@ def test_research_state_uses_domain_contracts() -> None:
     assert ResearchState.model_fields["variable_bindings"].annotation == list[VariableBinding] | None
     assert ResearchState.model_fields["variable_mapping_result"].annotation == VariableMappingResult | None
     assert ResearchState.model_fields["probe_coverage_result"].annotation == ProbeCoverageResult | None
+    assert ResearchState.model_fields["data_contract_bundle"].annotation == DataContractBundle | None

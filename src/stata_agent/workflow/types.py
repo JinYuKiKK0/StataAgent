@@ -6,6 +6,7 @@ class RunStage(str, Enum):
     SPECIFIED = "specified"
     MAPPED = "mapped"
     PROBED = "probed"
+    CONTRACTED = "contracted"
     FETCHED = "fetched"
     STANDARDIZED = "standardized"
     VALIDATED = "validated"

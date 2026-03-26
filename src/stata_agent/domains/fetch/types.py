@@ -1,5 +1,9 @@
 from pydantic import BaseModel, Field
 
+from stata_agent.domains.mapping.types import VariableBinding
+from stata_agent.domains.spec.types import ResearchSpec
+from stata_agent.domains.spec.types import VariableDefinition
+
 
 class QueryPlan(BaseModel):
     table_name: str
@@ -19,8 +23,12 @@ class VariableProbeResult(BaseModel):
     failure_reason: str | None = None
 
 
+def _empty_probe_results() -> list[VariableProbeResult]:
+    return []
+
+
 class ProbeCoverageResult(BaseModel):
-    probe_results: list[VariableProbeResult] = Field(default_factory=list)
+    probe_results: list[VariableProbeResult] = Field(default_factory=_empty_probe_results)
     hard_coverage_rate: float = 0.0
     soft_coverage_rate: float = 0.0
     hard_gaps: list[str] = Field(default_factory=list)
@@ -29,3 +37,28 @@ class ProbeCoverageResult(BaseModel):
     target_grain_ready: bool = False
     warnings: list[str] = Field(default_factory=list)
     failure_reason: str | None = None
+
+
+def _empty_variable_definitions() -> list[VariableDefinition]:
+    return []
+
+
+def _empty_variable_bindings() -> list[VariableBinding]:
+    return []
+
+
+class DataContractBundle(BaseModel):
+    hard_contract_variables: list[str] = Field(default_factory=list)
+    soft_contract_variables: list[str] = Field(default_factory=list)
+    allowed_soft_removals: list[str] = Field(default_factory=list)
+    analysis_grain: str = ""
+    entity_scope: str
+    time_start_year: int
+    time_end_year: int
+    empirical_requirements: str
+    variable_definitions: list[VariableDefinition] = Field(default_factory=_empty_variable_definitions)
+    variable_bindings: list[VariableBinding] = Field(default_factory=_empty_variable_bindings)
+    probe_coverage: ProbeCoverageResult
+    substitution_log: list[str] = Field(default_factory=list)
+    residual_risks: list[str] = Field(default_factory=list)
+    spec: ResearchSpec

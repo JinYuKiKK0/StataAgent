@@ -7,25 +7,26 @@
 ## 项目状态
 
 - 当前阶段：S1（需求解析与最低可行数据契约）
-- 总体进度：5/24 features 完成（S1-T1、S1-T2、S1-T3、S1-T4、S1-T5）
+- 总体进度：6/24 features 完成（S1-T1、S1-T2、S1-T3、S1-T4、S1-T5、S1-T6）
 - 最后更新：2026-03-26
-- 阻塞问题：无；下一优先任务为 `S1-T6`
+- 阻塞问题：无；下一优先任务为 `S1-T7`
 
 ## 当前上下文
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：完成 `S1-T5`（探针执行与覆盖摘要）全链路落地，新增 queryCount 探针、覆盖摘要契约、探针执行服务与编排节点。
+- 正在处理：完成 `S1-T6`（最低可行数据契约构建）全链路落地，新增契约包类型、契约构建服务、编排节点与 `CONTRACTED` 阶段。
 - 阶段：S1（需求解析与最低可行数据契约）
 - 分支：main
 - 关键文件：
-  - `feature_list.json` — `S1-T5` 已设置 `passes: true`；下一优先任务按列表顺序为 `S1-T6`（最低可行数据契约构建）。
-  - `src/stata_agent/domains/fetch/types.py` — 新增 `VariableProbeResult` 与 `ProbeCoverageResult` 契约。
-  - `src/stata_agent/providers/csmar.py` — 新增 `query_count` 探针能力和可注入覆盖行为。
-  - `src/stata_agent/services/probe_executor.py` — 实现探针执行、覆盖率汇总与 Hard fail-fast 决策。
-  - `src/stata_agent/workflow/orchestrator.py` — 新增 `probe_coverage` 节点并推进到 `RunStage.PROBED`。
-  - `src/stata_agent/workflow/state.py` / `src/stata_agent/workflow/types.py` — 增加探针摘要状态字段与 `PROBED` 阶段。
-  - `tests/test_probe_executor.py` / `tests/test_workflow_orchestrator.py` — 补齐 S1-T5 核心路径测试。
+  - `feature_list.json` — `S1-T6` 已设置 `passes: true`；下一优先任务按列表顺序为 `S1-T7`（Gateway 审批中断与恢复）。
+  - `src/stata_agent/domains/fetch/types.py` — 新增 `DataContractBundle` 最低可行数据契约模型。
+  - `src/stata_agent/services/data_contract_builder.py` — 新增契约聚合服务，整合 Hard/Soft 分层、允许剔除列表、替代记录与残余风险。
+  - `src/stata_agent/workflow/ports.py` — 提取编排端口协议，控制 `orchestrator.py` 行数满足 harness 限制。
+  - `src/stata_agent/workflow/orchestrator.py` — 新增 `build_data_contract` 节点，成功路径推进到 `RunStage.CONTRACTED`。
+  - `src/stata_agent/workflow/state.py` / `src/stata_agent/workflow/types.py` — 新增 `data_contract_bundle` 状态字段与 `CONTRACTED` 阶段。
+  - `tests/test_data_contract_builder.py` / `tests/test_workflow_orchestrator.py` — 补齐 S1-T6 契约构建与状态机测试。
+  - `tests/test_variable_mapper.py` — 补充 `query_count` 测试替身方法，修复 pyright 协议校验。
   - `docs/product/empirical-analysis-workflow.md` — 当前产品流程单一事实来源。
   - `AGENTS.md` — 会话工作流逻辑；现在按照列表顺序选择下一项。
 - 未解决的问题：
