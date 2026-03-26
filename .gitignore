@@ -27,3 +27,4 @@ langchain_docs/
 .env
 uv.lock
 .idea/
+.langgraph_api/
