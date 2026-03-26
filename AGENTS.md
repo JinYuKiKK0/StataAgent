@@ -3,7 +3,7 @@
 ## 会话开始
 
 1. 运行 `git log --oneline -10` 并阅读 `claude-progress.md` 以了解当前状态。
-2. 阅读 `feature_list.json`，选择最高优先级的未完成功能（遵循 governance 中的 `task_ordering`）。
+2. 阅读 `feature_list.json`，选择最高优先级的未完成功能。
 3. 在编写任何代码前，宣布将要处理的功能。
 
 ## 开发期间
