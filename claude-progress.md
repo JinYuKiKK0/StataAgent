@@ -15,11 +15,11 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：按用户要求收敛 `docs/product/empirical-analysis-workflow-v2.md`，保留三阶段叙事形式，同时补上 `Hard/Soft Contract`、探针验证边界、变量替代审计和诊断性重试边界
-- 阶段：S2 进行中（`S2-T1` 仍是下一优先功能）；本次仅修改 v2 工作流提案文档与交接，不变更业务实现
+- 正在处理：按用户要求收敛 `docs/product/empirical-analysis-workflow-v2.md`，保留三阶段叙事形式，同时补上 `Hard/Soft Contract`、Gateway 审批对象、核心 X/Y 探针失败即中止、`D3` 组装审计节点，以及 `E3` 技术性有界重试节点
+- 阶段：S2 进行中（`S2-T1` 仍是下一优先功能）；本次仅修改 v2 工作流提案文档与交接，不变更业务实现与 feature 状态
 - 分支：main
 - 关键文件：
-  - `docs/product/empirical-analysis-workflow-v2.md` — V2 提案文档；保留原有文风，补齐最低可行数据契约、软硬边界和重试约束
+  - `docs/product/empirical-analysis-workflow-v2.md` — V2 提案文档；保留原有文风，补齐最低可行数据契约、软硬边界、可选扩展模块边界与技术性重试约束
   - `docs/product/empirical-analysis-workflow.md` — 当前产品流程单一事实来源；本次仅作为对照参考，未在本次任务中更新
   - `AGENTS.md` — 会话工作流和项目 skill 入口；本次按其要求补充交接
 - 未解决的问题：
