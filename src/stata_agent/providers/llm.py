@@ -65,7 +65,8 @@ class TongyiResearchSpecGenerator:
         )
         model = ChatTongyi(
             model=settings.tongyi_model,
-            api_key=settings.dashscope_api_key,
+            api_key=settings.dashscope_api_key.get_secret_value(),
+            streaming=True,
             model_kwargs={"temperature": 0},
         )
         self._chain = prompt | model.with_structured_output(
