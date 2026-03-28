@@ -1,3 +1,11 @@
+"""S1-T6 最低可行数据契约构建测试。
+
+该文件覆盖 `DataContractBuilder`。它承接变量草案、探针覆盖摘要和字段绑定，
+把它们整合为 Gateway 审批前的最小可行数据契约包。这个节点在工作流中
+承担“把探针发现转成明确执行边界”的角色，决定哪些变量是不可退让的
+Hard Contract，哪些变量可作为 Soft Contract 在后续装配阶段被白名单剔除。
+"""
+
 import pytest
 
 from stata_agent.domains.fetch.types import ProbeCoverageResult
@@ -104,6 +112,7 @@ def _build_bindings() -> list[VariableBinding]:
 
 
 def test_builder_generates_contract_bundle() -> None:
+    """验证 S1-T6 会生成带粒度、时窗和软硬约束分层信息的完整契约包。"""
     builder = DataContractBuilder()
 
     result = builder.build(
@@ -133,6 +142,7 @@ def test_builder_generates_contract_bundle() -> None:
 
 
 def test_builder_keeps_core_variables_outside_soft_removals() -> None:
+    """验证核心 Y/X 不会被错误地下放到可自动剔除列表，保护研究主问题不漂移。"""
     builder = DataContractBuilder()
 
     result = builder.build(
@@ -156,6 +166,7 @@ def test_builder_keeps_core_variables_outside_soft_removals() -> None:
 
 
 def test_builder_raises_when_protected_variable_leaks_to_soft_list() -> None:
+    """验证一旦保护变量泄漏到 soft removal 列表，构建器会直接拒绝该契约。"""
     builder = DataContractBuilder()
     spec = _build_spec()
     definitions = _build_variable_definitions() + [

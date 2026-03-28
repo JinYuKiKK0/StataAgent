@@ -1,3 +1,11 @@
+"""S1-T4 CSMAR 探针级变量映射测试。
+
+该文件覆盖 `VariableMapper`，它位于变量定义清单之后、探针执行之前。
+节点职责是把变量角色转换为可探针的 CSMAR 表字段绑定，并显式区分
+Hard Contract 与 Soft Contract，从而决定哪些缺口必须 fail-fast，
+哪些只需要记录为风险摘要。
+"""
+
 from stata_agent.domains.mapping.types import CsmarFieldCandidate
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
@@ -100,6 +108,7 @@ def _build_definitions() -> list[VariableDefinition]:
 
 
 def test_mapper_generates_non_empty_bindings_for_y_and_x() -> None:
+    """验证核心 Y/X 能得到非空绑定，这是探针执行和契约构建的前置条件。"""
     mapper = VariableMapper(metadata_provider=MetadataProviderWithCoverage())
 
     result = mapper.map_probe_bindings(
@@ -114,6 +123,7 @@ def test_mapper_generates_non_empty_bindings_for_y_and_x() -> None:
 
 
 def test_mapper_fails_fast_when_hard_contract_field_missing() -> None:
+    """验证 Hard Contract 缺字段时在映射节点立即中止，避免进入无意义探针。"""
     mapper = VariableMapper(
         metadata_provider=MetadataProviderWithCoverage(missing_fields={"ROA"})
     )
@@ -130,6 +140,7 @@ def test_mapper_fails_fast_when_hard_contract_field_missing() -> None:
 
 
 def test_mapper_keeps_soft_gap_summary_without_aborting() -> None:
+    """验证 Soft Contract 缺口只记入摘要，给 S1-T5/S1-T6 留下替代与剔除空间。"""
     mapper = VariableMapper(metadata_provider=MetadataProviderWithCoverage())
     definitions = [
         item for item in _build_definitions() if item.variable_name != "资本充足率"

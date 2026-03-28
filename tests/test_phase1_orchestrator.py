@@ -1,3 +1,11 @@
+"""Phase 1 可行性编排测试。
+
+该文件覆盖 `Phase1FeasibilityOrchestrator`，它把 S1-T2 到 S1-T6 串成一条
+线性可行性流水线：需求解析 -> 变量清单生成 -> CSMAR 探针映射 -> 覆盖探测
+-> 最低可行数据契约。它是 Gateway 之前的核心收敛层，负责把单个节点的
+成功/失败统一投影到 `ResearchState.stage`。
+"""
+
 from stata_agent.domains.fetch.types import ProbeCoverageResult
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.mapping.types import VariableMappingResult
@@ -166,6 +174,7 @@ def _build_orchestrator(
 
 
 def test_phase1_runs_to_contracted_state() -> None:
+    """验证 Phase 1 happy path 会收敛到 `CONTRACTED`，并带齐 Gateway 所需工件。"""
     state = _build_orchestrator().run_feasibility(
         ResearchState(request=_build_request())
     )
@@ -182,6 +191,7 @@ def test_phase1_runs_to_contracted_state() -> None:
 
 
 def test_phase1_fails_on_parse_error() -> None:
+    """验证最早的需求解析失败会短路整个 Phase 1，并阻止后续节点执行。"""
     state = _build_orchestrator(parser=FailingParser()).run_feasibility(
         ResearchState(request=_build_request())
     )
@@ -192,6 +202,7 @@ def test_phase1_fails_on_parse_error() -> None:
 
 
 def test_phase1_fails_on_mapping_gap() -> None:
+    """验证 S1-T4 的硬缺口会被编排层保留为失败态，而不是伪造空绑定继续运行。"""
     state = _build_orchestrator(mapper=FailingMapper()).run_feasibility(
         ResearchState(request=_build_request())
     )
@@ -202,6 +213,7 @@ def test_phase1_fails_on_mapping_gap() -> None:
 
 
 def test_phase1_fails_on_probe_gap() -> None:
+    """验证 S1-T5 的 fail-fast 结果会直接把编排推入失败态，避免生成虚假契约。"""
     state = _build_orchestrator(probe_executor=FailingProbeExecutor()).run_feasibility(
         ResearchState(request=_build_request())
     )

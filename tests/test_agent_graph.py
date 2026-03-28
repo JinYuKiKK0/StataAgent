@@ -1,3 +1,11 @@
+"""LangSmith/共享 graph 入口 smoke tests。
+
+该文件覆盖 `build_agent_graph` 这层薄适配器。它位于 `ApplicationOrchestrator`
+之外，负责给 LangSmith 或其他 graph 入口复用统一的工作流拓扑。
+测试目标是防止图定义和主编排漂移，尤其是 Gateway interrupt 位置和
+Phase 1 失败分支的构造路径。
+"""
+
 from stata_agent.agent import build_agent_graph
 from stata_agent.domains.fetch.types import ProbeCoverageResult
 from stata_agent.domains.mapping.types import VariableBinding
@@ -86,6 +94,7 @@ def _build_request() -> ResearchRequest:
 
 
 def test_agent_graph_reuses_shared_workflow_and_interrupts_at_gateway() -> None:
+    """验证共享 graph 会复用主工作流，并在 S1-T7 的 Gateway 节点停下。"""
     graph = build_agent_graph(
         parser=SuccessfulParser(),
         mapper=SuccessfulMapper(),
@@ -101,6 +110,7 @@ def test_agent_graph_reuses_shared_workflow_and_interrupts_at_gateway() -> None:
 
 
 def test_agent_graph_handles_phase1_failures_without_constructor_errors() -> None:
+    """验证图入口在 Phase 1 失败时仍能稳定收敛到失败态，而不是在构造期崩溃。"""
     graph = build_agent_graph(parser=FailingParser())
 
     result = graph.invoke(ResearchState(request=_build_request()))

@@ -1,3 +1,10 @@
+"""S1-T2 需求解析测试。
+
+该文件覆盖工作流最早的功能节点 `RequirementParser`。它负责把用户通过 CLI
+提交的自然语言研究请求转换为结构化 `ResearchSpec`，为后续变量清单生成、
+CSMAR 映射和探针校验提供统一输入。
+"""
+
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
 from stata_agent.services.requirement_parser import RequirementParser
@@ -50,6 +57,7 @@ def _build_request() -> ResearchRequest:
 
 
 def test_requirement_parser_returns_validated_spec() -> None:
+    """验证 S1-T2 的成功路径：解析器产出可审计且约束一致的 `ResearchSpec`。"""
     parser = RequirementParser(generator=SuccessfulGenerator())
 
     result = parser.parse(_build_request())
@@ -61,6 +69,7 @@ def test_requirement_parser_returns_validated_spec() -> None:
 
 
 def test_requirement_parser_rejects_conflicting_model_output() -> None:
+    """验证解析节点会拒绝篡改用户硬约束的模型输出，避免错误规范流入后续节点。"""
     parser = RequirementParser(generator=ConflictingGenerator())
 
     result = parser.parse(_build_request())

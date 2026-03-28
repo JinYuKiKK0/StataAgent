@@ -1,3 +1,11 @@
+"""S1-T5 探针执行与覆盖摘要测试。
+
+该文件覆盖 `ProbeExecutor`，它位于探针级变量映射之后、最低可行数据契约之前。
+该节点负责用字段存在性和轻量计数探测来判断 Hard Contract 是否可得、
+Soft Contract 是否存在覆盖风险，并把结果收敛成工作流是否继续推进的
+第一道 fail-fast 闸门。
+"""
+
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.mapping.types import CsmarFieldCandidate
 from stata_agent.domains.spec.types import ResearchSpec
@@ -87,6 +95,7 @@ def _build_bindings() -> list[VariableBinding]:
 
 
 def test_probe_executor_reports_successful_coverage() -> None:
+    """验证探针节点在字段均可访问时输出可继续推进的全量覆盖摘要。"""
     executor = ProbeExecutor(metadata_provider=ProbeProviderStub())
 
     result = executor.execute_coverage(_build_spec(), _build_bindings())
@@ -99,6 +108,7 @@ def test_probe_executor_reports_successful_coverage() -> None:
 
 
 def test_probe_executor_fails_fast_on_hard_contract_gap() -> None:
+    """验证核心字段缺失会在该节点触发 fail-fast，阻断后续数据契约构建。"""
     provider = ProbeProviderStub(missing_fields={("FS_Comins", "ROA")})
     executor = ProbeExecutor(metadata_provider=provider)
 
@@ -110,6 +120,7 @@ def test_probe_executor_fails_fast_on_hard_contract_gap() -> None:
 
 
 def test_probe_executor_keeps_soft_gap_without_aborting() -> None:
+    """验证软约束变量只产生风险提示，工作流仍可进入 S1-T6 形成最小契约。"""
     provider = ProbeProviderStub(zero_count_fields={("FS_Combas", "CAPITAL_ADEQUACY")})
     executor = ProbeExecutor(metadata_provider=provider)
 

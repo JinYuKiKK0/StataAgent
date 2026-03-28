@@ -1,3 +1,10 @@
+"""S1-T3 变量定义与数据需求清单测试。
+
+该文件覆盖 `VariableRequirementsBuilder`，它位于需求解析之后、变量映射之前。
+这个节点的职责是把 `ResearchSpec` 展开为变量定义表和数据需求表，明确
+Y/X/控制变量的角色、锁定状态和频率提示，作为后续 CSMAR 探针映射的输入。
+"""
+
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.services.variable_requirements_builder import (
     VariableRequirementsBuilder,
@@ -18,6 +25,7 @@ def _build_spec() -> ResearchSpec:
 
 
 def test_builder_outputs_variable_definitions_and_requirements() -> None:
+    """验证该节点会同步产出变量定义表和数据需求表这两份下游必需工件。"""
     builder = VariableRequirementsBuilder()
 
     result = builder.build(_build_spec())
@@ -30,6 +38,7 @@ def test_builder_outputs_variable_definitions_and_requirements() -> None:
 
 
 def test_builder_marks_core_variables_as_ready_and_locked() -> None:
+    """验证核心 Y/X 在工作流中被视为用户硬约束，因此必须直接锁定并标记为 ready。"""
     builder = VariableRequirementsBuilder()
 
     result = builder.build(_build_spec())
@@ -50,6 +59,7 @@ def test_builder_marks_core_variables_as_ready_and_locked() -> None:
 
 
 def test_builder_deduplicates_and_reserves_control_slots() -> None:
+    """验证控制变量会去重并保留为待 agent 补全的弹性槽位，而不是被提前锁死。"""
     builder = VariableRequirementsBuilder()
 
     result = builder.build(_build_spec())
@@ -61,6 +71,7 @@ def test_builder_deduplicates_and_reserves_control_slots() -> None:
 
 
 def test_builder_applies_frequency_heuristic_and_unknown_fallback() -> None:
+    """验证频率提示会驱动后续映射优先级，无法推断时则显式回退为 `unknown`。"""
     builder = VariableRequirementsBuilder()
     result = builder.build(_build_spec())
 

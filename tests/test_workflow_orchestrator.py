@@ -1,3 +1,11 @@
+"""应用层工作流编排与 Gateway 恢复测试。
+
+该文件覆盖 `ApplicationOrchestrator`，它把 Phase 1 可行性流水线接到
+S1-T7 的 Gateway 审批节点上，是当前单次实证工作流最外层的协调者。
+它的角色不是重新实现各个业务节点，而是负责持久化线程、命中审批中断、
+处理 approve/reject 恢复路径，并把失败原因稳定地折叠回 `ResearchState`。
+"""
+
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
@@ -116,7 +124,7 @@ def _build_request() -> ResearchRequest:
 
 
 def test_orchestrator_happy_path_pauses_at_gateway() -> None:
-    """Happy path: Phase1 成功 → 工作流命中 Gateway interrupt → 返回 CONTRACTED 状态。"""
+    """验证主工作流会在完成 S1-T6 后进入 Gateway，中断点正是人工审批入口。"""
     orchestrator = ApplicationOrchestrator(
         parser=SuccessfulParser(),
         mapper=SuccessfulMapper(),
@@ -165,7 +173,7 @@ def test_orchestrator_happy_path_pauses_at_gateway() -> None:
 
 
 def test_gateway_approve_advances_to_approved_stage() -> None:
-    """Approve 后 stage == APPROVED，gateway_record 正确记录。"""
+    """验证 S1-T7 的 approve 恢复路径会锁定契约并把流程推进到 `APPROVED`。"""
     orchestrator = ApplicationOrchestrator(
         parser=SuccessfulParser(),
         mapper=SuccessfulMapper(),
@@ -184,7 +192,7 @@ def test_gateway_approve_advances_to_approved_stage() -> None:
 
 
 def test_gateway_reject_fails_with_reason() -> None:
-    """Reject 后 stage == FAILED，gateway_record 包含驳回原因。"""
+    """验证 reject 是显式人工终止分支，原因会写入审计记录并反馈到状态备注。"""
     orchestrator = ApplicationOrchestrator(
         parser=SuccessfulParser(),
         mapper=SuccessfulMapper(),
@@ -206,7 +214,7 @@ def test_gateway_reject_fails_with_reason() -> None:
 
 
 def test_phase1_failure_skips_gateway() -> None:
-    """Phase1 失败时直接到 END，不进入 Gateway 节点。"""
+    """验证前置可行性失败时不会误进审批节点，确保 Gateway 只处理有效契约。"""
     orchestrator = ApplicationOrchestrator(parser=FailingParser())
 
     state, _ = orchestrator.run(_build_request())
@@ -222,6 +230,7 @@ def test_phase1_failure_skips_gateway() -> None:
 
 
 def test_orchestrator_fails_on_hard_contract_mapping_gap() -> None:
+    """验证应用层会保留映射节点的硬失败语义，而不是吞掉 fail-fast 信息。"""
     orchestrator = ApplicationOrchestrator(
         parser=SuccessfulParser(), mapper=FailingMapper()
     )
@@ -236,6 +245,7 @@ def test_orchestrator_fails_on_hard_contract_mapping_gap() -> None:
 
 
 def test_orchestrator_fails_on_probe_coverage_gap() -> None:
+    """验证探针覆盖失败会在最外层编排中透传，作为停止进入 Gateway 的依据。"""
     orchestrator = ApplicationOrchestrator(
         parser=SuccessfulParser(),
         mapper=SuccessfulMapper(),
@@ -251,6 +261,7 @@ def test_orchestrator_fails_on_probe_coverage_gap() -> None:
 
 
 def test_orchestrator_wraps_settings_errors() -> None:
+    """验证启动配置错误会被包装成编排层错误，避免底层设置异常直接泄漏。"""
     def failing_settings_factory() -> Settings:
         raise SettingsError(["DASHSCOPE_API_KEY: Field required"])
 

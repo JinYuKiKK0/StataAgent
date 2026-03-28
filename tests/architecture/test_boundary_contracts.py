@@ -1,4 +1,7 @@
+"""架构契约测试：`ResearchState` 只能依赖领域层边界对象。"""
+
 def test_research_state_uses_domain_contracts() -> None:
+    """验证工作流状态对象的字段类型仍然绑定到受控领域契约，而非裸结构。"""
     from stata_agent.domains.fetch.types import DataContractBundle
     from stata_agent.domains.fetch.types import ProbeCoverageResult
     from stata_agent.domains.mapping.types import VariableBinding
