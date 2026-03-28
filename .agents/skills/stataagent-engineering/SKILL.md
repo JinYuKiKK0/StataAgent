@@ -7,6 +7,8 @@ description: Load StataAgent's engineering governance and harness rules. Use whe
 
 Read `../../../docs/engineering/agent-harness.md`.
 
+Read `../../../docs/engineering/test-layering.md` for test organization, file naming, and stub conventions.
+
 Use this skill when the task is about:
 
 - harness rules and rule ownership
@@ -14,6 +16,7 @@ Use this skill when the task is about:
 - CI and pre-commit gates
 - repository knowledge governance
 - code-organization constraints for agent-authored changes
+- test layering, file naming, and stub/fake conventions
 
 Read adjacent documents only when needed:
 
