@@ -15,16 +15,15 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 正在处理：S1-T7 完成 Gateway 审批中断与恢复体系，基于 `langgraph` 分开并下沉业务流转，将 `DataContractBundle` 送审并接收 `approve/reject` 中断复原信号。
-- 阶段：S1（需求解析与最低可行数据契约） -> ✅ 整体闭环交付完成
+- 正在处理：收敛 LangGraph 编排定义，抽出共享 `workflow/graph.py`，修复 LangSmith 入口 `agent.py:graph` 绕过 `ApplicationOrchestrator` 后在 `phase1_feasibility` 无参实例化 `Phase1FeasibilityOrchestrator` 的崩溃。
+- 阶段：S1（需求解析与最低可行数据契约）已完成；当前主线候选仍为 `S2-T1`
 - 分支：main
 - 关键文件：
-  - `feature_list.json` — `S1-T7` 更新至 `passes: true`，S1 全部阶段变绿；下一个候选应为 `S2-T1`。
-  - `src/stata_agent/domains/fetch/types.py` — 加入持久性审批痕迹模型 `GatewayDecision` / `GatewayRecord`。
-  - `src/stata_agent/workflow/types.py` — 增设 `APPROVED` 状态机切面节点。
-  - `src/stata_agent/workflow/orchestrator.py` — 注入图中断点（`interrupt` + `resume` 命令）；暴露 `tuple[ResearchState, str]` 签名。
-  - `src/stata_agent/interfaces/cli.py` — 重制研究请求主入口并配套前端表单展现审批弹窗。
-  - `tests/test_workflow_orchestrator.py` — 配套补齐中断与唤醒的测试替身，打平前序测试中的 API 不兼容变动。
+  - `feature_list.json` — `S1` 已全部通过，未改动 feature 定义；下一个候选仍为 `S2-T1`。
+  - `src/stata_agent/workflow/graph.py` — 新增共享 LangGraph 拓扑与 Gateway 节点，成为 `agent.py` / `orchestrator.py` 的单一事实来源。
+  - `src/stata_agent/workflow/orchestrator.py` — 改为复用共享 graph builder，并支持通过 `checkpointer_factory` 区分 CLI 本地持久化与 LangSmith Server 托管持久化。
+  - `src/stata_agent/agent.py` — 精简为 LangSmith 薄适配层，仅导出复用核心编排的 `graph`。
+  - `tests/test_agent_graph.py` — 新增 LangSmith 入口 smoke tests，覆盖 Gateway interrupt 和 Phase1 失败路径，防止编排漂移再次漏检。
 - 未解决的问题：
   - `pre-commit run --all-files` 在当前沙箱中需要显式设置 `PRE_COMMIT_HOME` 到仓库内可写目录；普通开发机默认缓存目录通常可直接工作
   - 真实 Tongyi API 需要用户在 `.env` 中提供可用的 `DASHSCOPE_API_KEY`；当前验证以注入式测试替身覆盖，不包含线上密钥调用
