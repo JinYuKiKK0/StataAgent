@@ -40,3 +40,6 @@ packages = ["src/stata_agent"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
+markers = [
+    "live_api: integration tests that call real Tongyi and CSMAR APIs",
+]

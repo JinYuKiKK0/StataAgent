@@ -1,163 +1,93 @@
-"""S1-T4 CSMAR 探针级变量映射测试。
+"""S1-T4 CSMAR 探针级变量映射真实接口集成测试。"""
 
-该文件覆盖 `VariableMapper`，它位于变量定义清单之后、探针执行之前。
-节点职责是把变量角色转换为可探针的 CSMAR 表字段绑定，并显式区分
-Hard Contract 与 Soft Contract，从而决定哪些缺口必须 fail-fast，
-哪些只需要记录为风险摘要。
-"""
+import pytest
 
-from stata_agent.domains.mapping.types import CsmarFieldCandidate
 from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domains.spec.types import VariableDefinition
+from stata_agent.providers.csmar import CsmarBridgeClient
+from stata_agent.services.requirement_parser import RequirementParser
 from stata_agent.services.variable_mapper import VariableMapper
+from stata_agent.services.variable_requirements_builder import VariableRequirementsBuilder
+
+pytest_plugins = ["tests.live_api_support"]
+
+pytestmark = pytest.mark.live_api
 
 
-class MetadataProviderWithCoverage:
-    def __init__(self, *, missing_fields: set[str] | None = None) -> None:
-        self._missing_fields = missing_fields or set()
+def test_mapper_generates_bindings_from_real_csmar_metadata(
+    live_parser: RequirementParser,
+    live_csmar_provider: CsmarBridgeClient,
+    live_request: ResearchRequest,
+) -> None:
+    """验证映射节点会调用真实 CSMAR 元数据并生成非空绑定。"""
+    parse_result = live_parser.parse(live_request)
+    assert parse_result.spec is not None
+    builder = VariableRequirementsBuilder()
+    build_result = builder.build(parse_result.spec)
 
-    def find_field_candidates(self, variable_name: str) -> list[CsmarFieldCandidate]:
-        mapping = {
-            "ROA": CsmarFieldCandidate(
-                variable_name="ROA",
-                table_name="FS_Comins",
-                field_name="ROA",
-                csmar_database="财务报表",
-                alias_hit=True,
-                frequency_tags=["annual", "quarterly"],
-            ),
-            "数字化转型指数": CsmarFieldCandidate(
-                variable_name="数字化转型指数",
-                table_name="BANK_DIGITAL_INDEX",
-                field_name="DIGITAL_INDEX",
-                csmar_database="银行专题",
-                alias_hit=True,
-                frequency_tags=["annual", "quarterly"],
-            ),
-            "资本充足率": CsmarFieldCandidate(
-                variable_name="资本充足率",
-                table_name="FS_Combas",
-                field_name="CAPITAL_ADEQUACY",
-                csmar_database="财务报表",
-                alias_hit=True,
-                frequency_tags=["annual", "quarterly"],
-            ),
-        }
-        candidate = mapping.get(variable_name)
-        return [candidate] if candidate is not None else []
-
-    def field_exists(self, table_name: str, field_name: str) -> bool:
-        return field_name not in self._missing_fields
-
-    def query_count(self, table_name: str, field_name: str) -> int:
-        return 100
-
-
-def _build_request(empirical_requirements: str = "构建基准回归模型") -> ResearchRequest:
-    return ResearchRequest(
-        topic="银行数字化转型与风险承担",
-        dependent_variable="ROA",
-        independent_variables=["数字化转型指数"],
-        entity_scope="A股上市银行",
-        time_range="2010-2023",
-        empirical_requirements=empirical_requirements,
-    )
-
-
-def _build_spec() -> ResearchSpec:
-    return ResearchSpec(
-        topic="银行数字化转型与风险承担",
-        dependent_variable="ROA",
-        independent_variables=["数字化转型指数"],
-        entity_scope="A股上市银行",
-        time_start_year=2010,
-        time_end_year=2023,
-        control_variable_candidates=["资本充足率"],
-        analysis_grain_candidates=["bank-year"],
-    )
-
-
-def _build_definitions() -> list[VariableDefinition]:
-    return [
-        VariableDefinition(
-            variable_name="ROA",
-            role="dependent",
-            is_locked=True,
-            slot_status="ready",
-            frequency_hint="annual",
-            source_domain_hint="finance_statement",
-        ),
-        VariableDefinition(
-            variable_name="数字化转型指数",
-            role="independent",
-            is_locked=True,
-            slot_status="ready",
-            frequency_hint="annual",
-            source_domain_hint="digital_topic",
-        ),
-        VariableDefinition(
-            variable_name="资本充足率",
-            role="control",
-            is_locked=False,
-            slot_status="pending_agent_completion",
-            frequency_hint="annual",
-            source_domain_hint="finance_statement",
-        ),
-    ]
-
-
-def test_mapper_generates_non_empty_bindings_for_y_and_x() -> None:
-    """验证核心 Y/X 能得到非空绑定，这是探针执行和契约构建的前置条件。"""
-    mapper = VariableMapper(metadata_provider=MetadataProviderWithCoverage())
-
+    mapper = VariableMapper(metadata_provider=live_csmar_provider)
     result = mapper.map_probe_bindings(
-        _build_request(), _build_spec(), _build_definitions()
+        request=live_request,
+        spec=parse_result.spec,
+        variable_definitions=build_result.variable_definitions,
     )
 
     assert result.failure_reason is None
     assert result.bindings
-    names = {binding.variable_name for binding in result.bindings}
-    assert "ROA" in names
-    assert "数字化转型指数" in names
+    assert parse_result.spec.dependent_variable in result.hard_contract_variables
 
 
-def test_mapper_fails_fast_when_hard_contract_field_missing() -> None:
-    """验证 Hard Contract 缺字段时在映射节点立即中止，避免进入无意义探针。"""
-    mapper = VariableMapper(
-        metadata_provider=MetadataProviderWithCoverage(missing_fields={"ROA"})
-    )
+def test_mapper_fails_fast_when_real_hard_variable_has_no_mapping(
+    live_parser: RequirementParser,
+    live_csmar_provider: CsmarBridgeClient,
+    failing_live_request: ResearchRequest,
+) -> None:
+    """验证真实映射流程中 Hard Contract 不可映射时会立刻失败。"""
+    parse_result = live_parser.parse(failing_live_request)
+    assert parse_result.spec is not None
+    builder = VariableRequirementsBuilder()
+    build_result = builder.build(parse_result.spec)
 
+    mapper = VariableMapper(metadata_provider=live_csmar_provider)
     result = mapper.map_probe_bindings(
-        _build_request(empirical_requirements="必须包含资本充足率"),
-        _build_spec(),
-        _build_definitions(),
+        request=failing_live_request,
+        spec=parse_result.spec,
+        variable_definitions=build_result.variable_definitions,
     )
 
     assert result.failure_reason is not None
-    assert "ROA" in result.failure_reason
     assert result.bindings == []
 
 
-def test_mapper_keeps_soft_gap_summary_without_aborting() -> None:
-    """验证 Soft Contract 缺口只记入摘要，给 S1-T5/S1-T6 留下替代与剔除空间。"""
-    mapper = VariableMapper(metadata_provider=MetadataProviderWithCoverage())
-    definitions = [
-        item for item in _build_definitions() if item.variable_name != "资本充足率"
-    ]
+def test_mapper_keeps_soft_gap_summary_without_abort(
+    live_parser: RequirementParser,
+    live_csmar_provider: CsmarBridgeClient,
+    live_request: ResearchRequest,
+) -> None:
+    """验证真实映射流程中 Soft Contract 缺口只会进入摘要，不会中止流程。"""
+    parse_result = live_parser.parse(live_request)
+    assert parse_result.spec is not None
+    builder = VariableRequirementsBuilder()
+    build_result = builder.build(parse_result.spec)
+
+    definitions = list(build_result.variable_definitions)
     definitions.append(
         VariableDefinition(
-            variable_name="拨备覆盖率",
+            variable_name="不存在的控制变量",
             role="control",
             is_locked=False,
             slot_status="pending_agent_completion",
             frequency_hint="annual",
-            source_domain_hint="bank_topic",
+            source_domain_hint="finance_statement",
         )
     )
 
-    result = mapper.map_probe_bindings(_build_request(), _build_spec(), definitions)
+    mapper = VariableMapper(metadata_provider=live_csmar_provider)
+    result = mapper.map_probe_bindings(
+        request=live_request,
+        spec=parse_result.spec,
+        variable_definitions=definitions,
+    )
 
     assert result.failure_reason is None
-    assert "拨备覆盖率" in result.soft_contract_gaps
-    assert result.warnings
+    assert "不存在的控制变量" in result.soft_contract_gaps

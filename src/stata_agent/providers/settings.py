@@ -9,6 +9,8 @@ _ENV_LABELS = {
     "workspace_dir": "WORKSPACE_DIR",
     "dashscope_api_key": "DASHSCOPE_API_KEY",
     "tongyi_model": "TONGYI_MODEL",
+    "csmar_account": "CSMAR_ACCOUNT",
+    "csmar_password": "CSMAR_PASSWORD",
 }
 
 
@@ -46,6 +48,21 @@ class Settings(BaseSettings):
         ...,
         description="Tongyi model name, e.g. qwen-plus",
         validation_alias=AliasChoices("TONGYI_MODEL", "tongyi_model"),
+    )
+    csmar_account: str | None = Field(
+        default=None,
+        description="CSMAR account, e.g. phone/email/username",
+        validation_alias=AliasChoices("CSMAR_ACCOUNT", "csmar_account"),
+    )
+    csmar_password: SecretStr | None = Field(
+        default=None,
+        description="CSMAR account password",
+        validation_alias=AliasChoices("CSMAR_PASSWORD", "csmar_password"),
+    )
+    csmar_language: int = Field(
+        default=0,
+        description="CSMAR language, 0 for zh-cn, 1 for en-us",
+        validation_alias=AliasChoices("CSMAR_LANGUAGE", "csmar_language"),
     )
 
 
