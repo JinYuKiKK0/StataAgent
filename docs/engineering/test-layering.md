@@ -25,23 +25,15 @@ tests/
 - **一个功能阶段一个包**。S1、S2、S3 各自独立。跨阶段的节点或服务按其所属的**第一个消费阶段**归类。
 - `architecture/` 是唯一的"恒定包"，不随功能阶段增减而变化，只随工程约束演进。
 - `entrypoints/` 和 `core_workflow/` 承载跨阶段横切面，不属于任何单一阶段。
-- 新阶段加入时，先创建包目录和空 `__init__.py`，再逐步补充测试文件。不允许直接在 `tests/` 根目录新增业务测试文件。
 
 ## 文件命名规则
 
-- 测试文件一律以 `test_` 开头，后接**被测组件的模块名**（不含路径前缀）。
-  - ✅ `test_requirement_parser.py`
+- 测试文件一律以 `test_` 开头，后接**被测组件的模块名**。
+  - ✅ `test_t2_requirement_parser.py`
   - ✅ `test_phase1_orchestrator.py`
   - ❌ `test_s1_utils.py`（万能文件名）
   - ❌ `test_misc.py`
 - 一个测试文件只覆盖一个被测组件（对应 `services/` 或 `workflow/stages/` 中的一个模块）。若需要联调多个组件，测试文件名应反映**上层编排者**（如 `test_phase1_orchestrator.py` 而不是 `test_s1_pipeline.py`）。
-
-## Stub / Fake 约定
-
-- 注入桩用**内联 class** 定义，紧贴使用它的测试或辅助函数，不抽取到全局 `conftest.py`，除非同一桩被三个及以上测试文件复用。
-- 桩类命名规范：`Successful<ComponentRole>` / `Failing<ComponentRole>`，例如 `SuccessfulParser`、`FailingMapper`。
-- 桩类**只实现协议中必须的方法**，不添加额外状态或副作用，保持透明。
-- 禁止使用 `unittest.mock.MagicMock` 替代 Stub，理由：类型检查器无法捕获 Mock 上的签名漂移。
 
 ## 测试函数规范
 
