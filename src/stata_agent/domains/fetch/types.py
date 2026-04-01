@@ -82,3 +82,10 @@ class GatewayRecord(BaseModel):
 
     decision: GatewayDecision
     reason: str = ""
+
+
+class GatewayResumeRequest(BaseModel):
+    """Gateway 恢复请求契约。"""
+
+    decision: GatewayDecision = GatewayDecision.REJECTED
+    reason: str = ""

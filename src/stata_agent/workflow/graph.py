@@ -1,18 +1,24 @@
-from collections.abc import Callable
-from typing import Any, Literal, cast
+# pyright: reportMissingTypeStubs=false, reportUnknownMemberType=false
+
+from collections.abc import Mapping
+from typing import Literal, Protocol, cast
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
-from stata_agent.domains.fetch.types import GatewayDecision, GatewayRecord
+from stata_agent.domains.fetch.types import GatewayDecision
+from stata_agent.domains.fetch.types import GatewayRecord
+from stata_agent.domains.fetch.types import GatewayResumeRequest
 from stata_agent.workflow.state import ResearchState
 from stata_agent.workflow.types import RunStage
 
-Phase1Node = Callable[[ResearchState], ResearchState]
+
+class Phase1Node(Protocol):
+    def __call__(self, state: ResearchState) -> ResearchState: ...
 
 
-def gateway_approval_node(state: ResearchState) -> dict[str, Any]:
+def gateway_approval_node(state: ResearchState) -> ResearchState:
     """Gateway 审批中断与恢复。"""
     contract = state.data_contract_bundle
     approval_payload = {
@@ -29,32 +35,57 @@ def gateway_approval_node(state: ResearchState) -> dict[str, Any]:
         else "",
     }
 
-    human_decision = interrupt(approval_payload)
-    decision_data = (
-        cast(dict[str, str], human_decision)
-        if isinstance(human_decision, dict)
-        else {}
+    human_decision = cast(object, interrupt(approval_payload))
+    resume_request = _coerce_gateway_resume_request(human_decision)
+    return _apply_gateway_decision(state, resume_request)
+
+
+def _coerce_gateway_resume_request(payload: object) -> GatewayResumeRequest:
+    if not isinstance(payload, Mapping):
+        return GatewayResumeRequest()
+
+    decision_payload = cast(Mapping[str, object], payload)
+    decision_raw = str(
+        decision_payload.get("decision", GatewayDecision.REJECTED.value)
     )
-    decision_str: str = str(decision_data.get("decision", "rejected"))
-    reason: str = str(decision_data.get("reason", ""))
+    reason = str(decision_payload.get("reason", ""))
+
+    try:
+        decision = GatewayDecision(decision_raw)
+    except ValueError:
+        decision = GatewayDecision.REJECTED
+
+    return GatewayResumeRequest(decision=decision, reason=reason)
+
+
+def _apply_gateway_decision(
+    state: ResearchState,
+    decision_request: GatewayResumeRequest,
+) -> ResearchState:
+    record = GatewayRecord(
+        decision=decision_request.decision,
+        reason=decision_request.reason,
+    )
 
     notes = list(state.notes)
-    if decision_str == "approved":
-        record = GatewayRecord(decision=GatewayDecision.APPROVED, reason=reason)
+    if decision_request.decision is GatewayDecision.APPROVED:
         notes.append("Gateway 审批通过，数据契约已锁定。")
-        return {
+        return state.model_copy(
+            update={
+                "gateway_record": record,
+                "stage": RunStage.APPROVED,
+                "notes": notes,
+            }
+        )
+
+    notes.append(f"Gateway 审批被驳回：{decision_request.reason}")
+    return state.model_copy(
+        update={
             "gateway_record": record,
-            "stage": RunStage.APPROVED,
+            "stage": RunStage.FAILED,
             "notes": notes,
         }
-
-    record = GatewayRecord(decision=GatewayDecision.REJECTED, reason=reason)
-    notes.append(f"Gateway 审批被驳回：{reason}")
-    return {
-        "gateway_record": record,
-        "stage": RunStage.FAILED,
-        "notes": notes,
-    }
+    )
 
 
 def route_after_phase1(
@@ -68,7 +99,7 @@ def route_after_phase1(
 def build_workflow_graph(
     phase1_node: Phase1Node,
     *,
-    checkpointer: BaseCheckpointSaver | None = None,
+    checkpointer: BaseCheckpointSaver[str] | None = None,
 ):
     workflow = StateGraph(ResearchState)
     workflow.add_node("phase1_feasibility", phase1_node)

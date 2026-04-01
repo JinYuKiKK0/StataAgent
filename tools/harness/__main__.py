@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from tools.harness.rules_manifest import DEFAULT_LINT_PATHS
 from tools.harness.rules_manifest import run_rules
 
 
@@ -11,7 +12,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers = parser.add_subparsers(dest="command")
 
     lint_parser = subparsers.add_parser("lint")
-    lint_parser.add_argument("paths", nargs="*", default=["src"])
+    lint_parser.add_argument("paths", nargs="*", default=list(DEFAULT_LINT_PATHS))
 
     args = parser.parse_args(argv)
     if args.command != "lint":

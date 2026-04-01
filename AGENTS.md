@@ -13,7 +13,7 @@
 
 ## 会话结束
 
-1. **自验证**：端到端测试功能。仅在确认功能正常后设置 `"passes": true`。
+1. **自验证**：提交前先运行 `uv run python -m tools.run_quality_gates`，并完成端到端功能验证。仅在确认功能正常后设置 `"passes": true`。
 2. **Git 提交**：提交所有更改并附带描述性消息。
 3. **更新进度**：更新 `claude-progress.md` 作为紧凑的交接文件。覆盖 `CURRENT CONTEXT`，仅在这些事实实质性变化时更新 `PROJECT STATUS`、`ARCHITECTURE DECISIONS` 或 `KNOWN ISSUES`。不要在其中保留逐会话的日志。
 

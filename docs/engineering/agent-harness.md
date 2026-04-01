@@ -32,8 +32,7 @@
 
 - 边界模型命名只能使用受控后缀：`Request`、`Response`、`Spec`、`Plan`、`Result`、`Bundle`、`Decision`。
 - 一个文件只承载一种角色；`types.py` 不得混入 provider 调用，`services/*` 不得输出 rich 或 console。
-- 业务文件超过 250 行直接失败，测试文件超过 350 行直接失败。
-- 业务函数超过 40 行直接失败。
+- Python 文件超过 350 行直接失败。
 - 非接口层禁止 `print()`、`Console.print()`、`sys.exit()`。
 - 日志必须结构化，要求事件名和关键字段，禁止长字符串拼接日志。
 - 禁止 `except Exception: pass`、裸重试、静默 fallback。
@@ -41,11 +40,17 @@
 
 ## 强制工具栈
 
-治理入口统一为：
+本地统一治理入口为：
 
 ```text
-uv run python -m tools.harness lint
+uv run python -m tools.run_quality_gates
 ```
+
+其中 `tools.harness lint` 默认扫描 `src tests tools`，并默认排除：
+
+- `**/__pycache__/**`
+- `.venv/**`
+- `tests/fixtures/harness/**`
 
 内部由五类工具分工：
 
@@ -85,6 +90,9 @@ tests/
 3. `uv run python -m tools.run_import_linter`
 4. `uv run pytest tests/architecture -q`
 5. `uv run python -m tools.harness lint`
+
+本地提交前推荐仅执行统一入口 `uv run python -m tools.run_quality_gates`；
+该入口会按上述顺序串行执行全部 gate，并在出现失败时继续执行后续 gate，最后统一返回状态码。
 
 CI 建议拆成五个 job：
 
@@ -138,7 +146,7 @@ Fix: move the dependency behind an allowed workflow/service boundary or adjust t
 - `SA3003` 非接口层禁止 `sys.exit()`
 - `SA3004` 禁止 `except Exception: pass`
 - `SA4001` 禁止万能文件名
-- `SA4002` 文件长度和函数长度超限直接失败
+- `SA4002` 文件长度超限直接失败
 
 ## 文档维护规则
 

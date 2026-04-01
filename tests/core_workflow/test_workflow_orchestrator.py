@@ -3,6 +3,7 @@
 import pytest
 
 from stata_agent.domains.fetch.types import GatewayDecision
+from stata_agent.domains.fetch.types import GatewayResumeRequest
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.providers.settings import Settings
 from stata_agent.workflow.orchestrator import ApplicationOrchestrator
@@ -39,7 +40,10 @@ def test_gateway_approve_advances_to_approved_stage(
     state, thread_id = orchestrator.run(live_request)
     assert state.stage is RunStage.CONTRACTED
 
-    resumed = orchestrator.resume(thread_id, {"decision": "approved", "reason": ""})
+    resumed = orchestrator.resume(
+        thread_id,
+        GatewayResumeRequest(decision=GatewayDecision.APPROVED, reason=""),
+    )
 
     assert resumed.stage is RunStage.APPROVED
     assert resumed.gateway_record is not None
@@ -59,7 +63,10 @@ def test_gateway_reject_fails_with_reason(
 
     resumed = orchestrator.resume(
         thread_id,
-        {"decision": "rejected", "reason": "变量覆盖不满足预期"},
+        GatewayResumeRequest(
+            decision=GatewayDecision.REJECTED,
+            reason="变量覆盖不满足预期",
+        ),
     )
 
     assert resumed.stage is RunStage.FAILED

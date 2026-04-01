@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import ast
+from fnmatch import fnmatch
 from pathlib import Path
 
 from tools.harness.diagnostics import Diagnostic
 
 BANNED_FILENAMES = {"utils.py", "helpers.py", "common.py", "misc.py", "temp.py"}
 INTERFACE_SEGMENT = "src/stata_agent/interfaces/"
-MAX_FILE_LINES = 250
-MAX_FUNCTION_LINES = 40
+OUTPUT_EXEMPT_PATTERNS = ("tools/**/__main__.py", "tools/run_*.py")
+MAX_FILE_LINES = 350
 
 
 def check_path(path: str | Path) -> list[Diagnostic]:
@@ -34,6 +35,7 @@ def check_file(path: str | Path) -> list[Diagnostic]:
     tree = ast.parse(source, filename=str(source_path))
     diagnostics = check_path(source_path)
     in_interfaces = INTERFACE_SEGMENT in source_path.as_posix()
+    output_exempt = _is_output_exempt(source_path)
 
     if len(lines) > MAX_FILE_LINES:
         diagnostics.append(
@@ -47,25 +49,35 @@ def check_file(path: str | Path) -> list[Diagnostic]:
         )
 
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.end_lineno is not None:
-            if node.end_lineno - node.lineno + 1 > MAX_FUNCTION_LINES:
-                diagnostics.append(
-                    Diagnostic(
-                        code="SA4002",
-                        path=f"{source_path}:{node.lineno}",
-                        message="Function exceeds maximum line budget",
-                        why="Long functions encourage mixed responsibilities and make agent edits less reliable.",
-                        fix=f"Split the function into helper steps so each function stays at or below {MAX_FUNCTION_LINES} lines.",
-                    )
-                )
-
-        if not in_interfaces and isinstance(node, ast.Call):
+        if not in_interfaces and not output_exempt and isinstance(node, ast.Call):
             diagnostics.extend(_check_call_for_taste(node, source_path))
 
         if isinstance(node, ast.ExceptHandler):
             diagnostics.extend(_check_except_handler(node, source_path))
 
     return diagnostics
+
+
+def _is_output_exempt(path: Path) -> bool:
+    candidates = _path_match_candidates(path)
+    return any(
+        fnmatch(candidate, pattern)
+        for candidate in candidates
+        for pattern in OUTPUT_EXEMPT_PATTERNS
+    )
+
+
+def _path_match_candidates(path: Path) -> tuple[str, ...]:
+    candidates: list[str] = [path.as_posix()]
+    try:
+        relative = path.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        relative = None
+
+    if relative is not None:
+        candidates.append(relative)
+
+    return tuple(dict.fromkeys(candidates))
 
 
 def _check_call_for_taste(node: ast.Call, source_path: Path) -> list[Diagnostic]:

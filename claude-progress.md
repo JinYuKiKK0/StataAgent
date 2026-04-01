@@ -15,19 +15,35 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 本会话完成：按“去 mock”目标重构 S1 相关测试，移除 `s1_feasibility/`、`core_workflow/test_workflow_orchestrator.py`、`entrypoints/test_agent_graph.py`、`entrypoints/test_bootstrap.py` 中的 Successful/Failing 替身与 `monkeypatch` 注入路径，统一改为 `live_api` 真实接口集成测试；新增 `tests/live_api_support.py` 作为真实 Tongyi/CSMAR 夹具层。
-- provider 更新：`src/stata_agent/providers/csmar.py` 从本地静态目录模拟改为真实 `csmarapi` SDK 调用（登录、`getListFields`、`queryCount`）；`src/stata_agent/providers/settings.py` 新增 `CSMAR_ACCOUNT`、`CSMAR_PASSWORD`、`CSMAR_LANGUAGE` 配置；`src/stata_agent/workflow/orchestrator.py` 注入真实 CSMAR 配置构造 provider。
-- 测试结果：执行 `RUN_LIVE_API_TESTS=1 pytest tests/s1_feasibility tests/core_workflow/test_workflow_orchestrator.py tests/entrypoints/test_agent_graph.py tests/entrypoints/test_bootstrap.py -rs -q`，结果 **12 passed, 15 skipped**；跳过原因为当前环境未安装 `csmarapi` SDK，Tongyi 真实解析测试已实际运行通过。
-- 当前阶段：S1 测试体系已完成真实接口化改造；后续候选仍为 `S2-T1`。
+- 本会话完成：按 `PLAN.md` 落地 harness 与本地 gate 治理修复。
+  - `tools/harness/rule_taste.py`：文件上限统一为 350 行，移除函数 40 行限制；保留 `tools/**/__main__.py` 与 `tools/run_*.py` 输出豁免。
+  - `tools/harness/__main__.py`、`tools/harness/rules_manifest.py`：`tools.harness lint` 默认扫描 `src tests tools`，默认排除 `**/__pycache__/**`、`.venv/**`、`tests/fixtures/harness/**`。
+  - Gateway 强类型链路：新增 `GatewayResumeRequest`，CLI 决策输入与 `ApplicationOrchestrator.resume` 全部改为显式契约；`gateway_approval_node` 改为返回 `ResearchState`，移除 `dict[str, Any]` 边界泄漏。
+  - 类型修复：`ChatTongyi` 直接接收 `SecretStr` API key；`providers/csmar.py` 递归辅助函数补窄化；`workflow/graph.py` 与 `workflow/orchestrator.py` 补 `BaseCheckpointSaver[str]` 等类型收紧；`tests/conftest.py` 对 `request.node` 做协议化 cast。
+  - 新增统一入口 `tools/run_quality_gates.py`（顺序执行 ruff、pyright、import-linter、architecture tests、harness；失败不中断，最终统一返回码）。
+  - 新增/更新回归测试：
+    - `tests/architecture/test_harness_taste_rules.py`
+    - `tests/architecture/test_harness_scope_defaults.py`
+    - `tests/architecture/test_quality_gates.py`
+- 文档同步：`AGENTS.md` 与 `docs/engineering/agent-harness.md` 更新为提交前执行 `uv run python -m tools.run_quality_gates`。
+- 环境补全：项目根目录新增 `.env` 占位模板（`WORKSPACE_DIR`、`DASHSCOPE_API_KEY`、`TONGYI_MODEL`、`CSMAR_*`）。
+- 测试结果：
+  - `uv run python -m pyright` ✅
+  - `uv run python -m tools.harness lint` ✅
+  - `uv run pytest tests/architecture -q` ✅（13 passed）
+  - `uv run pytest tests/core_workflow/test_workflow_orchestrator.py tests/entrypoints/test_agent_graph.py tests/entrypoints/test_bootstrap.py -q` ✅（3 passed, 7 skipped）
+  - `uv run python -m tools.run_quality_gates` ✅
+  - `PRE_COMMIT_HOME=.pre-commit-cache uv run pre-commit run --all-files` ✅
+- 当前阶段：S1 交付状态不变；产品 feature 仍待进入 `S2-T1`。
 - 分支：main
 - 关键文件：
-  - `src/stata_agent/providers/csmar.py` — 真实 CSMAR 元数据/计数探针接入。
-  - `src/stata_agent/providers/settings.py` — CSMAR 凭证配置入口。
-  - `tests/live_api_support.py` — live API fixture 与运行前置检查。
-  - `tests/s1_feasibility/`、`tests/core_workflow/test_workflow_orchestrator.py`、`tests/entrypoints/test_agent_graph.py`、`tests/entrypoints/test_bootstrap.py` — 已移除 mock/stub 路径并切换为 live_api 测试。
+  - `tools/run_quality_gates.py` — 本地统一 gate 入口。
+  - `tools/harness/rule_taste.py`、`tools/harness/rules_manifest.py`、`tools/harness/__main__.py` — taste 规则与默认扫描范围更新。
+  - `src/stata_agent/workflow/graph.py`、`src/stata_agent/workflow/orchestrator.py`、`src/stata_agent/interfaces/cli.py`、`src/stata_agent/domains/fetch/types.py` — Gateway 审批恢复强类型化。
+  - `tests/architecture/test_harness_taste_rules.py`、`tests/architecture/test_harness_scope_defaults.py`、`tests/architecture/test_quality_gates.py` — 新增治理回归覆盖。
 - 未解决的问题：
-  - `pre-commit run --all-files` 在当前沙箱中需要显式设置 `PRE_COMMIT_HOME` 到仓库内可写目录；普通开发机默认缓存目录通常可直接工作
   - 当前环境缺少 `csmarapi` SDK，导致 CSMAR live tests 被跳过；安装 SDK 并配置 `CSMAR_ACCOUNT`/`CSMAR_PASSWORD` 后可执行完整真实链路测试
+  - 当前沙箱运行 `pre-commit run --all-files` 仍建议显式设置 `PRE_COMMIT_HOME=.pre-commit-cache`
 - 已安装依赖：当前 `.venv` 已可用 `langchain`、`langgraph`、`langchain-community`、`dashscope`、`pydantic`、`rich`、`typer`、`pytest`、`pyright`、`import-linter`、`ruff` 和 `pre-commit`
 - 开发服务器：不适用
 

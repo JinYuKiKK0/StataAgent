@@ -5,6 +5,7 @@ import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from secrets import token_hex
+from typing import cast
 
 from stata_agent.domains.fetch.types import QueryPlan
 from stata_agent.domains.mapping.types import CsmarFieldCandidate
@@ -223,13 +224,13 @@ def _extract_first_int(payload: object) -> int | None:
             return None
         return int(matched.group())
     if isinstance(payload, Mapping):
-        for value in payload.values():
+        for value in cast(Mapping[object, object], payload).values():
             parsed = _extract_first_int(value)
             if parsed is not None:
                 return parsed
         return None
     if isinstance(payload, Sequence) and not isinstance(payload, (str, bytes, bytearray)):
-        for value in payload:
+        for value in cast(Sequence[object], payload):
             parsed = _extract_first_int(value)
             if parsed is not None:
                 return parsed
@@ -244,10 +245,10 @@ def _extract_text_tokens(payload: object) -> set[str]:
             tokens.add(cleaned)
         return tokens
     if isinstance(payload, Mapping):
-        for value in payload.values():
+        for value in cast(Mapping[object, object], payload).values():
             tokens.update(_extract_text_tokens(value))
         return tokens
     if isinstance(payload, Sequence) and not isinstance(payload, (str, bytes, bytearray)):
-        for item in payload:
+        for item in cast(Sequence[object], payload):
             tokens.update(_extract_text_tokens(item))
     return tokens

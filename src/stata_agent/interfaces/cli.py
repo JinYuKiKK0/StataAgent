@@ -5,6 +5,8 @@ from rich.table import Table
 from pydantic import ValidationError
 from typing import NoReturn
 
+from stata_agent.domains.fetch.types import GatewayDecision
+from stata_agent.domains.fetch.types import GatewayResumeRequest
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.workflow.orchestrator import (
     ApplicationOrchestrator,
@@ -307,13 +309,11 @@ def _render_contract_for_approval(state: ResearchState) -> None:
     console.print(table)
 
 
-def _prompt_gateway_decision() -> dict[str, str]:
+def _prompt_gateway_decision() -> GatewayResumeRequest:
     """交互式收集用户的 Approve/Reject 决策。"""
     approved = typer.confirm("是否批准该数据契约？")
     reason = ""
     if not approved:
         reason = typer.prompt("请输入驳回原因", default="")
-    return {
-        "decision": "approved" if approved else "rejected",
-        "reason": reason,
-    }
+    decision = GatewayDecision.APPROVED if approved else GatewayDecision.REJECTED
+    return GatewayResumeRequest(decision=decision, reason=reason)

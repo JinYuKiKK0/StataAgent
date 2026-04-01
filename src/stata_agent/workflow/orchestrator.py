@@ -8,6 +8,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 from langchain_core.runnables.config import RunnableConfig
 
+from stata_agent.domains.fetch.types import GatewayResumeRequest
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.providers.csmar import CsmarBridgeClient
 from stata_agent.providers.llm import TongyiResearchSpecGenerator
@@ -48,7 +49,7 @@ class ApplicationOrchestrator:
         csmar_provider: CsmarMetadataProviderPort | None = None,
         phase1_orchestrator: Phase1OrchestratorPort | None = None,
         settings_factory: Callable[[], Settings] = get_settings,
-        checkpointer_factory: Callable[[], BaseCheckpointSaver] | None = InMemorySaver,
+        checkpointer_factory: Callable[[], BaseCheckpointSaver[str]] | None = InMemorySaver,
     ) -> None:
         self._settings_factory = settings_factory
         self._parser = parser
@@ -80,13 +81,13 @@ class ApplicationOrchestrator:
         )
         return self._extract_state(result), thread_id
 
-    def resume(self, thread_id: str, decision: dict[str, str]) -> ResearchState:
+    def resume(self, thread_id: str, decision: GatewayResumeRequest) -> ResearchState:
         """用人类决策恢复被中断的工作流。
 
-        decision 格式: {"decision": "approved"|"rejected", "reason": "..."}
+        decision 格式: GatewayResumeRequest(decision=approved|rejected, reason="...")
         """
         config = self._build_run_config(thread_id)
-        result = self._graph.invoke(Command(resume=decision), config)
+        result = self._graph.invoke(Command(resume=decision.model_dump(mode="json")), config)
         return self._extract_state(result)
 
     def app_name(self) -> str:
