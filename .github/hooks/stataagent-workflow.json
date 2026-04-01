@@ -1,0 +1,25 @@
+{
+    "hooks": {
+        "SessionStart": [
+            {
+                "type": "command",
+                "command": "uv run python .github/hooks/scripts/stataagent_workflow_hooks.py session-start",
+                "timeout": 20
+            }
+        ],
+        "PreToolUse": [
+            {
+                "type": "command",
+                "command": "uv run python .github/hooks/scripts/stataagent_workflow_hooks.py pre-tool-use",
+                "timeout": 600
+            }
+        ],
+        "Stop": [
+            {
+                "type": "command",
+                "command": "uv run python .github/hooks/scripts/stataagent_workflow_hooks.py stop",
+                "timeout": 600
+            }
+        ]
+    }
+}
