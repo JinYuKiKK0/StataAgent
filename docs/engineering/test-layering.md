@@ -16,7 +16,6 @@ tests/
 ├── s1_feasibility/         # Phase 1节点内单元测试 需求解析 → 数据契约（S1-T2 ~ S1-T7）
 ├── s2_data_assembly/       # Phase 2节点内单元测试 CSMAR 下载、解压、清洗、面板拼接
 ├── s3_empirical_modeling/  # Phase 3节点内单元测试 Stata 代码生成、回归执行与解释
-├── fixtures/               # 跨阶段共享的测试数据文件（CSV、JSON 样本）
 └── conftest.py             # 顶层 pytest 配置，全局 fixture
 ```
 
