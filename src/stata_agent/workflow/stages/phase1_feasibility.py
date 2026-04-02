@@ -102,6 +102,8 @@ class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
         return state.model_copy(
             update={
                 "variable_mapping_result": mapping_result,
+                "variable_definitions": mapping_result.resolved_variable_definitions
+                or state.variable_definitions,
                 "variable_bindings": mapping_result.bindings,
                 "stage": RunStage.MAPPED,
                 "notes": notes,

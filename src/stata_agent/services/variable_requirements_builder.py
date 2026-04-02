@@ -44,7 +44,7 @@ def _build_core_variable(
         is_locked=True,
         slot_status="ready",
         frequency_hint=_infer_frequency_hint(spec.topic, cleaned_name),
-        source_domain_hint=_infer_source_domain_hint(spec.entity_scope, cleaned_name),
+        source_domain_hint="pending_resolution",
         note=None,
     )
 
@@ -58,7 +58,7 @@ def _build_control_variables(spec: ResearchSpec) -> list[VariableDefinition]:
             is_locked=False,
             slot_status="pending_agent_completion",
             frequency_hint=_infer_frequency_hint(spec.topic, control),
-            source_domain_hint=_infer_source_domain_hint(spec.entity_scope, control),
+            source_domain_hint="pending_resolution",
             note="控制变量候选，待 agent 在建模阶段确认纳入。",
         )
         for control in normalized_controls
@@ -101,19 +101,6 @@ def _infer_frequency_hint(topic: str, variable_name: str) -> str:
         return "quarterly"
     if _contains_any(text, ["年", "年度", "annual", "yearly"]):
         return "annual"
-    return "unknown"
-
-
-def _infer_source_domain_hint(entity_scope: str, variable_name: str) -> str:
-    text = f"{entity_scope} {variable_name}".strip().lower()
-    if _contains_any(text, ["银行", "bank", "资本充足", "不良贷款", "拨备"]):
-        return "bank_financials"
-    if _contains_any(text, ["gdp", "cpi", "m2", "利率", "失业率", "通胀"]):
-        return "macro_economy"
-    if _contains_any(text, ["收益率", "波动率", "市值", "换手率", "beta"]):
-        return "market_trading"
-    if _contains_any(text, ["a股", "上市公司", "企业", "firm", "company"]):
-        return "firm_financials"
     return "unknown"
 
 

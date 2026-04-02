@@ -9,6 +9,7 @@ import pytest
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.providers.csmar import CsmarBridgeClient
 from stata_agent.providers.llm import TongyiResearchSpecGenerator
+from stata_agent.providers.llm import TongyiVariableSemanticJudge
 from stata_agent.providers.settings import Settings, get_settings
 from stata_agent.services.data_contract_builder import DataContractBuilder
 from stata_agent.services.probe_executor import ProbeExecutor
@@ -99,11 +100,15 @@ def live_csmar_provider(
 def live_phase1_orchestrator(
     live_parser: RequirementParser,
     live_csmar_provider: CsmarBridgeClient,
+    live_settings: Settings,
 ) -> Phase1FeasibilityOrchestrator:
     return Phase1FeasibilityOrchestrator(
         parser=live_parser,
         builder=VariableRequirementsBuilder(),
-        mapper=VariableMapper(metadata_provider=live_csmar_provider),
+        mapper=VariableMapper(
+            metadata_provider=live_csmar_provider,
+            semantic_judge=TongyiVariableSemanticJudge(live_settings),
+        ),
         probe_executor=ProbeExecutor(metadata_provider=live_csmar_provider),
         data_contract_builder=DataContractBuilder(),
     )

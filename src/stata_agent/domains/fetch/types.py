@@ -23,6 +23,9 @@ class VariableProbeResult(BaseModel):
     query_count: int | None = None
     is_accessible: bool = False
     failure_reason: str | None = None
+    query_fingerprint: str = ""
+    scope_level: str = Field(default="time_scoped", description="探针范围")
+    vendor_message: str = ""
 
 
 def _empty_probe_results() -> list[VariableProbeResult]:

@@ -53,9 +53,11 @@ def test_builder_marks_core_variables_as_ready_and_locked() -> None:
     assert dependent.variable_name == "ROA"
     assert dependent.is_locked is True
     assert dependent.slot_status == "ready"
+    assert dependent.source_domain_hint == "pending_resolution"
     assert independent.variable_name == "数字化转型指数"
     assert independent.is_locked is True
     assert independent.slot_status == "ready"
+    assert independent.source_domain_hint == "pending_resolution"
 
 
 def test_builder_deduplicates_and_reserves_control_slots() -> None:

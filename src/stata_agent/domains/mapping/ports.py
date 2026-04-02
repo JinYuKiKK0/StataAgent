@@ -1,13 +1,30 @@
 from typing import Protocol
 
+from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.mapping.types import CsmarFieldCandidate
+from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
+from stata_agent.domains.mapping.types import CsmarFieldProbeResult
+from stata_agent.domains.mapping.types import CsmarFieldSearchRequest
+from stata_agent.domains.mapping.types import VariableMatchDecision
+from stata_agent.domains.spec.types import ResearchSpec
+from stata_agent.domains.spec.types import VariableDefinition
 
 
 class CsmarMetadataProviderPort(Protocol):
-    def find_field_candidates(
-        self, variable_name: str
+    def search_field_candidates(
+        self, request: CsmarFieldSearchRequest
     ) -> list[CsmarFieldCandidate]: ...
 
-    def field_exists(self, table_name: str, field_name: str) -> bool: ...
+    def probe_field_availability(
+        self, request: CsmarFieldProbeRequest
+    ) -> CsmarFieldProbeResult: ...
 
-    def query_count(self, table_name: str, field_name: str) -> int: ...
+
+class VariableSemanticJudgePort(Protocol):
+    def judge(
+        self,
+        request: ResearchRequest,
+        spec: ResearchSpec,
+        definition: VariableDefinition,
+        candidates: list[CsmarFieldCandidate],
+    ) -> VariableMatchDecision: ...
