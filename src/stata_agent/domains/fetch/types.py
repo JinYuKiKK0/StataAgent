@@ -11,6 +11,9 @@ class QueryPlan(BaseModel):
     table_code: str
     columns: list[str] = Field(default_factory=list)
     condition: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    expected_grain: str = ""
 
 
 class VariableProbeResult(BaseModel):
@@ -27,6 +30,10 @@ class VariableProbeResult(BaseModel):
     query_fingerprint: str = ""
     scope_level: str = Field(default="time_scoped", description="探针范围")
     vendor_message: str = ""
+    error_code: str = ""
+    hint: str = ""
+    retry_after_seconds: int | None = None
+    suggested_args_patch: dict[str, object] | None = None
 
 
 def _empty_probe_results() -> list[VariableProbeResult]:

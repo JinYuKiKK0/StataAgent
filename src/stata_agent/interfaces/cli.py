@@ -308,6 +308,37 @@ def _render_contract_for_approval(state: ResearchState) -> None:
 
     console.print(table)
 
+    if contract.variable_bindings:
+        mapping_table = Table(title="映射证据摘要（含 trace 引用）")
+        mapping_table.add_column("变量")
+        mapping_table.add_column("字段绑定")
+        mapping_table.add_column("trace_id")
+        mapping_table.add_column("evidence")
+        for binding in contract.variable_bindings:
+            mapping_table.add_row(
+                binding.variable_name,
+                f"{binding.table_code}.{binding.field_name}",
+                binding.trace_id or "-",
+                (binding.evidence[:80] + "...") if len(binding.evidence) > 80 else binding.evidence,
+            )
+        console.print(mapping_table)
+
+    probe_results = contract.probe_coverage.probe_results
+    if probe_results:
+        probe_table = Table(title="Probe 指纹摘要（含 trace 引用）")
+        probe_table.add_column("变量")
+        probe_table.add_column("query_fingerprint")
+        probe_table.add_column("trace_id")
+        probe_table.add_column("error_code")
+        for result in probe_results:
+            probe_table.add_row(
+                result.variable_name,
+                result.query_fingerprint or "-",
+                result.trace_id or "-",
+                result.error_code or "-",
+            )
+        console.print(probe_table)
+
 
 def _prompt_gateway_decision() -> GatewayResumeRequest:
     """交互式收集用户的 Approve/Reject 决策。"""

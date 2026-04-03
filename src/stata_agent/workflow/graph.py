@@ -33,11 +33,52 @@ def gateway_approval_node(state: ResearchState) -> ResearchState:
         "time_range": f"{contract.time_start_year}-{contract.time_end_year}"
         if contract
         else "",
+        "mapping_evidence_summary": _build_mapping_evidence_summary(state),
+        "probe_trace_summary": _build_probe_trace_summary(state),
     }
 
     human_decision = cast(object, interrupt(approval_payload))
     resume_request = _coerce_gateway_resume_request(human_decision)
     return _apply_gateway_decision(state, resume_request)
+
+
+def _build_mapping_evidence_summary(state: ResearchState) -> list[dict[str, str]]:
+    contract = state.data_contract_bundle
+    if contract is None:
+        return []
+
+    summary: list[dict[str, str]] = []
+    for binding in contract.variable_bindings:
+        summary.append(
+            {
+                "variable_name": binding.variable_name,
+                "table_code": binding.table_code,
+                "field_name": binding.field_name,
+                "trace_id": binding.trace_id,
+                "evidence": binding.evidence,
+            }
+        )
+    return summary
+
+
+def _build_probe_trace_summary(state: ResearchState) -> list[dict[str, str]]:
+    contract = state.data_contract_bundle
+    if contract is None:
+        return []
+
+    summary: list[dict[str, str]] = []
+    for result in contract.probe_coverage.probe_results:
+        summary.append(
+            {
+                "variable_name": result.variable_name,
+                "table_code": result.table_code,
+                "field_name": result.field_name,
+                "trace_id": result.trace_id,
+                "query_fingerprint": result.query_fingerprint,
+                "error_code": result.error_code,
+            }
+        )
+    return summary
 
 
 def _coerce_gateway_resume_request(payload: object) -> GatewayResumeRequest:

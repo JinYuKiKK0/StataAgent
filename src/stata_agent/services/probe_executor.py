@@ -21,10 +21,32 @@ class ProbeExecutor:
         variable_bindings: list[VariableBinding],
     ) -> ProbeCoverageResult:
         self._pending_traces = []
-        probe_results = [
-            self._probe_binding(spec=spec, binding=binding)
-            for binding in variable_bindings
-        ]
+        probe_results: list[VariableProbeResult] = []
+        probe_cache: dict[tuple[str, str, int, int], VariableProbeResult] = {}
+        for binding in variable_bindings:
+            probe_key = (
+                binding.table_code,
+                binding.field_name,
+                spec.time_start_year,
+                spec.time_end_year,
+            )
+            cached = probe_cache.get(probe_key)
+            if cached is None:
+                result = self._probe_binding(spec=spec, binding=binding)
+                probe_cache[probe_key] = result
+                probe_results.append(result)
+                continue
+
+            probe_results.append(
+                cached.model_copy(
+                    update={
+                        "variable_name": binding.variable_name,
+                        "contract_tier": binding.contract_tier,
+                        "frequency_match": binding.frequency_match,
+                        "trace_id": binding.trace_id or cached.trace_id,
+                    }
+                )
+            )
         hard_results = [
             result for result in probe_results if result.contract_tier == "hard"
         ]
@@ -38,6 +60,7 @@ class ProbeExecutor:
             result.variable_name for result in soft_results if not result.is_accessible
         ]
         warnings = self._collect_probe_warnings(probe_results)
+        warnings.extend(self._collect_fail_fast_warnings(probe_results))
         warnings.extend(self._build_soft_gap_warnings(soft_gaps))
         key_alignment_ready = all(result.is_accessible for result in hard_results)
         target_grain_ready = self._is_target_grain_ready(spec, hard_results)
@@ -92,6 +115,10 @@ class ProbeExecutor:
                 query_fingerprint="",
                 scope_level="time_scoped",
                 vendor_message=exc.vendor_message,
+                error_code=exc.code,
+                hint=exc.hint,
+                retry_after_seconds=exc.retry_after_seconds,
+                suggested_args_patch=exc.suggested_args_patch,
             )
 
         provider_traces = self._drain_provider_traces()
@@ -108,6 +135,13 @@ class ProbeExecutor:
                 query_fingerprint=probe_result.query_fingerprint,
                 scope_level=probe_result.scope_level,
                 vendor_message=probe_result.vendor_message,
+                error_code=probe_result.error_code or "field_not_found",
+                hint=(
+                    probe_result.hint
+                    or "字段不存在，建议先读取表结构后修正字段代码。"
+                ),
+                retry_after_seconds=probe_result.retry_after_seconds,
+                suggested_args_patch=probe_result.suggested_args_patch,
             )
         if probe_result.row_count is None or probe_result.row_count <= 0:
             return self._build_probe_failure(
@@ -119,6 +153,10 @@ class ProbeExecutor:
                 query_fingerprint=probe_result.query_fingerprint,
                 scope_level=probe_result.scope_level,
                 vendor_message=probe_result.vendor_message,
+                error_code=probe_result.error_code,
+                hint=probe_result.hint,
+                retry_after_seconds=probe_result.retry_after_seconds,
+                suggested_args_patch=probe_result.suggested_args_patch,
             )
         return self._build_probe_success(
             binding,
@@ -138,6 +176,10 @@ class ProbeExecutor:
         scope_level: str,
         vendor_message: str,
         query_count: int | None = None,
+        error_code: str = "",
+        hint: str = "",
+        retry_after_seconds: int | None = None,
+        suggested_args_patch: dict[str, object] | None = None,
     ) -> VariableProbeResult:
         return VariableProbeResult(
             variable_name=binding.variable_name,
@@ -152,6 +194,10 @@ class ProbeExecutor:
             query_fingerprint=query_fingerprint,
             scope_level=scope_level,
             vendor_message=vendor_message,
+            error_code=error_code,
+            hint=hint,
+            retry_after_seconds=retry_after_seconds,
+            suggested_args_patch=suggested_args_patch,
         )
 
     def _build_probe_success(
@@ -175,6 +221,10 @@ class ProbeExecutor:
             query_fingerprint=probe_result.query_fingerprint,
             scope_level=probe_result.scope_level,
             vendor_message=probe_result.vendor_message,
+            error_code=probe_result.error_code,
+            hint=probe_result.hint,
+            retry_after_seconds=probe_result.retry_after_seconds,
+            suggested_args_patch=probe_result.suggested_args_patch,
         )
 
     def _collect_probe_warnings(
@@ -186,6 +236,25 @@ class ProbeExecutor:
                 warnings.append(
                     f"变量 `{result.variable_name}` 当前仅完成时间范围 probe，样本范围仍待后续验证。"
                 )
+        return warnings
+
+    def _collect_fail_fast_warnings(
+        self,
+        probe_results: list[VariableProbeResult],
+    ) -> list[str]:
+        fail_fast_codes = {"table_not_found", "field_not_found", "rate_limited"}
+        warnings: list[str] = []
+        for result in probe_results:
+            if result.error_code not in fail_fast_codes:
+                continue
+            retry_hint = (
+                f" 建议等待 {result.retry_after_seconds}s 后重试。"
+                if result.retry_after_seconds is not None
+                else ""
+            )
+            warnings.append(
+                f"变量 `{result.variable_name}` 命中 `{result.error_code}`，按 fail-fast 策略不做内部重试。{retry_hint}"
+            )
         return warnings
 
     def _is_target_grain_ready(

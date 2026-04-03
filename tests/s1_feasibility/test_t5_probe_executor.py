@@ -29,6 +29,7 @@ class _FakeMetadataProvider:
     ) -> None:
         self._results = results
         self._raise_on = raise_on
+        self.probe_calls: list[tuple[str, str]] = []
 
     def search_tables(self, request: CsmarTableSearchRequest) -> list[CsmarTableCandidate]:
         raise AssertionError("探针测试不应调用表搜索。")
@@ -43,9 +44,15 @@ class _FakeMetadataProvider:
         self, request: CsmarFieldProbeRequest
     ) -> CsmarFieldProbeResult:
         key = (request.table_code, request.field_name)
+        self.probe_calls.append(key)
         if self._raise_on == key:
             raise CsmarMetadataError(
-                "CSMAR 探针命中冷却限制。", retriable=True, vendor_message="30分钟限制"
+                "CSMAR 探针命中冷却限制。",
+                code="rate_limited",
+                retriable=True,
+                vendor_message="30分钟限制",
+                hint="等待冷却后重试。",
+                retry_after_seconds=60,
             )
         return self._results[key]
 
@@ -198,6 +205,64 @@ def test_probe_executor_surfaces_vendor_cooldown_errors() -> None:
 
     assert result.failure_reason is not None
     assert result.probe_results[0].vendor_message == "30分钟限制"
+
+
+def test_probe_executor_deduplicates_same_probe_key_calls() -> None:
+    """验证相同 table_code/field_name/time_range 只会触发一次真实 probe 调用。"""
+    provider = _FakeMetadataProvider(
+        {
+            ("FS_Comins", "ROA"): CsmarFieldProbeResult(
+                variable_name="ROA",
+                table_code="FS_Comins",
+                field_name="ROA",
+                field_exists=True,
+                row_count=99,
+                query_fingerprint="FS_Comins.ROA:2018-2023",
+                scope_level="time_scoped",
+            )
+        }
+    )
+    executor = ProbeExecutor(metadata_provider=provider)
+    second_binding = _build_hard_binding().model_copy(
+        update={
+            "variable_name": "ROA_副本",
+            "contract_tier": "soft",
+            "is_hard_contract": False,
+            "trace_id": "trace_custom",
+        }
+    )
+
+    result = executor.execute_coverage(
+        _build_spec(), [_build_hard_binding(), second_binding]
+    )
+
+    assert len(provider.probe_calls) == 1
+    assert len(result.probe_results) == 2
+    assert result.probe_results[1].variable_name == "ROA_副本"
+    assert result.probe_results[1].trace_id == "trace_custom"
+
+
+def test_probe_executor_surfaces_fail_fast_error_metadata() -> None:
+    """验证 fail-fast 错误码会透传到 probe 结果并写入提示。"""
+    provider = _FakeMetadataProvider(
+        {
+            ("FS_Comins", "ROA"): CsmarFieldProbeResult(
+                variable_name="ROA",
+                table_code="FS_Comins",
+                field_name="ROA",
+                field_exists=True,
+            )
+        },
+        raise_on=("FS_Comins", "ROA"),
+    )
+    executor = ProbeExecutor(metadata_provider=provider)
+
+    result = executor.execute_coverage(_build_spec(), [_build_hard_binding()])
+
+    assert result.failure_reason is not None
+    assert result.probe_results[0].error_code == "rate_limited"
+    assert result.probe_results[0].retry_after_seconds == 60
+    assert any("fail-fast" in warning for warning in result.warnings)
 
 
 @pytest.mark.live_api

@@ -15,6 +15,21 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
+- 本会话完成：启动 IC6（Implementation Changes 6）首批落地，聚焦 S1/S3 执行边界收尾中的阻断项与 S1 契约收口。
+  - 双仓联动：`CSMAR-Data-MCP/csmar_mcp/runtime.py` 已支持读取 `CSMAR_MCP_STATE_DIR` 并透传给 `CsmarClient(state_dir=...)`；新增 `tests/test_runtime.py` 覆盖 env 解析与透传。
+  - S1 错误契约透传：`CsmarFieldProbeResult`、`VariableProbeResult` 新增 `error_code/hint/retry_after_seconds/suggested_args_patch`。
+  - Provider trace 完整性：`CsmarBridgeClient` 在 MCP 失败路径也会记录本地 `CsmarToolTrace.error`；新增 `providers/csmar/tool_call.py` 下沉调用+trace逻辑，`client.py` 回到 <350 行（通过 SA4002）。
+  - ProbeExecutor 收口：新增 probe key 去重（同 `table_code/field_name/time_range` 只 probe 一次），并增加 fail-fast 错误码提示（不做内部重试）。
+  - Gateway 审批可见性：`workflow/graph.py` interrupt payload 新增 `mapping_evidence_summary` 与 `probe_trace_summary`；CLI 审批页新增 evidence/trace/fingerprint 摘要表。
+  - legacy 收口进展：删除 `CsmarBridgeClient.fetch()` stub（该接口在活跃路径无引用）。
+  - 测试补强：
+    - `tests/s1_feasibility/test_csmar_bridge_mcp_adapter.py` 增加 rate_limited 错误字段与失败 trace 断言。
+    - `tests/s1_feasibility/test_t5_probe_executor.py` 增加去重 probe 与 fail-fast 元数据断言。
+    - 新增 `tests/entrypoints/test_gateway_approval_payload.py` 锁定 Gateway payload 的 evidence/trace/fingerprint 摘要字段。
+- 验证结果：
+  - `StataAgent`: `uv run pytest tests/s1_feasibility/test_csmar_bridge_mcp_adapter.py tests/s1_feasibility/test_t5_probe_executor.py tests/entrypoints/test_gateway_approval_payload.py -q` ✅（12 passed, 2 skipped）
+  - `StataAgent`: `uv run python -m tools.run_quality_gates` ✅（ruff/pyright/import-linter/architecture/harness 全通过）
+  - `CSMAR-Data-MCP`: `/home/jinyu/PythonProject/CSMAR-Data-MCP/.venv/bin/python -m unittest tests.test_runtime tests.test_services -v` ✅（13 passed）
 - 本会话完成：启动 IC5（Implementation Changes 5）在 StataAgent 的首轮落地，完成“表标识统一 + 本地 trace 审计”主线改造。
   - 契约迁移：`table_name(查询语义) -> table_code`，`csmar_database -> database_name`，并保留 `table_name` 作为展示字段。
   - 类型升级：`src/stata_agent/domains/mapping/types.py` 新增 `CsmarToolTrace`，`VariableBinding` 增加 `trace_id`；`src/stata_agent/domains/fetch/types.py` 的 `QueryPlan/VariableProbeResult` 切到 `table_code`。

@@ -1,21 +1,21 @@
 # pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
 from __future__ import annotations
+
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
-from pathlib import Path
-from uuid import uuid4
-from stata_agent.domains.fetch.types import QueryPlan
-from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
-from stata_agent.domains.mapping.types import CsmarFieldProbeResult
-from stata_agent.domains.mapping.types import CsmarMaterializeQueryResult
-from stata_agent.domains.mapping.types import CsmarFieldSearchHit
-from stata_agent.domains.mapping.types import CsmarFieldSearchRequest
-from stata_agent.domains.mapping.types import CsmarProbeQueryResult
-from stata_agent.domains.mapping.types import CsmarSchemaField
-from stata_agent.domains.mapping.types import CsmarTableCandidate
-from stata_agent.domains.mapping.types import CsmarTableSchema
-from stata_agent.domains.mapping.types import CsmarTableSearchRequest
-from stata_agent.domains.mapping.types import CsmarToolTrace
+
+from stata_agent.domains.mapping.types import (
+    CsmarFieldProbeRequest,
+    CsmarFieldProbeResult,
+    CsmarFieldSearchHit,
+    CsmarFieldSearchRequest,
+    CsmarMaterializeQueryResult,
+    CsmarProbeQueryResult,
+    CsmarSchemaField,
+    CsmarTableCandidate,
+    CsmarTableSchema,
+    CsmarTableSearchRequest,
+    CsmarToolTrace,
+)
 from stata_agent.providers.csmar.contracts import McpToolPayload
 from stata_agent.providers.csmar.errors import CsmarMetadataError
 from stata_agent.providers.csmar.mcp_runtime import CsmarMcpLaunchSpec
@@ -27,7 +27,10 @@ from stata_agent.providers.csmar.normalizers import extract_first_int
 from stata_agent.providers.csmar.normalizers import normalize_object_rows
 from stata_agent.providers.csmar.normalizers import normalize_tags
 from stata_agent.providers.csmar.normalizers import probe_scope_warnings
+from stata_agent.providers.csmar.tool_call import call_mcp_tool_with_trace
 from stata_agent.providers.settings import Settings
+
+
 class CsmarBridgeClient:
     def __init__(
         self,
@@ -251,9 +254,6 @@ class CsmarBridgeClient:
             files=[str(item) for item in normalize_tags(payload.get("files"))],
         )
 
-    def fetch(self, plan: QueryPlan, output_dir: Path) -> Path:
-        return output_dir / f"{plan.table_code}.parquet"
-
     def probe_field_availability(
         self, request: CsmarFieldProbeRequest
     ) -> CsmarFieldProbeResult:
@@ -275,6 +275,10 @@ class CsmarBridgeClient:
                 query_fingerprint=f"{request.table_code}.{request.field_name}",
                 scope_level="time_scoped",
                 vendor_message=exc.vendor_message,
+                error_code=exc.code,
+                hint=exc.hint,
+                retry_after_seconds=exc.retry_after_seconds,
+                suggested_args_patch=exc.suggested_args_patch,
                 retriable=exc.retriable,
                 warnings=probe_scope_warnings(request.entity_scope),
             )
@@ -293,6 +297,12 @@ class CsmarBridgeClient:
             row_count=row_count,
             query_fingerprint=query_fingerprint,
             scope_level="time_scoped",
+            error_code="field_not_found" if not field_exists else "",
+            hint=(
+                "字段不存在，请先检查 schema 并修正字段代码。"
+                if not field_exists
+                else ""
+            ),
             warnings=probe_scope_warnings(request.entity_scope),
         )
 
@@ -306,34 +316,14 @@ class CsmarBridgeClient:
         tool_name: str,
         arguments: dict[str, object],
     ) -> McpToolPayload:
-        trace_id = f"trace_{uuid4().hex[:10]}"
-        started_at = datetime.now(timezone.utc).isoformat()
         caller = self._get_mcp_tool_caller()
         sanitized_args = {k: v for k, v in arguments.items() if v is not None}
-        error_payload: dict[str, object] | None = None
-        try:
-            payload = caller.call_tool(tool_name, sanitized_args)
-        except CsmarMetadataError as error:
-            error_payload = {"code": error.code, "message": str(error), "hint": error.hint}
-            raise
-        content = payload.content
-        query_fingerprint = str(content.get("query_fingerprint") or "").strip() or None
-        validation_id = str(content.get("validation_id") or "").strip() or None
-        self._tool_traces.append(
-            CsmarToolTrace(
-                trace_id=trace_id,
-                tool_name=tool_name,
-                request_payload=sanitized_args,
-                result_summary={"keys": sorted(content.keys())} if content else None,
-                error=error_payload,
-                query_fingerprint=query_fingerprint,
-                validation_id=validation_id,
-                cached=False,
-                started_at=started_at,
-                completed_at=datetime.now(timezone.utc).isoformat(),
-            )
+        return call_mcp_tool_with_trace(
+            tool_name=tool_name,
+            arguments=sanitized_args,
+            caller=caller,
+            tool_traces=self._tool_traces,
         )
-        return payload
 
     def _get_mcp_tool_caller(self) -> CsmarMcpToolCaller:
         if self._mcp_tool_caller is not None:

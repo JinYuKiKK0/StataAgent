@@ -186,8 +186,14 @@ def test_probe_field_availability_surfaces_mcp_rate_limit_error() -> None:
 
     assert result.field_exists is False
     assert result.table_code == "BANK_Index"
+    assert result.error_code == "rate_limited"
     assert result.retriable is True
     assert result.vendor_message == "retry later"
+    traces = client.drain_tool_traces()
+    assert len(traces) == 1
+    assert traces[0].tool_name == "csmar_probe_query"
+    assert traces[0].error is not None
+    assert traces[0].error.get("code") == "rate_limited"
 
 
 def test_client_drains_local_tool_traces() -> None:

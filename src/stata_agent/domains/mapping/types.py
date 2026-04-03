@@ -131,6 +131,10 @@ class CsmarFieldProbeResult(BaseModel):
     query_fingerprint: str = ""
     scope_level: str = Field(default="time_scoped", description="global/time_scoped")
     vendor_message: str = ""
+    error_code: str = ""
+    hint: str = ""
+    retry_after_seconds: int | None = None
+    suggested_args_patch: dict[str, object] | None = None
     retriable: bool = False
     frequency_tags: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
