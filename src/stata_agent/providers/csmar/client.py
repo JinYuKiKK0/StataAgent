@@ -1,10 +1,9 @@
 # pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
-
 from __future__ import annotations
-
 from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 from pathlib import Path
-
+from uuid import uuid4
 from stata_agent.domains.fetch.types import QueryPlan
 from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
 from stata_agent.domains.mapping.types import CsmarFieldProbeResult
@@ -16,6 +15,7 @@ from stata_agent.domains.mapping.types import CsmarSchemaField
 from stata_agent.domains.mapping.types import CsmarTableCandidate
 from stata_agent.domains.mapping.types import CsmarTableSchema
 from stata_agent.domains.mapping.types import CsmarTableSearchRequest
+from stata_agent.domains.mapping.types import CsmarToolTrace
 from stata_agent.providers.csmar.contracts import McpToolPayload
 from stata_agent.providers.csmar.errors import CsmarMetadataError
 from stata_agent.providers.csmar.mcp_runtime import CsmarMcpLaunchSpec
@@ -28,8 +28,6 @@ from stata_agent.providers.csmar.normalizers import normalize_object_rows
 from stata_agent.providers.csmar.normalizers import normalize_tags
 from stata_agent.providers.csmar.normalizers import probe_scope_warnings
 from stata_agent.providers.settings import Settings
-
-
 class CsmarBridgeClient:
     def __init__(
         self,
@@ -45,6 +43,7 @@ class CsmarBridgeClient:
         self._language = language
         self._mcp_launch_spec = mcp_launch_spec
         self._mcp_tool_caller = mcp_tool_caller
+        self._tool_traces: list[CsmarToolTrace] = []
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "CsmarBridgeClient":
@@ -253,14 +252,14 @@ class CsmarBridgeClient:
         )
 
     def fetch(self, plan: QueryPlan, output_dir: Path) -> Path:
-        return output_dir / f"{plan.table_name}.parquet"
+        return output_dir / f"{plan.table_code}.parquet"
 
     def probe_field_availability(
         self, request: CsmarFieldProbeRequest
     ) -> CsmarFieldProbeResult:
         try:
             probe_payload = self.probe_query(
-                table_code=request.table_name,
+                table_code=request.table_code,
                 columns=[request.field_name],
                 condition=build_query_condition(request.field_name),
                 start_date=f"{request.time_start_year}-01-01",
@@ -270,10 +269,10 @@ class CsmarBridgeClient:
         except CsmarMetadataError as exc:
             return CsmarFieldProbeResult(
                 variable_name=request.variable_name,
-                table_name=request.table_name,
+                table_code=request.table_code,
                 field_name=request.field_name,
                 field_exists=False,
-                query_fingerprint=f"{request.table_name}.{request.field_name}",
+                query_fingerprint=f"{request.table_code}.{request.field_name}",
                 scope_level="time_scoped",
                 vendor_message=exc.vendor_message,
                 retriable=exc.retriable,
@@ -284,11 +283,11 @@ class CsmarBridgeClient:
         row_count = probe_payload.row_count
         query_fingerprint = probe_payload.query_fingerprint.strip()
         if not query_fingerprint:
-            query_fingerprint = f"{request.table_name}.{request.field_name}"
+            query_fingerprint = f"{request.table_code}.{request.field_name}"
 
         return CsmarFieldProbeResult(
             variable_name=request.variable_name,
-            table_name=request.table_name,
+            table_code=request.table_code,
             field_name=request.field_name,
             field_exists=field_exists,
             row_count=row_count,
@@ -297,14 +296,44 @@ class CsmarBridgeClient:
             warnings=probe_scope_warnings(request.entity_scope),
         )
 
+    def drain_tool_traces(self) -> list[CsmarToolTrace]:
+        traces = list(self._tool_traces)
+        self._tool_traces.clear()
+        return traces
+
     def _call_mcp_tool(
         self,
         tool_name: str,
         arguments: dict[str, object],
     ) -> McpToolPayload:
+        trace_id = f"trace_{uuid4().hex[:10]}"
+        started_at = datetime.now(timezone.utc).isoformat()
         caller = self._get_mcp_tool_caller()
         sanitized_args = {k: v for k, v in arguments.items() if v is not None}
-        return caller.call_tool(tool_name, sanitized_args)
+        error_payload: dict[str, object] | None = None
+        try:
+            payload = caller.call_tool(tool_name, sanitized_args)
+        except CsmarMetadataError as error:
+            error_payload = {"code": error.code, "message": str(error), "hint": error.hint}
+            raise
+        content = payload.content
+        query_fingerprint = str(content.get("query_fingerprint") or "").strip() or None
+        validation_id = str(content.get("validation_id") or "").strip() or None
+        self._tool_traces.append(
+            CsmarToolTrace(
+                trace_id=trace_id,
+                tool_name=tool_name,
+                request_payload=sanitized_args,
+                result_summary={"keys": sorted(content.keys())} if content else None,
+                error=error_payload,
+                query_fingerprint=query_fingerprint,
+                validation_id=validation_id,
+                cached=False,
+                started_at=started_at,
+                completed_at=datetime.now(timezone.utc).isoformat(),
+            )
+        )
+        return payload
 
     def _get_mcp_tool_caller(self) -> CsmarMcpToolCaller:
         if self._mcp_tool_caller is not None:

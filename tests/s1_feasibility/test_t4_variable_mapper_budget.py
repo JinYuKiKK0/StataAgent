@@ -127,5 +127,6 @@ def test_mapper_uses_search_fields_as_verified_auxiliary_path() -> None:
     assert len(provider.search_fields_calls) == 1
     assert "FS_Combas" in provider.get_table_schema_calls
     binding = result.bindings[0]
-    assert binding.table_name == "FS_Combas"
+    assert binding.table_code == "FS_Combas"
+    assert binding.table_name == "资产负债表"
     assert binding.field_name == "ASSET"

@@ -4,6 +4,7 @@ def test_research_state_uses_domain_contracts() -> None:
     """验证工作流状态对象的字段类型仍然绑定到受控领域契约，而非裸结构。"""
     from stata_agent.domains.fetch.types import DataContractBundle
     from stata_agent.domains.fetch.types import ProbeCoverageResult
+    from stata_agent.domains.mapping.types import CsmarToolTrace
     from stata_agent.domains.mapping.types import VariableBinding
     from stata_agent.domains.mapping.types import VariableMappingResult
     from stata_agent.domains.request.types import ResearchRequest
@@ -43,3 +44,4 @@ def test_research_state_uses_domain_contracts() -> None:
         ResearchState.model_fields["data_contract_bundle"].annotation
         == DataContractBundle | None
     )
+    assert ResearchState.model_fields["csmar_traces"].annotation == list[CsmarToolTrace]

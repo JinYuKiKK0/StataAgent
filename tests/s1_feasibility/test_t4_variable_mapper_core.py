@@ -77,7 +77,7 @@ def test_mapper_uses_semantic_judge_for_synonymous_field_names() -> None:
         {
             "ROA": VariableMatchDecision(
                 matched=True,
-                selected_table_name="FS_Comins",
+                selected_table_code="FS_Comins",
                 selected_field_name="ROA",
                 confidence=0.95,
                 rationale="ROA 与候选字段完全一致。",
@@ -85,7 +85,7 @@ def test_mapper_uses_semantic_judge_for_synonymous_field_names() -> None:
             ),
             "资产总计": VariableMatchDecision(
                 matched=True,
-                selected_table_name="FS_Combas",
+                selected_table_code="FS_Combas",
                 selected_field_name="ASSET",
                 confidence=0.92,
                 rationale="资产总计与总资产语义等价。",
@@ -103,6 +103,7 @@ def test_mapper_uses_semantic_judge_for_synonymous_field_names() -> None:
 
     assert result.failure_reason is None
     binding = next(item for item in result.bindings if item.variable_name == "资产总计")
+    assert binding.table_code == "FS_Combas"
     assert binding.field_name == "ASSET"
     assert binding.source == "csmar_semantic_judge"
     resolved = next(

@@ -188,10 +188,11 @@ class MappingCandidateBuilder:
             candidates.append(
                 CsmarFieldCandidate(
                     variable_name=definition.variable_name,
-                    table_name=table.table_code,
+                    table_code=table.table_code,
                     field_name=field.field_name,
-                    csmar_database=table.database_name,
+                    database_name=table.database_name,
                     alias_hit=alias_hit,
+                    table_name=table.table_name,
                     table_label=table.table_name,
                     field_label=field.field_label,
                     field_description=field.field_description,

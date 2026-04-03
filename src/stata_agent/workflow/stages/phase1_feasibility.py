@@ -1,9 +1,12 @@
+from typing import cast
+
 from stata_agent.workflow.ports import DataContractBuilderPort
 from stata_agent.workflow.ports import Phase1OrchestratorPort
 from stata_agent.workflow.ports import ProbeExecutorPort
 from stata_agent.workflow.ports import RequirementParserPort
 from stata_agent.workflow.ports import VariableMapperPort
 from stata_agent.workflow.ports import VariableRequirementsBuilderPort
+from stata_agent.domains.mapping.types import CsmarToolTrace
 from stata_agent.workflow.state import ResearchState
 from stata_agent.workflow.types import RunStage
 
@@ -86,6 +89,8 @@ class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
             spec=state.spec,
             variable_definitions=state.variable_definitions,
         )
+        mapping_traces = self._drain_component_traces(self._mapper)
+        merged_traces = self._merge_traces(state.csmar_traces, mapping_traces)
         notes = list(state.notes)
         notes.extend(mapping_result.warnings)
         if mapping_result.failure_reason is not None:
@@ -94,6 +99,7 @@ class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
                 update={
                     "variable_mapping_result": mapping_result,
                     "stage": RunStage.FAILED,
+                    "csmar_traces": merged_traces,
                     "notes": notes,
                 }
             )
@@ -106,6 +112,7 @@ class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
                 or state.variable_definitions,
                 "variable_bindings": mapping_result.bindings,
                 "stage": RunStage.MAPPED,
+                "csmar_traces": merged_traces,
                 "notes": notes,
             }
         )
@@ -118,6 +125,8 @@ class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
             spec=state.spec,
             variable_bindings=state.variable_bindings,
         )
+        probe_traces = self._drain_component_traces(self._probe_executor)
+        merged_traces = self._merge_traces(state.csmar_traces, probe_traces)
         notes = list(state.notes)
         notes.extend(coverage_result.warnings)
         if coverage_result.failure_reason is not None:
@@ -126,6 +135,7 @@ class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
                 update={
                     "probe_coverage_result": coverage_result,
                     "stage": RunStage.FAILED,
+                    "csmar_traces": merged_traces,
                     "notes": notes,
                 }
             )
@@ -135,6 +145,7 @@ class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
             update={
                 "probe_coverage_result": coverage_result,
                 "stage": RunStage.PROBED,
+                "csmar_traces": merged_traces,
                 "notes": notes,
             }
         )
@@ -166,3 +177,40 @@ class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
                 "notes": notes,
             }
         )
+
+    def _drain_component_traces(self, component: object) -> list[CsmarToolTrace]:
+        drain = getattr(component, "drain_tool_traces", None)
+        if not callable(drain):
+            return []
+
+        raw_traces_obj = drain()
+        if not isinstance(raw_traces_obj, list):
+            return []
+        raw_traces = cast(list[object], raw_traces_obj)
+
+        traces: list[CsmarToolTrace] = []
+        for item in raw_traces:
+            if isinstance(item, CsmarToolTrace):
+                traces.append(item)
+                continue
+            try:
+                traces.append(CsmarToolTrace.model_validate(item))
+            except Exception:
+                continue
+
+        return traces
+
+    def _merge_traces(
+        self,
+        existing: list[CsmarToolTrace],
+        incoming: list[CsmarToolTrace],
+    ) -> list[CsmarToolTrace]:
+        merged: list[CsmarToolTrace] = []
+        seen: set[str] = set()
+        for trace in [*existing, *incoming]:
+            trace_id = trace.trace_id.strip()
+            if not trace_id or trace_id in seen:
+                continue
+            seen.add(trace_id)
+            merged.append(trace)
+        return merged

@@ -88,10 +88,11 @@ class CsmarMaterializeQueryResult(BaseModel):
 
 class CsmarFieldCandidate(BaseModel):
     variable_name: str
-    table_name: str
+    table_code: str
     field_name: str
-    csmar_database: str
+    database_name: str
     alias_hit: bool = False
+    table_name: str = ""
     table_label: str = ""
     field_label: str = ""
     field_description: str = ""
@@ -103,7 +104,7 @@ class CsmarFieldCandidate(BaseModel):
 
 class VariableMatchDecision(BaseModel):
     matched: bool = False
-    selected_table_name: str = ""
+    selected_table_code: str = ""
     selected_field_name: str = ""
     confidence: float = 0.0
     rationale: str = ""
@@ -112,7 +113,7 @@ class VariableMatchDecision(BaseModel):
 
 class CsmarFieldProbeRequest(BaseModel):
     variable_name: str
-    table_name: str
+    table_code: str
     field_name: str
     contract_tier: str = Field(default="soft", description="hard/soft")
     entity_scope: str
@@ -123,7 +124,7 @@ class CsmarFieldProbeRequest(BaseModel):
 
 class CsmarFieldProbeResult(BaseModel):
     variable_name: str
-    table_name: str
+    table_code: str
     field_name: str
     field_exists: bool
     row_count: int | None = None
@@ -137,18 +138,33 @@ class CsmarFieldProbeResult(BaseModel):
 
 class VariableBinding(BaseModel):
     variable_name: str
-    table_name: str
+    table_code: str
     field_name: str
     confidence: float
-    csmar_database: str = ""
+    database_name: str = ""
     contract_tier: str = Field(default="soft", description="hard/soft")
     is_hard_contract: bool = False
     frequency_match: bool = False
     source: str = Field(default="metadata_probe", description="映射来源")
     evidence: str = Field(default="", description="映射依据摘要")
     substituted_from: str | None = None
+    trace_id: str = ""
+    table_name: str = ""
     table_label: str = ""
     field_label: str = ""
+
+
+class CsmarToolTrace(BaseModel):
+    trace_id: str
+    tool_name: str
+    request_payload: dict[str, object] = Field(default_factory=dict)
+    result_summary: dict[str, object] | None = None
+    error: dict[str, object] | None = None
+    query_fingerprint: str | None = None
+    validation_id: str | None = None
+    cached: bool = False
+    started_at: str
+    completed_at: str
 
 
 def _empty_bindings() -> list[VariableBinding]:

@@ -1,6 +1,7 @@
 from stata_agent.domains.fetch.types import DataContractBundle
 from stata_agent.domains.fetch.types import GatewayRecord
 from stata_agent.domains.fetch.types import ProbeCoverageResult
+from stata_agent.domains.mapping.types import CsmarToolTrace
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.mapping.types import VariableMappingResult
 from pydantic import BaseModel, Field
@@ -11,6 +12,10 @@ from stata_agent.domains.spec.types import RequirementParseResult
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.workflow.types import RunStage
+
+
+def _empty_csmar_traces() -> list[CsmarToolTrace]:
+    return []
 
 
 class ResearchState(BaseModel):
@@ -25,4 +30,5 @@ class ResearchState(BaseModel):
     probe_coverage_result: ProbeCoverageResult | None = None
     data_contract_bundle: DataContractBundle | None = None
     gateway_record: GatewayRecord | None = None
+    csmar_traces: list[CsmarToolTrace] = Field(default_factory=_empty_csmar_traces)
     notes: list[str] = Field(default_factory=list)

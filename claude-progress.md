@@ -15,24 +15,19 @@
 
 <!-- 每个会话覆盖此部分。保持简洁。 -->
 
-- 本会话完成：启动 IC4 落地，实现 S1-T4 显式两阶段映射并清理 provider legacy 路径。
-  - `src/stata_agent/domains/mapping/ports.py`：`CsmarMetadataProviderPort` 改为显式能力接口（`search_tables/get_table_schema/search_fields/probe_field_availability`）。
-  - `src/stata_agent/domains/mapping/types.py`：新增表候选/schema/辅助检索/预算 DTO 与 probe/materialize 结果模型。
-  - `src/stata_agent/providers/csmar/client.py`：收口为 MCP-only 适配器；删除 SDK/catalog 语义路径；返回类型改为显式模型，避免裸 `dict` 边界泄漏。
-  - `src/stata_agent/providers/csmar/catalog.py`：已删除（不再保留 provider 内语义评分/别名字典）。
-  - 新增 `src/stata_agent/providers/csmar/contracts.py`、`normalizers.py`：承载 MCP payload 契约与归一化逻辑，降低单文件复杂度。
-  - `src/stata_agent/services/variable_mapper.py` + 新增 `mapping_candidate_builder.py`：实现“表发现→schema判别→可选search_fields复核”的预算受控流程；judge 异常/拒绝时启发式 fallback。
-  - `tests/live_api_support.py`：live provider 切换为 `CsmarBridgeClient.from_settings`，不再依赖本地 `csmarapi` 可导入检查。
-- 测试改造：
-  - `tests/s1_feasibility/test_t4_variable_mapper.py` 拆分为 `test_t4_variable_mapper_core.py`、`test_t4_variable_mapper_budget.py`、`test_t4_variable_mapper_live.py` 与 `t4_variable_mapper_support.py`，覆盖预算上限、辅助检索复核、Hard fail-fast、Soft gap。
-  - `tests/s1_feasibility/test_csmar_bridge_mcp_adapter.py` 更新为显式 MCP 元数据能力断言。
-  - `tests/s1_feasibility/test_t5_probe_executor.py` fake provider 同步新端口。
+- 本会话完成：启动 IC5（Implementation Changes 5）在 StataAgent 的首轮落地，完成“表标识统一 + 本地 trace 审计”主线改造。
+  - 契约迁移：`table_name(查询语义) -> table_code`，`csmar_database -> database_name`，并保留 `table_name` 作为展示字段。
+  - 类型升级：`src/stata_agent/domains/mapping/types.py` 新增 `CsmarToolTrace`，`VariableBinding` 增加 `trace_id`；`src/stata_agent/domains/fetch/types.py` 的 `QueryPlan/VariableProbeResult` 切到 `table_code`。
+  - 状态升级：`src/stata_agent/workflow/state.py` 新增 `csmar_traces`，用于聚合 provider 工具调用审计。
+  - provider 收口：`src/stata_agent/providers/csmar/client.py` 修复 `table_code=request.table_name` 旧桥接，改为严格 `table_code` 入参，并新增本地 trace 记录/回收（`drain_tool_traces`）。
+  - S1 链路：`variable_mapper.py`、`probe_executor.py`、`phase1_feasibility.py` 打通 trace 传播（provider -> component -> `ResearchState`），并将 binding/probe 结果主键统一为 `table_code`。
+  - LLM 判别：`providers/llm.py` 改为 `selected_table_code`，候选 payload 显式区分 `table_code` 与展示 `table_name`。
+  - 相关测试：更新 `tests/s1_feasibility` 契约断言，并在 `test_csmar_bridge_mcp_adapter.py` 新增 provider 本地 trace 回收用例；`tests/architecture/test_boundary_contracts.py` 新增 `csmar_traces` 契约断言。
 - 验证结果：
-  - `uv run pytest tests/s1_feasibility -q` ✅（20 passed, 8 skipped）
-  - `uv run python -m pyright` ✅（0 errors）
-  - `uv run python -m tools.harness lint` ✅
-  - `uv run python -m tools.run_quality_gates` ⚠️：仅 `ruff check .` 失败，集中在 `docs/references/csmarapi/**` 历史参考代码；其余门禁（pyright/import-linter/architecture/harness）通过。
-- 当前阶段：S1 已交付后的回炉增强继续推进；`feature_list.json` 未改动，S2 排序不变。
+  - `uv run pytest tests/s1_feasibility/test_csmar_bridge_mcp_adapter.py tests/s1_feasibility/test_t4_variable_mapper_core.py tests/s1_feasibility/test_t4_variable_mapper_budget.py tests/s1_feasibility/test_t5_probe_executor.py tests/s1_feasibility/test_t6_data_contract_builder.py tests/architecture/test_boundary_contracts.py -q` ✅（18 passed, 2 skipped）
+  - `uv run python -m pyright src/stata_agent` ✅（0 errors）
+  - `uv run python -m tools.run_quality_gates` ✅（ruff/pyright/import-linter/architecture/harness 全通过）
+- 当前阶段：S1 回炉增强（IC5 契约统一）进行中；`feature_list.json` 未改动，S2 排序保持不变。
 - 分支：main
 
 ## 已知问题

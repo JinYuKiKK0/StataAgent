@@ -8,7 +8,7 @@ from stata_agent.domains.spec.types import VariableDefinition
 
 
 class QueryPlan(BaseModel):
-    table_name: str
+    table_code: str
     columns: list[str] = Field(default_factory=list)
     condition: str | None = None
 
@@ -16,13 +16,14 @@ class QueryPlan(BaseModel):
 class VariableProbeResult(BaseModel):
     variable_name: str
     contract_tier: str = Field(default="soft", description="hard/soft")
-    table_name: str
+    table_code: str
     field_name: str
     field_exists: bool
     frequency_match: bool
     query_count: int | None = None
     is_accessible: bool = False
     failure_reason: str | None = None
+    trace_id: str = ""
     query_fingerprint: str = ""
     scope_level: str = Field(default="time_scoped", description="探针范围")
     vendor_message: str = ""

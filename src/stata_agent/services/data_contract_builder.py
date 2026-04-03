@@ -69,7 +69,7 @@ def _collect_substitution_log(variable_bindings: list[VariableBinding]) -> list[
         if binding.substituted_from is None:
             continue
         records.append(
-            f"{binding.substituted_from} -> {binding.variable_name} ({binding.table_name}.{binding.field_name})"
+            f"{binding.substituted_from} -> {binding.variable_name} ({binding.table_code}.{binding.field_name})"
         )
     return records
 

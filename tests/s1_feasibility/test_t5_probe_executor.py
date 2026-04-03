@@ -42,7 +42,7 @@ class _FakeMetadataProvider:
     def probe_field_availability(
         self, request: CsmarFieldProbeRequest
     ) -> CsmarFieldProbeResult:
-        key = (request.table_name, request.field_name)
+        key = (request.table_code, request.field_name)
         if self._raise_on == key:
             raise CsmarMetadataError(
                 "CSMAR 探针命中冷却限制。", retriable=True, vendor_message="30分钟限制"
@@ -66,30 +66,32 @@ def _build_spec() -> ResearchSpec:
 def _build_hard_binding() -> VariableBinding:
     return VariableBinding(
         variable_name="ROA",
-        table_name="FS_Comins",
+        table_code="FS_Comins",
         field_name="ROA",
         confidence=0.9,
-        csmar_database="财务报表",
+        database_name="财务报表",
         contract_tier="hard",
         is_hard_contract=True,
         frequency_match=True,
         source="unit-test",
         evidence="hard",
+        table_name="利润表",
     )
 
 
 def _build_soft_invalid_binding() -> VariableBinding:
     return VariableBinding(
         variable_name="软约束不存在字段",
-        table_name="FS_Comins",
+        table_code="FS_Comins",
         field_name="NOT_A_REAL_FIELD_SOFT",
         confidence=0.1,
-        csmar_database="财务报表",
+        database_name="财务报表",
         contract_tier="soft",
         is_hard_contract=False,
         frequency_match=True,
         source="unit-test",
         evidence="soft-gap",
+        table_name="利润表",
     )
 
 
@@ -99,7 +101,7 @@ def test_probe_executor_reports_scoped_coverage() -> None:
         {
             ("FS_Comins", "ROA"): CsmarFieldProbeResult(
                 variable_name="ROA",
-                table_name="FS_Comins",
+                table_code="FS_Comins",
                 field_name="ROA",
                 field_exists=True,
                 row_count=1280,
@@ -124,7 +126,7 @@ def test_probe_executor_fails_fast_for_hard_gap() -> None:
         {
             ("FS_Comins", "ROA"): CsmarFieldProbeResult(
                 variable_name="ROA",
-                table_name="FS_Comins",
+                table_code="FS_Comins",
                 field_name="ROA",
                 field_exists=False,
                 query_fingerprint="FS_Comins.ROA:2018-2023",
@@ -146,7 +148,7 @@ def test_probe_executor_keeps_soft_gap_summary_without_abort() -> None:
         {
             ("FS_Comins", "ROA"): CsmarFieldProbeResult(
                 variable_name="ROA",
-                table_name="FS_Comins",
+                table_code="FS_Comins",
                 field_name="ROA",
                 field_exists=True,
                 row_count=1280,
@@ -155,7 +157,7 @@ def test_probe_executor_keeps_soft_gap_summary_without_abort() -> None:
             ),
             ("FS_Comins", "NOT_A_REAL_FIELD_SOFT"): CsmarFieldProbeResult(
                 variable_name="软约束不存在字段",
-                table_name="FS_Comins",
+                table_code="FS_Comins",
                 field_name="NOT_A_REAL_FIELD_SOFT",
                 field_exists=False,
                 query_fingerprint="FS_Comins.NOT_A_REAL_FIELD_SOFT:2018-2023",
@@ -180,7 +182,7 @@ def test_probe_executor_surfaces_vendor_cooldown_errors() -> None:
         {
             ("FS_Comins", "ROA"): CsmarFieldProbeResult(
                 variable_name="ROA",
-                table_name="FS_Comins",
+                table_code="FS_Comins",
                 field_name="ROA",
                 field_exists=True,
                 row_count=1,

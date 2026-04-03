@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from typing import cast
+
 from stata_agent.domains.mapping.ports import CsmarMetadataProviderPort
 from stata_agent.domains.mapping.ports import VariableSemanticJudgePort
 from stata_agent.domains.mapping.types import CsmarFieldCandidate
+from stata_agent.domains.mapping.types import CsmarToolTrace
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.mapping.types import VariableMappingBudget
 from stata_agent.domains.mapping.types import VariableMappingResult
@@ -27,6 +30,7 @@ class VariableMapper:
             metadata_provider=metadata_provider,
             mapping_budget=self._mapping_budget,
         )
+        self._pending_traces: list[CsmarToolTrace] = []
 
     def map_probe_bindings(
         self,
@@ -34,6 +38,7 @@ class VariableMapper:
         spec: ResearchSpec,
         variable_definitions: list[VariableDefinition],
     ) -> VariableMappingResult:
+        self._pending_traces = []
         hard_variables = self._build_hard_variables(request, spec, variable_definitions)
         bindings: list[VariableBinding] = []
         resolved_definitions: list[VariableDefinition] = []
@@ -96,13 +101,19 @@ class VariableMapper:
         definition: VariableDefinition,
         is_hard: bool,
     ) -> tuple[VariableDefinition, VariableBinding | None, list[str]]:
+        variable_traces: list[CsmarToolTrace] = []
         try:
             candidates, warnings = self._candidate_builder.collect(
                 spec=spec,
                 definition=definition,
             )
         except CsmarMetadataError as exc:
+            variable_traces = self._drain_provider_traces()
+            self._pending_traces.extend(variable_traces)
             return definition, None, [str(exc)]
+
+        variable_traces = self._drain_provider_traces()
+        self._pending_traces.extend(variable_traces)
 
         if not candidates:
             return definition, None, warnings
@@ -118,19 +129,20 @@ class VariableMapper:
         if selected is None:
             return definition, None, warnings
 
-        resolved_domain = selected.csmar_database or "pending_resolution"
+        resolved_domain = selected.database_name or "pending_resolution"
         resolved_definition = definition.model_copy(
             update={"source_domain_hint": resolved_domain}
         )
         confidence = self._compute_confidence(selected, definition.frequency_hint)
+        trace_id = variable_traces[-1].trace_id if variable_traces else ""
         return (
             resolved_definition,
             VariableBinding(
                 variable_name=definition.variable_name,
-                table_name=selected.table_name,
+                table_code=selected.table_code,
                 field_name=selected.field_name,
                 confidence=confidence,
-                csmar_database=resolved_domain,
+                database_name=resolved_domain,
                 contract_tier="hard" if is_hard else "soft",
                 is_hard_contract=is_hard,
                 frequency_match=definition.frequency_hint in selected.frequency_tags,
@@ -140,6 +152,8 @@ class VariableMapper:
                     else "csmar_metadata_probe"
                 ),
                 evidence=self._build_evidence(selected, definition.frequency_hint),
+                trace_id=trace_id,
+                table_name=selected.table_name,
                 table_label=selected.table_label,
                 field_label=selected.field_label,
             ),
@@ -179,7 +193,7 @@ class VariableMapper:
 
         for candidate in candidates:
             if (
-                candidate.table_name == decision.selected_table_name
+                candidate.table_code == decision.selected_table_code
                 and candidate.field_name == decision.selected_field_name
             ):
                 return candidate, None, True
@@ -237,3 +251,30 @@ class VariableMapper:
             return []
         soft_text = "、".join(soft_gaps)
         return [f"Soft Contract 变量暂未映射：{soft_text}。"]
+
+    def drain_tool_traces(self) -> list[CsmarToolTrace]:
+        traces = list(self._pending_traces)
+        self._pending_traces.clear()
+        return traces
+
+    def _drain_provider_traces(self) -> list[CsmarToolTrace]:
+        drain = getattr(self._metadata_provider, "drain_tool_traces", None)
+        if not callable(drain):
+            return []
+
+        raw_traces_obj = drain()
+        if not isinstance(raw_traces_obj, list):
+            return []
+        raw_traces = cast(list[object], raw_traces_obj)
+
+        normalized: list[CsmarToolTrace] = []
+        for item in raw_traces:
+            if isinstance(item, CsmarToolTrace):
+                normalized.append(item)
+                continue
+            try:
+                normalized.append(CsmarToolTrace.model_validate(item))
+            except Exception:
+                continue
+
+        return normalized

@@ -207,11 +207,11 @@ class TongyiVariableSemanticJudge(VariableSemanticJudgePort):
         selected = candidates[parsed.selected_index]
         return VariableMatchDecision(
             matched=True,
-            selected_table_name=selected.table_name,
+            selected_table_code=selected.table_code,
             selected_field_name=selected.field_name,
             confidence=parsed.confidence,
             rationale=parsed.rationale,
-            resolved_domain=parsed.resolved_domain or selected.csmar_database,
+            resolved_domain=parsed.resolved_domain or selected.database_name,
         )
 
 
@@ -230,7 +230,8 @@ def _format_candidates(candidates: list[CsmarFieldCandidate]) -> str:
         payload.append(
             {
                 "index": index,
-                "database": candidate.csmar_database,
+                "database": candidate.database_name,
+                "table_code": candidate.table_code,
                 "table_name": candidate.table_name,
                 "table_label": candidate.table_label,
                 "field_name": candidate.field_name,

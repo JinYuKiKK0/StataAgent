@@ -147,7 +147,7 @@ def test_probe_field_availability_uses_mcp_probe_result() -> None:
     result = client.probe_field_availability(
         CsmarFieldProbeRequest(
             variable_name="ROA",
-            table_name="BANK_Index",
+            table_code="BANK_Index",
             field_name="ROAA",
             contract_tier="hard",
             entity_scope="A股上市银行",
@@ -158,6 +158,7 @@ def test_probe_field_availability_uses_mcp_probe_result() -> None:
     )
 
     assert result.field_exists is True
+    assert result.table_code == "BANK_Index"
     assert result.row_count == 128
     assert result.query_fingerprint == "probe_hash_001"
 
@@ -173,7 +174,7 @@ def test_probe_field_availability_surfaces_mcp_rate_limit_error() -> None:
     result = client.probe_field_availability(
         CsmarFieldProbeRequest(
             variable_name="ROA",
-            table_name="BANK_Index",
+            table_code="BANK_Index",
             field_name="ROAA",
             contract_tier="hard",
             entity_scope="A股上市银行",
@@ -184,5 +185,24 @@ def test_probe_field_availability_surfaces_mcp_rate_limit_error() -> None:
     )
 
     assert result.field_exists is False
+    assert result.table_code == "BANK_Index"
     assert result.retriable is True
     assert result.vendor_message == "retry later"
+
+
+def test_client_drains_local_tool_traces() -> None:
+    """验证 MCP 调用后可从 provider 侧拉取本地 trace 审计记录。"""
+    tool_caller = _FakeMcpToolCaller()
+    client = CsmarBridgeClient(
+        mcp_launch_spec=_dummy_launch_spec(),
+        mcp_tool_caller=tool_caller,
+    )
+
+    client.search_tables(CsmarTableSearchRequest(query="ROA", limit=3))
+    client.get_table_schema("BANK_Index")
+    traces = client.drain_tool_traces()
+
+    assert len(traces) == 2
+    assert traces[0].trace_id
+    assert traces[0].tool_name == "csmar_search_tables"
+    assert traces[1].tool_name == "csmar_get_table_schema"
