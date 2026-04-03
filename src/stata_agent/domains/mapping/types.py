@@ -3,14 +3,87 @@ from pydantic import BaseModel, Field
 from stata_agent.domains.spec.types import VariableDefinition
 
 
+class VariableMappingBudget(BaseModel):
+    search_tables_limit: int = 1
+    schema_reads_limit: int = 2
+    search_fields_limit: int = 1
+    enable_aux_field_search: bool = True
+
+
+class CsmarTableSearchRequest(BaseModel):
+    query: str
+    database_name: str | None = None
+    limit: int = 5
+
+
+class CsmarTableCandidate(BaseModel):
+    table_code: str
+    table_name: str = ""
+    database_name: str = ""
+    score: float = 0.0
+    why_matched: str = ""
+
+
+class CsmarSchemaField(BaseModel):
+    field_name: str
+    field_label: str = ""
+    field_description: str = ""
+    data_type: str = ""
+    frequency_tags: list[str] = Field(default_factory=list)
+    role_tags: list[str] = Field(default_factory=list)
+
+
+def _empty_schema_fields() -> list[CsmarSchemaField]:
+    return []
+
+
+class CsmarTableSchema(BaseModel):
+    table_code: str
+    table_name: str = ""
+    database_name: str = ""
+    fields: list[CsmarSchemaField] = Field(default_factory=_empty_schema_fields)
+
+
 class CsmarFieldSearchRequest(BaseModel):
-    variable_name: str
-    topic: str
-    entity_scope: str
-    analysis_grain_candidates: list[str] = Field(default_factory=list)
-    time_start_year: int
-    time_end_year: int
-    candidate_limit: int = 12
+    query: str
+    database_name: str | None = None
+    table_code: str | None = None
+    role_hint: str | None = None
+    frequency_hint: str | None = None
+    limit: int = 20
+
+
+class CsmarFieldSearchHit(BaseModel):
+    field_name: str
+    field_label: str = ""
+    field_description: str = ""
+    data_type: str = ""
+    frequency_tags: list[str] = Field(default_factory=list)
+    role_tags: list[str] = Field(default_factory=list)
+    table_code: str
+    table_name: str = ""
+    database_name: str = ""
+    why_matched: str = ""
+    score: float = 0.0
+
+
+def _empty_object_rows() -> list[dict[str, object]]:
+    return []
+
+
+class CsmarProbeQueryResult(BaseModel):
+    validation_id: str
+    query_fingerprint: str
+    row_count: int | None = None
+    invalid_columns: list[str] = Field(default_factory=list)
+    sample_rows: list[dict[str, object]] = Field(default_factory=_empty_object_rows)
+    can_materialize: bool = True
+
+
+class CsmarMaterializeQueryResult(BaseModel):
+    validation_id: str
+    output_dir: str
+    files: list[str] = Field(default_factory=list)
 
 
 class CsmarFieldCandidate(BaseModel):

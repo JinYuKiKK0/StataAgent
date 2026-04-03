@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import os
 from collections.abc import Generator
 
@@ -32,11 +31,6 @@ def _require_live_tests_enabled() -> None:
         )
 
 
-def _require_csmar_sdk_installed() -> None:
-    if importlib.util.find_spec("csmarapi") is None:
-        pytest.skip("未检测到 csmarapi SDK，无法执行真实 CSMAR 集成测试。")
-
-
 @pytest.fixture(scope="session")
 def live_settings() -> Settings:
     _require_live_tests_enabled()
@@ -46,9 +40,18 @@ def live_settings() -> Settings:
 
 @pytest.fixture(scope="session")
 def live_csmar_ready(live_settings: Settings) -> None:
-    _require_csmar_sdk_installed()
     if not live_settings.csmar_account or live_settings.csmar_password is None:
         pytest.skip("缺少 CSMAR_ACCOUNT 或 CSMAR_PASSWORD，无法执行真实 CSMAR 测试。")
+    default_mcp_workdir = (live_settings.workspace_dir.parent / "CSMAR-Data-MCP").resolve()
+    configured_mcp_workdir = (
+        live_settings.csmar_mcp_workdir.resolve()
+        if live_settings.csmar_mcp_workdir is not None
+        else default_mcp_workdir
+    )
+    if not configured_mcp_workdir.exists():
+        pytest.skip(
+            f"未找到 CSMAR MCP 工作目录：{configured_mcp_workdir}，无法执行真实 CSMAR 测试。"
+        )
 
 
 @pytest.fixture(scope="session")
@@ -86,14 +89,7 @@ def live_csmar_provider(
     live_settings: Settings,
     live_csmar_ready: None,
 ) -> CsmarBridgeClient:
-    password = live_settings.csmar_password
-    if password is None:
-        pytest.skip("缺少 CSMAR_PASSWORD，无法执行真实 CSMAR 测试。")
-    return CsmarBridgeClient(
-        account=live_settings.csmar_account,
-        password=password.get_secret_value(),
-        language=live_settings.csmar_language,
-    )
+    return CsmarBridgeClient.from_settings(live_settings)
 
 
 @pytest.fixture(scope="session")

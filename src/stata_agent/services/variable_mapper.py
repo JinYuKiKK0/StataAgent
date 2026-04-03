@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 from stata_agent.domains.mapping.ports import CsmarMetadataProviderPort
 from stata_agent.domains.mapping.ports import VariableSemanticJudgePort
 from stata_agent.domains.mapping.types import CsmarFieldCandidate
-from stata_agent.domains.mapping.types import CsmarFieldSearchRequest
 from stata_agent.domains.mapping.types import VariableBinding
+from stata_agent.domains.mapping.types import VariableMappingBudget
 from stata_agent.domains.mapping.types import VariableMappingResult
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.providers.csmar import CsmarMetadataError
+from stata_agent.services.mapping_candidate_builder import MappingCandidateBuilder
 
 
 class VariableMapper:
@@ -15,9 +18,15 @@ class VariableMapper:
         self,
         metadata_provider: CsmarMetadataProviderPort,
         semantic_judge: VariableSemanticJudgePort | None = None,
+        mapping_budget: VariableMappingBudget | None = None,
     ) -> None:
         self._metadata_provider = metadata_provider
         self._semantic_judge = semantic_judge
+        self._mapping_budget = mapping_budget or VariableMappingBudget()
+        self._candidate_builder = MappingCandidateBuilder(
+            metadata_provider=metadata_provider,
+            mapping_budget=self._mapping_budget,
+        )
 
     def map_probe_bindings(
         self,
@@ -88,13 +97,15 @@ class VariableMapper:
         is_hard: bool,
     ) -> tuple[VariableDefinition, VariableBinding | None, list[str]]:
         try:
-            candidates = self._metadata_provider.search_field_candidates(
-                self._build_search_request(spec, definition)
+            candidates, warnings = self._candidate_builder.collect(
+                spec=spec,
+                definition=definition,
             )
         except CsmarMetadataError as exc:
             return definition, None, [str(exc)]
+
         if not candidates:
-            return definition, None, []
+            return definition, None, warnings
 
         selected, judge_warning, used_semantic_judge = self._choose_candidate(
             request=request,
@@ -102,7 +113,8 @@ class VariableMapper:
             definition=definition,
             candidates=candidates,
         )
-        warnings = [judge_warning] if judge_warning is not None else []
+        if judge_warning is not None:
+            warnings.append(judge_warning)
         if selected is None:
             return definition, None, warnings
 
@@ -134,20 +146,6 @@ class VariableMapper:
             warnings,
         )
 
-    def _build_search_request(
-        self,
-        spec: ResearchSpec,
-        definition: VariableDefinition,
-    ) -> CsmarFieldSearchRequest:
-        return CsmarFieldSearchRequest(
-            variable_name=definition.variable_name,
-            topic=spec.topic,
-            entity_scope=spec.entity_scope,
-            analysis_grain_candidates=spec.analysis_grain_candidates,
-            time_start_year=spec.time_start_year,
-            time_end_year=spec.time_end_year,
-        )
-
     def _choose_candidate(
         self,
         *,
@@ -171,15 +169,26 @@ class VariableMapper:
                 f"变量 `{definition.variable_name}` 的语义判别失败，已回退启发式匹配：{exc}",
                 False,
             )
+
         if not decision.matched:
-            return None, None, True
+            return (
+                self._fallback_candidate(candidates, definition.frequency_hint),
+                f"变量 `{definition.variable_name}` 的语义判别未命中，已回退启发式匹配。",
+                False,
+            )
+
         for candidate in candidates:
             if (
                 candidate.table_name == decision.selected_table_name
                 and candidate.field_name == decision.selected_field_name
             ):
                 return candidate, None, True
-        return None, None, True
+
+        return (
+            self._fallback_candidate(candidates, definition.frequency_hint),
+            f"变量 `{definition.variable_name}` 的语义判别结果未在候选中找到，已回退启发式匹配。",
+            False,
+        )
 
     def _fallback_candidate(
         self,

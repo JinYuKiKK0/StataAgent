@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import cast
 
-from pydantic import AliasChoices, Field, SecretStr, ValidationError
+from pydantic import AliasChoices, Field, SecretStr, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ENV_LABELS = {
@@ -11,6 +11,12 @@ _ENV_LABELS = {
     "tongyi_model": "TONGYI_MODEL",
     "csmar_account": "CSMAR_ACCOUNT",
     "csmar_password": "CSMAR_PASSWORD",
+    "csmar_mcp_command": "CSMAR_MCP_COMMAND",
+    "csmar_mcp_args": "CSMAR_MCP_ARGS",
+    "csmar_mcp_workdir": "CSMAR_MCP_WORKDIR",
+    "csmar_mcp_start_timeout_seconds": "CSMAR_MCP_START_TIMEOUT_SECONDS",
+    "csmar_mcp_call_timeout_seconds": "CSMAR_MCP_CALL_TIMEOUT_SECONDS",
+    "csmar_mcp_state_dir": "CSMAR_MCP_STATE_DIR",
 }
 
 
@@ -64,6 +70,58 @@ class Settings(BaseSettings):
         description="CSMAR language, 0 for zh-cn, 1 for en-us",
         validation_alias=AliasChoices("CSMAR_LANGUAGE", "csmar_language"),
     )
+    csmar_mcp_command: str = Field(
+        default="uv",
+        description="Command used to launch CSMAR MCP server.",
+        validation_alias=AliasChoices("CSMAR_MCP_COMMAND", "csmar_mcp_command"),
+    )
+    csmar_mcp_args: list[str] = Field(
+        default_factory=lambda: ["run", "csmar-mcp"],
+        description="Base args for launching CSMAR MCP server (without credentials).",
+        validation_alias=AliasChoices("CSMAR_MCP_ARGS", "csmar_mcp_args"),
+    )
+    csmar_mcp_workdir: Path | None = Field(
+        default=None,
+        description="Optional MCP working directory; defaults to sibling CSMAR-Data-MCP.",
+        validation_alias=AliasChoices("CSMAR_MCP_WORKDIR", "csmar_mcp_workdir"),
+    )
+    csmar_mcp_start_timeout_seconds: int = Field(
+        default=20,
+        ge=1,
+        description="MCP process start timeout in seconds.",
+        validation_alias=AliasChoices(
+            "CSMAR_MCP_START_TIMEOUT_SECONDS", "csmar_mcp_start_timeout_seconds"
+        ),
+    )
+    csmar_mcp_call_timeout_seconds: int = Field(
+        default=120,
+        ge=1,
+        description="MCP tool call timeout in seconds.",
+        validation_alias=AliasChoices(
+            "CSMAR_MCP_CALL_TIMEOUT_SECONDS", "csmar_mcp_call_timeout_seconds"
+        ),
+    )
+    csmar_mcp_state_dir: Path | None = Field(
+        default=None,
+        description="Optional state directory passed to MCP runtime environment.",
+        validation_alias=AliasChoices("CSMAR_MCP_STATE_DIR", "csmar_mcp_state_dir"),
+    )
+
+    @field_validator("csmar_mcp_command")
+    @classmethod
+    def validate_csmar_mcp_command(cls, value: str) -> str:
+        command = value.strip()
+        if not command:
+            raise ValueError("command must not be empty")
+        return command
+
+    @field_validator("csmar_mcp_args")
+    @classmethod
+    def validate_csmar_mcp_args(cls, value: list[str]) -> list[str]:
+        args = [item.strip() for item in value if item.strip()]
+        if not args:
+            raise ValueError("args must contain at least one non-empty argument")
+        return args
 
 
 @lru_cache(maxsize=1)

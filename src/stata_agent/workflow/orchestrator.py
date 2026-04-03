@@ -174,16 +174,7 @@ class ApplicationOrchestrator:
     def _get_csmar_provider(self) -> CsmarMetadataProviderPort:
         if self._csmar_provider is None:
             settings = self._load_settings()
-            password = (
-                settings.csmar_password.get_secret_value()
-                if settings.csmar_password is not None
-                else None
-            )
-            self._csmar_provider = CsmarBridgeClient(
-                account=settings.csmar_account,
-                password=password,
-                language=settings.csmar_language,
-            )
+            self._csmar_provider = CsmarBridgeClient.from_settings(settings)
         return self._csmar_provider
 
     def _load_settings(self) -> Settings:

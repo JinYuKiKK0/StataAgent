@@ -218,7 +218,7 @@ class TongyiVariableSemanticJudge(VariableSemanticJudgePort):
 def _build_tongyi_model(settings: Settings) -> ChatTongyi:
     return ChatTongyi(
         model=settings.tongyi_model,
-        api_key=settings.dashscope_api_key.get_secret_value(),
+        api_key=settings.dashscope_api_key,
         streaming=True,
         model_kwargs={"temperature": 0},
     )

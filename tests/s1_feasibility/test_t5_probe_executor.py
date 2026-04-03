@@ -4,8 +4,11 @@ import pytest
 
 from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
 from stata_agent.domains.mapping.types import CsmarFieldProbeResult
-from stata_agent.domains.mapping.types import CsmarFieldCandidate
+from stata_agent.domains.mapping.types import CsmarFieldSearchHit
 from stata_agent.domains.mapping.types import CsmarFieldSearchRequest
+from stata_agent.domains.mapping.types import CsmarTableCandidate
+from stata_agent.domains.mapping.types import CsmarTableSchema
+from stata_agent.domains.mapping.types import CsmarTableSearchRequest
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
@@ -27,9 +30,13 @@ class _FakeMetadataProvider:
         self._results = results
         self._raise_on = raise_on
 
-    def search_field_candidates(
-        self, request: CsmarFieldSearchRequest
-    ) -> list[CsmarFieldCandidate]:
+    def search_tables(self, request: CsmarTableSearchRequest) -> list[CsmarTableCandidate]:
+        raise AssertionError("探针测试不应调用表搜索。")
+
+    def get_table_schema(self, table_code: str) -> CsmarTableSchema:
+        raise AssertionError("探针测试不应调用 schema 读取。")
+
+    def search_fields(self, request: CsmarFieldSearchRequest) -> list[CsmarFieldSearchHit]:
         raise AssertionError("探针测试不应调用字段搜索。")
 
     def probe_field_availability(

@@ -16,6 +16,8 @@ dependencies = [
     "typer>=0.16,<1.0",
     "langgraph-cli[inmem]>=0.4.19",
     "langgraph-sdk>=0.3.12",
+    "pandas>=3.0.2",
+    "prettytable>=3.17.0",
 ]
 
 [project.scripts]
@@ -42,4 +44,9 @@ testpaths = ["tests"]
 pythonpath = ["src", "."]
 markers = [
     "live_api: integration tests that call real Tongyi and CSMAR APIs",
+]
+
+[tool.ruff]
+extend-exclude = [
+    "docs/references/csmarapi/**",
 ]
