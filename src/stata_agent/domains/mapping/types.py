@@ -80,10 +80,20 @@ class CsmarProbeQueryResult(BaseModel):
     can_materialize: bool = True
 
 
+class CsmarMaterializeAudit(BaseModel):
+    retries: int
+    packaged_at: str
+    completed_at: str
+
+
 class CsmarMaterializeQueryResult(BaseModel):
-    validation_id: str
+    download_id: str
+    query_fingerprint: str
     output_dir: str
     files: list[str] = Field(default_factory=list)
+    row_count: int
+    archive_path: str
+    audit: CsmarMaterializeAudit
 
 
 class CsmarFieldCandidate(BaseModel):

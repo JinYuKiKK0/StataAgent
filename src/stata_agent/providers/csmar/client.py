@@ -22,6 +22,7 @@ from stata_agent.providers.csmar.mcp_runtime import CsmarMcpLaunchSpec
 from stata_agent.providers.csmar.mcp_runtime import build_csmar_mcp_launch_spec
 from stata_agent.providers.csmar.mcp_transport import CsmarMcpToolCaller
 from stata_agent.providers.csmar.mcp_transport import StdioCsmarMcpToolCaller
+from stata_agent.providers.csmar.materialize_parser import parse_materialize_payload
 from stata_agent.providers.csmar.normalizers import build_query_condition
 from stata_agent.providers.csmar.normalizers import extract_first_int
 from stata_agent.providers.csmar.normalizers import normalize_object_rows
@@ -55,12 +56,7 @@ class CsmarBridgeClient:
             if settings.csmar_password is not None
             else None
         )
-        mcp_launch_spec: CsmarMcpLaunchSpec | None = None
-        try:
-            mcp_launch_spec = build_csmar_mcp_launch_spec(settings)
-        except ValueError:
-            # 保持与既有行为兼容：允许在运行期再报告凭证缺失。
-            mcp_launch_spec = None
+        mcp_launch_spec = build_csmar_mcp_launch_spec(settings)
         return cls(
             account=settings.csmar_account,
             password=password,
@@ -244,15 +240,7 @@ class CsmarBridgeClient:
             "csmar_materialize_query",
             {"validation_id": validation_id, "output_dir": output_dir},
         ).content
-        if "files" not in payload:
-            raise CsmarMetadataError(
-                "MCP materialize 返回缺少文件列表。", code="upstream_error"
-            )
-        return CsmarMaterializeQueryResult(
-            validation_id=validation_id,
-            output_dir=output_dir,
-            files=[str(item) for item in normalize_tags(payload.get("files"))],
-        )
+        return parse_materialize_payload(payload)
 
     def probe_field_availability(
         self, request: CsmarFieldProbeRequest

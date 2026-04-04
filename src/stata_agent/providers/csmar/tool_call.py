@@ -34,10 +34,29 @@ def call_mcp_tool_with_trace(
             "retry_after_seconds": error.retry_after_seconds,
             "suggested_args_patch": error.suggested_args_patch,
         }
+    except Exception as error:
+        message = str(error).strip() or "MCP tool 调用失败。"
+        captured_error = CsmarMetadataError(
+            message,
+            code="upstream_error",
+            retriable=True,
+            vendor_message=message,
+            hint="请稍后重试；若持续失败，请检查 MCP 服务日志。",
+        )
+        error_payload = {
+            "code": captured_error.code,
+            "message": str(captured_error),
+            "hint": captured_error.hint,
+            "retry_after_seconds": captured_error.retry_after_seconds,
+            "suggested_args_patch": captured_error.suggested_args_patch,
+        }
 
     content = payload.content if payload is not None else {}
     query_fingerprint = str(content.get("query_fingerprint") or "").strip() or None
-    validation_id = str(content.get("validation_id") or "").strip() or None
+    validation_id = (
+        str(content.get("validation_id") or arguments.get("validation_id") or "").strip()
+        or None
+    )
     tool_traces.append(
         CsmarToolTrace(
             trace_id=trace_id,
