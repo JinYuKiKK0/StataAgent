@@ -113,6 +113,7 @@ def test_probe_executor_reports_scoped_coverage() -> None:
                 field_exists=True,
                 row_count=1280,
                 query_fingerprint="FS_Comins.ROA:2018-2023",
+                validation_id="validation_probe_roa",
                 scope_level="time_scoped",
             )
         }
@@ -124,6 +125,7 @@ def test_probe_executor_reports_scoped_coverage() -> None:
     assert result.failure_reason is None
     assert result.hard_coverage_rate == 1.0
     assert result.probe_results[0].query_fingerprint == "FS_Comins.ROA:2018-2023"
+    assert result.probe_results[0].validation_id == "validation_probe_roa"
     assert any("时间范围 probe" in warning for warning in result.warnings)
 
 

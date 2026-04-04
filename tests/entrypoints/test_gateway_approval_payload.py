@@ -9,6 +9,7 @@ from stata_agent.domains.fetch.types import GatewayResumeRequest
 from stata_agent.domains.fetch.types import ProbeCoverageResult
 from stata_agent.domains.fetch.types import VariableProbeResult
 from stata_agent.domains.mapping.types import VariableBinding
+from stata_agent.domains.mapping.types import CsmarToolTrace
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.workflow.graph import gateway_approval_node
@@ -94,6 +95,16 @@ def test_gateway_payload_includes_mapping_and_probe_summaries() -> None:
         request=_build_request(),
         stage=RunStage.CONTRACTED,
         data_contract_bundle=contract,
+        csmar_traces=[
+            CsmarToolTrace(
+                trace_id="trace_probe_001",
+                tool_name="csmar_probe_query",
+                query_fingerprint="fingerprint_001",
+                validation_id="validation_001",
+                started_at="2026-04-04T10:00:00Z",
+                completed_at="2026-04-04T10:00:01Z",
+            )
+        ],
     )
 
     captured: dict[str, object] = {}
@@ -127,3 +138,4 @@ def test_gateway_payload_includes_mapping_and_probe_summaries() -> None:
     assert isinstance(probe_summary, list)
     assert probe_summary
     assert probe_summary[0]["query_fingerprint"] == "fingerprint_001"
+    assert probe_summary[0]["validation_id"] == "validation_001"

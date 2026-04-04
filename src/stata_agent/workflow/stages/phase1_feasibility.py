@@ -205,12 +205,59 @@ class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
         existing: list[CsmarToolTrace],
         incoming: list[CsmarToolTrace],
     ) -> list[CsmarToolTrace]:
-        merged: list[CsmarToolTrace] = []
-        seen: set[str] = set()
+        merged_by_id: dict[str, CsmarToolTrace] = {}
+        ordered_ids: list[str] = []
         for trace in [*existing, *incoming]:
             trace_id = trace.trace_id.strip()
-            if not trace_id or trace_id in seen:
+            if not trace_id:
                 continue
-            seen.add(trace_id)
-            merged.append(trace)
-        return merged
+            if trace_id not in merged_by_id:
+                merged_by_id[trace_id] = trace
+                ordered_ids.append(trace_id)
+                continue
+            merged_by_id[trace_id] = self._merge_trace_pair(merged_by_id[trace_id], trace)
+
+        return [merged_by_id[trace_id] for trace_id in ordered_ids]
+
+    def _merge_trace_pair(
+        self,
+        current: CsmarToolTrace,
+        incoming: CsmarToolTrace,
+    ) -> CsmarToolTrace:
+        current_score = self._trace_completeness_score(current)
+        incoming_score = self._trace_completeness_score(incoming)
+        if incoming_score > current_score:
+            preferred, fallback = incoming, current
+        elif incoming_score < current_score:
+            preferred, fallback = current, incoming
+        elif incoming.completed_at > current.completed_at:
+            preferred, fallback = incoming, current
+        else:
+            preferred, fallback = current, incoming
+
+        return preferred.model_copy(
+            update={
+                "request_payload": preferred.request_payload or fallback.request_payload,
+                "result_summary": preferred.result_summary or fallback.result_summary,
+                "error": preferred.error or fallback.error,
+                "query_fingerprint": preferred.query_fingerprint or fallback.query_fingerprint,
+                "validation_id": preferred.validation_id or fallback.validation_id,
+                "cached": preferred.cached or fallback.cached,
+            }
+        )
+
+    def _trace_completeness_score(self, trace: CsmarToolTrace) -> int:
+        score = 0
+        if trace.request_payload:
+            score += 1
+        if trace.result_summary:
+            score += 2
+        if trace.error:
+            score += 2
+        if trace.query_fingerprint:
+            score += 1
+        if trace.validation_id:
+            score += 1
+        if trace.cached:
+            score += 1
+        return score

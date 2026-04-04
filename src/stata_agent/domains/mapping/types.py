@@ -139,6 +139,7 @@ class CsmarFieldProbeResult(BaseModel):
     field_exists: bool
     row_count: int | None = None
     query_fingerprint: str = ""
+    validation_id: str = ""
     scope_level: str = Field(default="time_scoped", description="global/time_scoped")
     vendor_message: str = ""
     error_code: str = ""

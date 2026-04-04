@@ -28,5 +28,6 @@ langchain_docs/
 !.agents/skills/stataagent-engineering/SKILL.md
 .env
 uv.lock
+token.txt
 .idea/
 .langgraph_api/

@@ -66,8 +66,18 @@ def _build_probe_trace_summary(state: ResearchState) -> list[dict[str, str]]:
     if contract is None:
         return []
 
+    trace_validation_map: dict[str, str] = {}
+    for trace in state.csmar_traces:
+        trace_id = trace.trace_id.strip()
+        validation_id = (trace.validation_id or "").strip()
+        if trace_id and validation_id:
+            trace_validation_map[trace_id] = validation_id
+
     summary: list[dict[str, str]] = []
     for result in contract.probe_coverage.probe_results:
+        validation_id = result.validation_id.strip()
+        if not validation_id:
+            validation_id = trace_validation_map.get(result.trace_id.strip(), "")
         summary.append(
             {
                 "variable_name": result.variable_name,
@@ -75,6 +85,7 @@ def _build_probe_trace_summary(state: ResearchState) -> list[dict[str, str]]:
                 "field_name": result.field_name,
                 "trace_id": result.trace_id,
                 "query_fingerprint": result.query_fingerprint,
+                "validation_id": validation_id,
                 "error_code": result.error_code,
             }
         )

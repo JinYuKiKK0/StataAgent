@@ -211,6 +211,7 @@ def test_probe_field_availability_uses_mcp_probe_result() -> None:
     assert result.table_code == "BANK_Index"
     assert result.row_count == 128
     assert result.query_fingerprint == "probe_hash_001"
+    assert result.validation_id == "validation_test001"
 
 
 def test_probe_field_availability_surfaces_mcp_rate_limit_error() -> None:

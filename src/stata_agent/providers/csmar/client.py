@@ -261,6 +261,7 @@ class CsmarBridgeClient:
                 field_name=request.field_name,
                 field_exists=False,
                 query_fingerprint=f"{request.table_code}.{request.field_name}",
+                validation_id="",
                 scope_level="time_scoped",
                 vendor_message=exc.vendor_message,
                 error_code=exc.code,
@@ -284,6 +285,7 @@ class CsmarBridgeClient:
             field_exists=field_exists,
             row_count=row_count,
             query_fingerprint=query_fingerprint,
+            validation_id=probe_payload.validation_id,
             scope_level="time_scoped",
             error_code="field_not_found" if not field_exists else "",
             hint=(

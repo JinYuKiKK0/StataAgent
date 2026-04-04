@@ -28,6 +28,7 @@ class VariableProbeResult(BaseModel):
     failure_reason: str | None = None
     trace_id: str = ""
     query_fingerprint: str = ""
+    validation_id: str = ""
     scope_level: str = Field(default="time_scoped", description="探针范围")
     vendor_message: str = ""
     error_code: str = ""
