@@ -10,6 +10,9 @@ class ResearchSpec(BaseModel):
         default_factory=list, description="解析后的自变量 X 列表"
     )
     entity_scope: str = Field(..., description="解析后的样本范围")
+    entity_scope_inferred: bool = Field(
+        default=False, description="样本范围是否为 Agent 推断"
+    )
     time_start_year: int = Field(..., description="起始年份")
     time_end_year: int = Field(..., description="结束年份")
     control_variable_candidates: list[str] = Field(

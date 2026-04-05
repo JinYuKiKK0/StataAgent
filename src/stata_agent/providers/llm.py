@@ -56,7 +56,8 @@ class TongyiResearchSpecGenerator:
                         [
                             "你是 StataAgent 的研究需求解析器。",
                             "你的任务是把用户的研究请求整理成结构化研究规范。",
-                            "必须严格保留用户给定的因变量、自变量、样本范围和时间范围，不能擅自改写。",
+                            "必须严格保留用户给定的因变量、自变量和时间范围，不能擅自改写。",
+                            "如果用户提供了样本范围，必须原样保留；如果用户未提供样本范围，请根据研究题目、因变量和自变量推断合适的样本范围。",
                             "只允许补全候选分析粒度与控制变量候选，并在 warnings 中说明真实的不确定点。",
                             "analysis_grain_candidates 至少给出一个候选；control_variable_candidates 中不得包含因变量或自变量本身。",
                         ]
@@ -84,6 +85,9 @@ class TongyiResearchSpecGenerator:
         )
 
     def parse_request(self, request: ResearchRequest) -> RequirementParseResult:
+        entity_scope_display = (
+            request.entity_scope if request.entity_scope else "(未提供，请推断)"
+        )
         response = cast(
             Mapping[str, object],
             self._chain.invoke(
@@ -91,7 +95,7 @@ class TongyiResearchSpecGenerator:
                     "topic": request.topic,
                     "dependent_variable": request.dependent_variable,
                     "independent_variables": ", ".join(request.independent_variables),
-                    "entity_scope": request.entity_scope,
+                    "entity_scope": entity_scope_display,
                     "time_range": request.time_range,
                     "empirical_requirements": request.empirical_requirements,
                 }
@@ -112,6 +116,7 @@ class TongyiResearchSpecGenerator:
             dependent_variable=parsed.dependent_variable,
             independent_variables=parsed.independent_variables,
             entity_scope=parsed.entity_scope,
+            entity_scope_inferred=request.entity_scope is None,
             time_start_year=parsed.time_start_year,
             time_end_year=parsed.time_end_year,
             control_variable_candidates=parsed.control_variable_candidates,
@@ -218,7 +223,7 @@ class TongyiVariableSemanticJudge(VariableSemanticJudgePort):
 def _build_tongyi_model(settings: Settings) -> ChatTongyi:
     return ChatTongyi(
         model=settings.tongyi_model,
-        api_key=settings.dashscope_api_key,
+        api_key=settings.dashscope_api_key.get_secret_value(),  # pyright: ignore[reportArgumentType]
         streaming=True,
         model_kwargs={"temperature": 0},
     )

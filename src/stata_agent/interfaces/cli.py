@@ -44,8 +44,8 @@ def research(
     independent_variables: list[str] = typer.Option(
         ..., "--x", "-x", help="自变量 X 列表，可多次指定"
     ),
-    entity_scope: str = typer.Option(
-        ..., "--entity", "-e", help="样本范围，如：A股上市公司"
+    entity_scope: str | None = typer.Option(
+        None, "--entity", "-e", help="样本范围，如：A股上市公司（可选，不填则由 Agent 推断）"
     ),
     time_range: str = typer.Option(..., "--time", "-r", help="时间范围，如：2010-2023"),
     empirical_requirements: str = typer.Option(
@@ -104,7 +104,7 @@ def _build_request(
     topic: str,
     dependent_variable: str,
     independent_variables: list[str],
-    entity_scope: str,
+    entity_scope: str | None,
     time_range: str,
     empirical_requirements: str,
 ) -> ResearchRequest:
@@ -138,7 +138,7 @@ def _render_research_summary(state: ResearchState) -> None:
     table.add_row("研究题目", state.request.topic)
     table.add_row("因变量 (Y)", state.request.dependent_variable)
     table.add_row("自变量 (X)", ", ".join(state.request.independent_variables))
-    table.add_row("样本范围", state.request.entity_scope)
+    table.add_row("样本范围", state.request.entity_scope or "(由 Agent 推断)")
     table.add_row("时间范围", state.request.time_range)
     table.add_row("实证要求", state.request.empirical_requirements)
     table.add_row("当前阶段", state.stage.value)
@@ -166,7 +166,10 @@ def _render_spec_summary(state: ResearchState) -> None:
     table.add_column("值", style="white")
 
     table.add_row("解析主题", state.spec.topic)
-    table.add_row("样本范围", state.spec.entity_scope)
+    entity_scope_label = state.spec.entity_scope
+    if state.spec.entity_scope_inferred:
+        entity_scope_label = f"{state.spec.entity_scope} (Agent 推断)"
+    table.add_row("样本范围", entity_scope_label)
     table.add_row(
         "时间边界", f"{state.spec.time_start_year}-{state.spec.time_end_year}"
     )
@@ -285,16 +288,27 @@ def _render_contract_for_approval(state: ResearchState) -> None:
     if contract is None:
         return
 
-    console.print(
-        "\n[bold yellow]⚠ Gateway 审批：请审核最低可行数据契约[/bold yellow]\n"
-    )
+    if contract.entity_scope_inferred:
+        console.print(
+            "\n[bold yellow]⚠ Gateway 审批：请审核最低可行数据契约[/bold yellow]"
+        )
+        console.print(
+            "[bold magenta]ℹ 样本范围为 Agent 推断，请特别确认是否正确[/bold magenta]\n"
+        )
+    else:
+        console.print(
+            "\n[bold yellow]⚠ Gateway 审批：请审核最低可行数据契约[/bold yellow]\n"
+        )
 
     table = Table(title="最低可行数据契约")
     table.add_column("字段", style="cyan")
     table.add_column("值", style="white")
 
     table.add_row("分析粒度", contract.analysis_grain)
-    table.add_row("样本范围", contract.entity_scope)
+    entity_scope_label = contract.entity_scope
+    if contract.entity_scope_inferred:
+        entity_scope_label = f"{contract.entity_scope} (Agent 推断)"
+    table.add_row("样本范围", entity_scope_label)
     table.add_row("时间范围", f"{contract.time_start_year}-{contract.time_end_year}")
     table.add_row(
         "Hard Contract 变量", "、".join(contract.hard_contract_variables) or "无"

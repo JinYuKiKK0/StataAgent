@@ -31,6 +31,7 @@ class DataContractBuilder:
             allowed_soft_removals=allowed_soft_removals,
             analysis_grain=_pick_analysis_grain(spec),
             entity_scope=spec.entity_scope,
+            entity_scope_inferred=spec.entity_scope_inferred,
             time_start_year=spec.time_start_year,
             time_end_year=spec.time_end_year,
             empirical_requirements=request.empirical_requirements,

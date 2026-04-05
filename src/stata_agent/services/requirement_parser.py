@@ -34,7 +34,12 @@ class RequirementParser:
                 "independent_variables": [
                     variable.strip() for variable in request.independent_variables
                 ],
-                "entity_scope": request.entity_scope.strip(),
+                "entity_scope": (
+                    request.entity_scope.strip()
+                    if request.entity_scope
+                    else result.spec.entity_scope.strip()
+                ),
+                "entity_scope_inferred": request.entity_scope is None,
                 "time_start_year": expected_start_year,
                 "time_end_year": expected_end_year,
                 "control_variable_candidates": _normalize_candidates(
@@ -80,8 +85,9 @@ def _validate_spec_against_request(
         value.strip() for value in request.independent_variables
     ]:
         return "需求解析失败：模型改写了用户给定的自变量。"
-    if spec.entity_scope.strip() != request.entity_scope.strip():
-        return "需求解析失败：模型改写了用户给定的样本范围。"
+    if request.entity_scope is not None:
+        if spec.entity_scope.strip() != request.entity_scope.strip():
+            return "需求解析失败：模型改写了用户给定的样本范围。"
     if (
         spec.time_start_year != expected_start_year
         or spec.time_end_year != expected_end_year

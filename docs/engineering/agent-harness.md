@@ -46,11 +46,7 @@
 uv run python -m tools.run_quality_gates
 ```
 
-其中 `tools.harness lint` 默认扫描 `src tests tools`，并默认排除：
-
-- `**/__pycache__/**`
-- `.venv/**`
-- `tests/fixtures/harness/**`
+其中 `tools.harness lint` 默认扫描 `src tests tools`
 
 内部由五类工具分工：
 

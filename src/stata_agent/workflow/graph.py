@@ -21,15 +21,20 @@ class Phase1Node(Protocol):
 def gateway_approval_node(state: ResearchState) -> ResearchState:
     """Gateway 审批中断与恢复。"""
     contract = state.data_contract_bundle
+    entity_scope_inferred = contract.entity_scope_inferred if contract else False
+    message = "请审核最低可行数据契约并决定是否批准"
+    if entity_scope_inferred:
+        message = "请审核最低可行数据契约并决定是否批准（样本范围为 Agent 推断，请特别确认）"
     approval_payload = {
         "action": "gateway_approval",
-        "message": "请审核最低可行数据契约并决定是否批准",
+        "message": message,
         "hard_contract_variables": contract.hard_contract_variables if contract else [],
         "soft_contract_variables": contract.soft_contract_variables if contract else [],
         "allowed_soft_removals": contract.allowed_soft_removals if contract else [],
         "residual_risks": contract.residual_risks if contract else [],
         "analysis_grain": contract.analysis_grain if contract else "",
         "entity_scope": contract.entity_scope if contract else "",
+        "entity_scope_inferred": entity_scope_inferred,
         "time_range": f"{contract.time_start_year}-{contract.time_end_year}"
         if contract
         else "",

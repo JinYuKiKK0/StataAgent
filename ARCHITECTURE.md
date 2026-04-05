@@ -20,7 +20,7 @@ StataAgent 是一个本地 Windows 实证分析代理。它将用户研究请求
 - 契约与配置：`pydantic v2`、`pydantic-settings`
 - 数据与渲染：`pandas`、`numpy`、`pyarrow`、`pandera`、`jinja2`
 - 交互与运维：`typer`、`rich`、`structlog`、`python-keyring`
-- 外部集成：Tongyi `DashScope`、官方 `CSMAR-PYTHON`（经 Python 3.6 桥接）、`stata-executor-mcp`
+- 外部集成：Tongyi `DashScope`、官方 `CSMAR-PYTHON`、`stata-executor-mcp`
 - 测试与治理：`pytest`、`pyright`、`import-linter`、`ruff`、`pre-commit`
 
 ## 固定源码目录结构

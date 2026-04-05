@@ -7,7 +7,10 @@ class ResearchRequest(BaseModel):
     independent_variables: list[str] = Field(
         ..., min_length=1, description="自变量 X 列表，至少包含一个"
     )
-    entity_scope: str = Field(..., description="样本范围，如：A股上市公司、银行等")
+    entity_scope: str | None = Field(
+        default=None,
+        description="样本范围，如：A股上市公司、银行等。若不填写，将由 Agent 推断",
+    )
     time_range: str = Field(
         ...,
         pattern=r"^\d{4}-\d{4}$",

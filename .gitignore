@@ -43,3 +43,5 @@ downloads/
 notes/
 .tmp_test_runs/
 wrapper.log
+packages/csmar-mcp/.stata_agent/csmar_mcp/state.sqlite3
+packages/csmar-mcp/csmar-log.log

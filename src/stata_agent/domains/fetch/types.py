@@ -69,6 +69,7 @@ class DataContractBundle(BaseModel):
     allowed_soft_removals: list[str] = Field(default_factory=list)
     analysis_grain: str = ""
     entity_scope: str
+    entity_scope_inferred: bool = False
     time_start_year: int
     time_end_year: int
     empirical_requirements: str
