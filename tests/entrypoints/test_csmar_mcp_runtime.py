@@ -20,22 +20,29 @@ def _build_settings(**overrides: object) -> Settings:
     return Settings.model_validate(payload)
 
 
-def test_build_launch_spec_uses_default_workdir_and_injected_credentials() -> None:
-    """验证默认配置会推导 sibling MCP 目录并自动注入账号密码参数。"""
-    settings = _build_settings()
+def test_build_launch_spec_uses_default_workdir_and_injected_credentials(
+    tmp_path: Path,
+) -> None:
+    """验证默认配置会推导 monorepo MCP 目录并自动注入账号密码参数。"""
+    repo_root = tmp_path / "repo"
+    expected_workdir = repo_root / "packages" / "csmar-mcp"
+    expected_workdir.mkdir(parents=True, exist_ok=True)
+    settings = _build_settings(workspace_dir=repo_root / ".stata-agent")
 
     spec = build_csmar_mcp_launch_spec(settings)
 
     assert spec.command == "uv"
     assert spec.args == (
         "run",
+        "--package",
+        "csmar-mcp",
         "csmar-mcp",
         "--account",
         "demo-account",
         "--password",
         "demo-password",
     )
-    assert spec.cwd == Path("/tmp/CSMAR-Data-MCP")
+    assert spec.cwd == expected_workdir
     assert spec.start_timeout_seconds == 20
     assert spec.call_timeout_seconds == 120
     assert spec.env_overrides == {}

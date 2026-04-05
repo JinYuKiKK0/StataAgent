@@ -50,7 +50,13 @@ def build_csmar_mcp_launch_spec(settings: Settings) -> CsmarMcpLaunchSpec:
 def resolve_csmar_mcp_workdir(settings: Settings) -> Path:
     if settings.csmar_mcp_workdir is not None:
         return settings.csmar_mcp_workdir.expanduser().resolve()
-    return (settings.workspace_dir.expanduser().resolve().parent / "CSMAR-Data-MCP").resolve()
+    base = settings.workspace_dir.expanduser().resolve()
+    candidate = base.parent / "packages" / "csmar-mcp"
+    if candidate.is_dir():
+        return candidate.resolve()
+    raise FileNotFoundError(
+        f"Could not locate csmar-mcp working directory, expected: {candidate}"
+    )
 
 
 def _assert_credential_flags_not_in_base_args(args: tuple[str, ...]) -> None:

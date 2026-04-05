@@ -31,3 +31,15 @@ uv.lock
 token.txt
 .idea/
 .langgraph_api/
+
+# Monorepo: package-level ignores
+packages/*/uv.lock
+packages/*/.venv/
+packages/*/.python-version
+packages/*/.gitignore
+
+# MCP packages specific
+downloads/
+notes/
+.tmp_test_runs/
+wrapper.log

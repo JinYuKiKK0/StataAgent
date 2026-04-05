@@ -17,6 +17,9 @@ _ENV_LABELS = {
     "csmar_mcp_start_timeout_seconds": "CSMAR_MCP_START_TIMEOUT_SECONDS",
     "csmar_mcp_call_timeout_seconds": "CSMAR_MCP_CALL_TIMEOUT_SECONDS",
     "csmar_mcp_state_dir": "CSMAR_MCP_STATE_DIR",
+    "stata_executor_mcp_command": "STATA_EXECUTOR_MCP_COMMAND",
+    "stata_executor_mcp_args": "STATA_EXECUTOR_MCP_ARGS",
+    "stata_executor_mcp_workdir": "STATA_EXECUTOR_MCP_WORKDIR",
 }
 
 
@@ -76,13 +79,13 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("CSMAR_MCP_COMMAND", "csmar_mcp_command"),
     )
     csmar_mcp_args: list[str] = Field(
-        default_factory=lambda: ["run", "csmar-mcp"],
+        default_factory=lambda: ["run", "--package", "csmar-mcp", "csmar-mcp"],
         description="Base args for launching CSMAR MCP server (without credentials).",
         validation_alias=AliasChoices("CSMAR_MCP_ARGS", "csmar_mcp_args"),
     )
     csmar_mcp_workdir: Path | None = Field(
         default=None,
-        description="Optional MCP working directory; defaults to sibling CSMAR-Data-MCP.",
+        description="Optional MCP working directory; defaults to packages/csmar-mcp in monorepo.",
         validation_alias=AliasChoices("CSMAR_MCP_WORKDIR", "csmar_mcp_workdir"),
     )
     csmar_mcp_start_timeout_seconds: int = Field(
@@ -105,6 +108,35 @@ class Settings(BaseSettings):
         default=None,
         description="Optional state directory passed to MCP runtime environment.",
         validation_alias=AliasChoices("CSMAR_MCP_STATE_DIR", "csmar_mcp_state_dir"),
+    )
+    stata_executor_mcp_command: str = Field(
+        default="uv",
+        description="Command used to launch Stata Executor MCP server.",
+        validation_alias=AliasChoices(
+            "STATA_EXECUTOR_MCP_COMMAND",
+            "stata_executor_mcp_command",
+        ),
+    )
+    stata_executor_mcp_args: list[str] = Field(
+        default_factory=lambda: [
+            "run",
+            "--package",
+            "stata-executor",
+            "stata-executor-mcp",
+        ],
+        description="Base args for launching Stata Executor MCP server.",
+        validation_alias=AliasChoices(
+            "STATA_EXECUTOR_MCP_ARGS",
+            "stata_executor_mcp_args",
+        ),
+    )
+    stata_executor_mcp_workdir: Path | None = Field(
+        default=None,
+        description="Optional Stata Executor MCP working directory.",
+        validation_alias=AliasChoices(
+            "STATA_EXECUTOR_MCP_WORKDIR",
+            "stata_executor_mcp_workdir",
+        ),
     )
 
     @field_validator("csmar_mcp_command")

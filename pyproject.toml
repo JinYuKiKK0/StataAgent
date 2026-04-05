@@ -1,3 +1,6 @@
+[tool.uv.workspace]
+members = ["packages/csmar-mcp", "packages/stata-executor"]
+
 [project]
 name = "stata-agent"
 version = "0.1.0"
@@ -40,13 +43,15 @@ build-backend = "hatchling.build"
 packages = ["src/stata_agent"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "packages/csmar-mcp/tests", "packages/stata-executor/tests"]
 pythonpath = ["src", "."]
 markers = [
     "live_api: integration tests that call real Tongyi and CSMAR APIs",
 ]
 
 [tool.ruff]
+target-version = "py312"
 extend-exclude = [
     "docs/references/csmarapi/**",
+    "packages/csmar-mcp/csmarapi/**",
 ]
