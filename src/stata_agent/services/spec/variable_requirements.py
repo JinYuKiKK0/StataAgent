@@ -54,10 +54,10 @@ def _build_control_variables(spec: ResearchSpec) -> list[VariableDefinition]:
         VariableDefinition(
             variable_name=control,
             role="control",
-            is_locked=False,
+            is_locked=_is_user_required(spec, control),
             slot_status="pending_agent_completion",
             frequency_hint=spec.analysis_frequency_hint,
-            note="控制变量候选，待 agent 在建模阶段确认纳入。",
+            note=_build_control_note(spec, control),
         )
         for control in normalized_controls
     ]
@@ -86,3 +86,16 @@ def _to_requirement_item(definition: VariableDefinition) -> DataRequirementItem:
         frequency_hint=definition.frequency_hint,
         slot_status=definition.slot_status,
     )
+
+
+def _is_user_required(spec: ResearchSpec, variable_name: str) -> bool:
+    empirical_text = spec.empirical_requirements.strip()
+    if not empirical_text:
+        return False
+    return variable_name in empirical_text
+
+
+def _build_control_note(spec: ResearchSpec, variable_name: str) -> str:
+    if _is_user_required(spec, variable_name):
+        return "用户显式要求的关键变量，后续不得自动剔除。"
+    return "控制变量候选，待 agent 在建模阶段确认纳入。"

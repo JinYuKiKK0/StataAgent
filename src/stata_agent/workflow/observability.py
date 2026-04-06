@@ -12,7 +12,8 @@ class WorkflowNodeAudit(BaseModel):
     output_summary: dict[str, object] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
     failure_reason: str | None = None
-    trace_ids: list[str] = Field(default_factory=list)
+    audit_refs: list[str] = Field(default_factory=list)
+    trace_refs: list[str] = Field(default_factory=list)
 
 
 def drain_component_traces(component: object) -> list[CsmarToolTrace]:

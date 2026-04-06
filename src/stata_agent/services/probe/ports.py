@@ -1,7 +1,7 @@
 from typing import Protocol
 
-from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.spec.types import ResearchSpec
+from stata_agent.services.probe.contracts import ProbeExecutionInput
 from stata_agent.services.probe.contracts import ProbeCoverageResult
 from stata_agent.services.probe.contracts import VariableProbeResult
 
@@ -9,8 +9,7 @@ from stata_agent.services.probe.contracts import VariableProbeResult
 class ProbeExecutorPort(Protocol):
     def run_field_probes(
         self,
-        spec: ResearchSpec,
-        variable_bindings: list[VariableBinding],
+        probe_input: ProbeExecutionInput,
     ) -> list[VariableProbeResult]: ...
 
     def drain_tool_traces(self) -> list[object]: ...

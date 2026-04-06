@@ -9,11 +9,9 @@ from langchain_community.chat_models import ChatTongyi
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, Field
 
-from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.domains.spec.types import ResearchSpec
-from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.providers.llm.variable_mapping_toolkit import VariableMappingToolkit
 from stata_agent.providers.settings import Settings
+from stata_agent.services.mapping.contracts import MappingPlannerInput
 from stata_agent.services.mapping.contracts import VariableMappingPlanItem
 from stata_agent.services.mapping.contracts import VariableMappingPlanResult
 from stata_agent.services.mapping.ports import CsmarMetadataProviderPort
@@ -54,9 +52,7 @@ class TongyiVariableMappingPlanner(MappingPlannerPort):
     def plan(
         self,
         *,
-        request: ResearchRequest,
-        spec: ResearchSpec,
-        variable_definitions: list[VariableDefinition],
+        planner_input: MappingPlannerInput,
         metadata_provider: CsmarMetadataProviderPort,
     ) -> VariableMappingPlanResult:
         toolkit = VariableMappingToolkit(metadata_provider)
@@ -73,9 +69,7 @@ class TongyiVariableMappingPlanner(MappingPlannerPort):
                         {
                             "role": "user",
                             "content": _build_mapping_request(
-                                request=request,
-                                spec=spec,
-                                variable_definitions=variable_definitions,
+                                planner_input=planner_input,
                             ),
                         }
                     ]
@@ -145,20 +139,30 @@ def _build_system_prompt() -> str:
 
 def _build_mapping_request(
     *,
-    request: ResearchRequest,
-    spec: ResearchSpec,
-    variable_definitions: list[VariableDefinition],
+    planner_input: MappingPlannerInput,
 ) -> str:
     return "\n".join(
         [
-            f"研究题目: {request.topic}",
-            f"样本范围: {spec.entity_scope}",
-            f"时间范围: {spec.time_start_year}-{spec.time_end_year}",
-            f"主频率: {spec.analysis_frequency_hint}",
-            f"候选分析粒度: {', '.join(spec.analysis_grain_candidates)}",
+            f"研究题目: {planner_input.topic}",
+            f"样本范围: {planner_input.entity_scope}",
+            f"时间范围: {planner_input.time_start_year}-{planner_input.time_end_year}",
+            f"主频率: {planner_input.analysis_frequency_hint}",
+            f"候选分析粒度: {', '.join(planner_input.analysis_grain_candidates)}",
             "变量定义(JSON): "
             + json.dumps(
-                [item.model_dump(mode="json") for item in variable_definitions],
+                [
+                    item.model_dump(
+                        mode="json",
+                        include={
+                            "variable_name",
+                            "role",
+                            "is_locked",
+                            "slot_status",
+                            "frequency_hint",
+                        },
+                    )
+                    for item in planner_input.variable_definitions
+                ],
                 ensure_ascii=False,
             ),
             "请返回结构化映射结果。",

@@ -6,6 +6,7 @@ from collections.abc import Generator
 import pytest
 
 from stata_agent.domains.request.types import ResearchRequest
+from stata_agent.providers.audit import InMemoryAuditStore
 from stata_agent.providers.csmar import CsmarBridgeClient
 from stata_agent.providers.csmar.node_scoped_client import NodeScopedCsmarProviderFactory
 from stata_agent.providers.llm import TongyiResearchSpecGenerator
@@ -113,6 +114,7 @@ def live_phase1_orchestrator(
         probe_executor=ProbeExecutor(metadata_provider=live_csmar_provider),
         probe_summarizer=ProbeCoverageSummarizer(),
         data_contract_builder=DataContractBuilder(),
+        audit_store=InMemoryAuditStore(),
     )
 
 

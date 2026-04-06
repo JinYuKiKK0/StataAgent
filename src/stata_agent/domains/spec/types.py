@@ -22,6 +22,9 @@ class ResearchSpec(BaseModel):
     control_variable_candidates: list[str] = Field(
         default_factory=list, description="控制变量候选列表"
     )
+    empirical_requirements: str = Field(
+        default="", description="归一化后的实证要求文本"
+    )
     analysis_grain_candidates: list[str] = Field(
         default_factory=list,
         description="候选分析粒度，如：firm-year、bank-year",

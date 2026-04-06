@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import cast
 
-from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.domains.spec.types import ResearchSpec
-from stata_agent.domains.spec.types import VariableDefinition
+from stata_agent.services.mapping.contracts import MappingPlannerInput
 from stata_agent.services.mapping.contracts import VariableMappingBudget
 from stata_agent.services.mapping.contracts import VariableMappingPlanResult
 from stata_agent.services.mapping.ports import CsmarMetadataProviderPort
@@ -34,9 +32,7 @@ class ProbeMappingPlanner:
     def plan_probe_mapping(
         self,
         *,
-        request: ResearchRequest,
-        spec: ResearchSpec,
-        variable_definitions: list[VariableDefinition],
+        planner_input: MappingPlannerInput,
     ) -> VariableMappingPlanResult:
         self._pending_traces = []
         scoped_provider = self._scope_factory.create_mapping_provider(
@@ -45,9 +41,7 @@ class ProbeMappingPlanner:
         )
         try:
             planning_result = self._planner.plan(
-                request=request,
-                spec=spec,
-                variable_definitions=variable_definitions,
+                planner_input=planner_input,
                 metadata_provider=scoped_provider,
             )
         except Exception as exc:

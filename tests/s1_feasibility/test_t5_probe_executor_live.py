@@ -5,6 +5,7 @@ import pytest
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.providers.csmar import CsmarBridgeClient
+from stata_agent.services.probe.contracts import ProbeExecutionInput
 from stata_agent.services.probe.executor import ProbeExecutor
 from stata_agent.services.probe.summarizer import ProbeCoverageSummarizer
 from stata_agent.services.spec.requirement_parser import RequirementParser
@@ -17,14 +18,8 @@ def _build_hard_binding() -> VariableBinding:
         variable_name="ROA",
         table_code="FS_Comins",
         field_name="ROA",
-        confidence=0.9,
-        database_name="财务报表",
         contract_tier="hard",
-        is_hard_contract=True,
         frequency_match=True,
-        source="unit-test",
-        evidence="hard",
-        table_name="利润表",
     )
 
 
@@ -39,7 +34,15 @@ def test_probe_executor_reports_real_coverage(
     assert parse_result.spec is not None
 
     executor = ProbeExecutor(metadata_provider=live_csmar_provider)
-    probe_results = executor.run_field_probes(parse_result.spec, [_build_hard_binding()])
+    probe_results = executor.run_field_probes(
+        ProbeExecutionInput(
+            entity_scope=parse_result.spec.entity_scope,
+            analysis_grain=parse_result.spec.analysis_grain_candidates[0],
+            time_start_year=parse_result.spec.time_start_year,
+            time_end_year=parse_result.spec.time_end_year,
+            variable_bindings=[_build_hard_binding()],
+        )
+    )
     result = ProbeCoverageSummarizer().summarize_coverage(
         parse_result.spec, probe_results
     )
@@ -47,6 +50,4 @@ def test_probe_executor_reports_real_coverage(
     assert result.failure_reason is None
     assert result.hard_coverage_rate == 1.0
     assert result.key_alignment_ready is True
-
-
 

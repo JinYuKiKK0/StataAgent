@@ -86,6 +86,6 @@ def test_orchestrator_fails_when_hard_mapping_is_unavailable(
     state, _ = orchestrator.run(failing_live_request)
 
     assert state.stage is RunStage.FAILED
-    assert state.phase1_artifacts.mapping_result is not None
-    assert state.phase1_artifacts.mapping_result.failure_reason is not None
+    node_audit = state.workflow_audit.node_audits["materialize_variable_bindings"]
+    assert node_audit.failure_reason is not None
     assert state.gateway_state.record is None

@@ -1,8 +1,6 @@
-from stata_agent.domains.contract.types import ContractProbeResult
 from stata_agent.domains.contract.types import DataContractBundle
 from stata_agent.domains.contract.types import ProbeCoverageSummary
 from stata_agent.domains.mapping.types import VariableBinding
-from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.services.probe.contracts import ProbeCoverageResult
@@ -11,7 +9,6 @@ from stata_agent.services.probe.contracts import ProbeCoverageResult
 class DataContractBuilder:
     def build(
         self,
-        request: ResearchRequest,
         spec: ResearchSpec,
         variable_definitions: list[VariableDefinition],
         variable_bindings: list[VariableBinding],
@@ -36,13 +33,10 @@ class DataContractBuilder:
             entity_scope_inferred=spec.entity_scope_inferred,
             time_start_year=spec.time_start_year,
             time_end_year=spec.time_end_year,
-            empirical_requirements=request.empirical_requirements,
-            variable_definitions=variable_definitions,
-            variable_bindings=variable_bindings,
+            empirical_requirements=spec.empirical_requirements,
             probe_coverage=_to_probe_coverage_summary(probe_coverage),
             substitution_log=substitution_log,
             residual_risks=residual_risks,
-            spec=spec,
         )
 
 
@@ -111,10 +105,6 @@ def _to_probe_coverage_summary(
     probe_coverage: ProbeCoverageResult,
 ) -> ProbeCoverageSummary:
     return ProbeCoverageSummary(
-        probe_results=[
-            ContractProbeResult.model_validate(item.model_dump(mode="json"))
-            for item in probe_coverage.probe_results
-        ],
         hard_coverage_rate=probe_coverage.hard_coverage_rate,
         soft_coverage_rate=probe_coverage.soft_coverage_rate,
         hard_gaps=list(probe_coverage.hard_gaps),

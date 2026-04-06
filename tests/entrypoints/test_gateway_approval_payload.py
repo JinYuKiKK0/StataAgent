@@ -1,15 +1,9 @@
-"""Gateway 审批载荷摘要测试。"""
-
 from typing import cast
 from unittest.mock import patch
 
-from stata_agent.domains.contract.types import ContractProbeResult
 from stata_agent.domains.contract.types import DataContractBundle
 from stata_agent.domains.contract.types import ProbeCoverageSummary
-from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.domains.spec.types import ResearchSpec
-from stata_agent.providers.csmar.types import CsmarToolTrace
 from stata_agent.workflow.graph import gateway_approval_node
 from stata_agent.workflow.gateway import GatewayDecision
 from stata_agent.workflow.gateway import GatewayResumeRequest
@@ -28,57 +22,8 @@ def _build_request() -> ResearchRequest:
         time_range="2018-2023",
         empirical_requirements="构建基准回归模型",
     )
-
-
-def _build_spec() -> ResearchSpec:
-    return ResearchSpec(
-        topic="银行资本充足率与ROA",
-        dependent_variable="ROA",
-        independent_variables=["资本充足率"],
-        entity_scope="A股上市银行",
-        time_start_year=2018,
-        time_end_year=2023,
-        control_variable_candidates=[],
-        analysis_grain_candidates=["bank-year"],
-    )
-
-
-def test_gateway_payload_includes_mapping_and_probe_summaries() -> None:
-    """验证 Gateway interrupt payload 含 evidence 摘要、trace_id 与 query_fingerprint 引用。"""
-    binding = VariableBinding(
-        variable_name="ROA",
-        table_code="BANK_Index",
-        field_name="ROAA",
-        confidence=0.92,
-        database_name="银行财务",
-        contract_tier="hard",
-        is_hard_contract=True,
-        frequency_match=True,
-        source="csmar_metadata_probe",
-        evidence="alias命中=是; frequency匹配=是",
-        trace_id="trace_bind_001",
-        table_name="银行指标",
-    )
-    probe_result = ContractProbeResult(
-        variable_name="ROA",
-        contract_tier="hard",
-        table_code="BANK_Index",
-        field_name="ROAA",
-        field_exists=True,
-        frequency_match=True,
-        query_count=128,
-        is_accessible=True,
-        trace_id="trace_probe_001",
-        query_fingerprint="fingerprint_001",
-        scope_level="time_scoped",
-    )
-    coverage = ProbeCoverageSummary(
-        probe_results=[probe_result],
-        hard_coverage_rate=1.0,
-        soft_coverage_rate=1.0,
-        key_alignment_ready=True,
-        target_grain_ready=True,
-    )
+def test_gateway_payload_only_contains_contract_summary() -> None:
+    """验证 Gateway interrupt payload 只保留契约审批所需摘要，不含调试型映射/探针明细。"""
     contract = DataContractBundle(
         hard_contract_variables=["ROA", "资本充足率"],
         soft_contract_variables=[],
@@ -88,27 +33,14 @@ def test_gateway_payload_includes_mapping_and_probe_summaries() -> None:
         time_start_year=2018,
         time_end_year=2023,
         empirical_requirements="构建基准回归模型",
-        variable_bindings=[binding],
-        probe_coverage=coverage,
+        probe_coverage=ProbeCoverageSummary(),
         residual_risks=[],
-        spec=_build_spec(),
     )
     state = ResearchState(
         request=_build_request(),
         stage=RunStage.CONTRACTED,
         phase1_artifacts=Phase1Artifacts(data_contract_bundle=contract),
-        workflow_audit=WorkflowAuditState(
-            csmar_traces=[
-                CsmarToolTrace(
-                    trace_id="trace_probe_001",
-                    tool_name="csmar_probe_query",
-                    query_fingerprint="fingerprint_001",
-                    validation_id="validation_001",
-                    started_at="2026-04-04T10:00:00Z",
-                    completed_at="2026-04-04T10:00:01Z",
-                )
-            ]
-        ),
+        workflow_audit=WorkflowAuditState(),
     )
 
     captured: dict[str, object] = {}
@@ -130,16 +62,7 @@ def test_gateway_payload_includes_mapping_and_probe_summaries() -> None:
         resumed = gateway_approval_node(state)
 
     assert resumed.stage is RunStage.APPROVED
-    assert "mapping_evidence_summary" in captured
-    assert "probe_trace_summary" in captured
-
-    mapping_summary = captured["mapping_evidence_summary"]
-    assert isinstance(mapping_summary, list)
-    assert mapping_summary
-    assert mapping_summary[0]["trace_id"] == "trace_bind_001"
-
-    probe_summary = captured["probe_trace_summary"]
-    assert isinstance(probe_summary, list)
-    assert probe_summary
-    assert probe_summary[0]["query_fingerprint"] == "fingerprint_001"
-    assert probe_summary[0]["validation_id"] == "validation_001"
+    assert "mapping_evidence_summary" not in captured
+    assert "probe_trace_summary" not in captured
+    assert captured["analysis_grain"] == "bank-year"
+    assert captured["hard_contract_variables"] == ["ROA", "资本充足率"]

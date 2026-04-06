@@ -1,12 +1,12 @@
 """S1-T4 变量映射核心行为测试。"""
 
-from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
 from stata_agent.services.mapping.contracts import CsmarFieldProbeResult
 from stata_agent.services.mapping.contracts import CsmarTableRecord
 from stata_agent.services.mapping.contracts import CsmarTableSchema
+from stata_agent.services.mapping.contracts import MappingPlannerInput
 from stata_agent.services.mapping.contracts import VariableMappingBudget
 from stata_agent.services.mapping.contracts import VariableMappingPlanItem
 from stata_agent.services.mapping.contracts import VariableMappingPlanResult
@@ -56,23 +56,16 @@ class _FakePlanningAgent:
     def plan(
         self,
         *,
-        request: ResearchRequest,
-        spec: ResearchSpec,
-        variable_definitions: list[VariableDefinition],
+        planner_input: MappingPlannerInput,
         metadata_provider: CsmarMetadataProviderPort,
     ) -> VariableMappingPlanResult:
+        del planner_input, metadata_provider
         return self._result
 
 
-def _build_request() -> ResearchRequest:
-    return ResearchRequest(
-        topic="企业资产规模与盈利能力",
-        dependent_variable="ROA",
-        independent_variables=["资产总计"],
-        entity_scope="A股上市公司",
-        time_range="2018-2023",
-        empirical_requirements="构建基准双向固定效应模型",
-    )
+def _build_definitions() -> list[VariableDefinition]:
+    builder = VariableRequirementsBuilder()
+    return builder.build(_build_spec()).variable_definitions
 
 
 def _build_spec() -> ResearchSpec:
@@ -86,12 +79,22 @@ def _build_spec() -> ResearchSpec:
         control_variable_candidates=["资产负债率"],
         analysis_grain_candidates=["firm-year"],
         analysis_frequency_hint="annual",
+        empirical_requirements="构建基准双向固定效应模型",
     )
 
 
-def _build_definitions() -> list[VariableDefinition]:
-    builder = VariableRequirementsBuilder()
-    return builder.build(_build_spec()).variable_definitions
+def _build_planner_input(
+    variable_definitions: list[VariableDefinition] | None = None,
+) -> MappingPlannerInput:
+    return MappingPlannerInput(
+        topic="企业资产规模与盈利能力",
+        entity_scope="A股上市公司",
+        time_start_year=2018,
+        time_end_year=2023,
+        analysis_frequency_hint="annual",
+        analysis_grain_candidates=["firm-year"],
+        variable_definitions=variable_definitions or [],
+    )
 
 
 def _build_mapping_components(
@@ -113,13 +116,9 @@ def _materialize_from_planner(
 ) -> VariableMappingResult:
     definitions = variable_definitions or _build_definitions()
     plan_result = planner.plan_probe_mapping(
-        request=_build_request(),
-        spec=_build_spec(),
-        variable_definitions=definitions,
+        planner_input=_build_planner_input(definitions),
     )
     return materializer.materialize_variable_bindings(
-        request=_build_request(),
-        spec=_build_spec(),
         variable_definitions=definitions,
         planning_result=plan_result,
     )
@@ -170,8 +169,15 @@ def test_mapper_builds_bindings_from_planner_selection() -> None:
     binding = next(item for item in result.bindings if item.variable_name == "资产总计")
     assert binding.table_code == "FS_Combas"
     assert binding.field_name == "ASSET"
-    assert binding.trace_id == "trace_asset_schema"
-    assert binding.source == "csmar_llm_mapping_agent"
+    assert binding.contract_tier == "hard"
+    assert set(binding.model_dump(mode="json")) == {
+        "variable_name",
+        "table_code",
+        "field_name",
+        "contract_tier",
+        "frequency_match",
+        "substituted_from",
+    }
 
 
 def test_mapper_fails_fast_when_planner_misses_hard_variable() -> None:

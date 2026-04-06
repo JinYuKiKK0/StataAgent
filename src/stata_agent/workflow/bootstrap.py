@@ -3,12 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
+from stata_agent.providers.audit import InMemoryAuditStore
 from stata_agent.providers.csmar import CsmarBridgeClient
 from stata_agent.providers.csmar import NodeScopedCsmarProviderFactory
 from stata_agent.providers.llm import TongyiResearchSpecGenerator
 from stata_agent.providers.llm import TongyiVariableMappingPlanner
 from stata_agent.providers.settings import Settings
 from stata_agent.providers.settings import get_settings
+from stata_agent.services.audit.ports import AuditStorePort
 from stata_agent.services.contract.data_contract_builder import DataContractBuilder
 from stata_agent.services.contract.ports import DataContractBuilderPort
 from stata_agent.services.mapping.materialize_bindings import (
@@ -35,6 +37,7 @@ class ApplicationDependencies:
     settings: Settings
     phase1_orchestrator: Phase1OrchestratorPort
     csmar_provider: CsmarMetadataProviderPort
+    audit_store: AuditStorePort
 
 
 def build_application_dependencies(
@@ -48,10 +51,12 @@ def build_application_dependencies(
     data_contract_builder: DataContractBuilderPort | None = None,
     csmar_provider: CsmarMetadataProviderPort | None = None,
     phase1_orchestrator: Phase1OrchestratorPort | None = None,
+    audit_store: AuditStorePort | None = None,
     settings_factory: Callable[[], Settings] = get_settings,
 ) -> ApplicationDependencies:
     settings = settings_factory()
     resolved_csmar_provider = csmar_provider or CsmarBridgeClient.from_settings(settings)
+    resolved_audit_store = audit_store or InMemoryAuditStore()
     resolved_phase1 = phase1_orchestrator or Phase1FeasibilityOrchestrator(
         parser=parser or RequirementParser(TongyiResearchSpecGenerator(settings)),
         builder=builder or VariableRequirementsBuilder(),
@@ -65,9 +70,11 @@ def build_application_dependencies(
         probe_executor=probe_executor or ProbeExecutor(metadata_provider=resolved_csmar_provider),
         probe_summarizer=probe_summarizer or ProbeCoverageSummarizer(),
         data_contract_builder=data_contract_builder or DataContractBuilder(),
+        audit_store=resolved_audit_store,
     )
     return ApplicationDependencies(
         settings=settings,
         phase1_orchestrator=resolved_phase1,
         csmar_provider=resolved_csmar_provider,
+        audit_store=resolved_audit_store,
     )

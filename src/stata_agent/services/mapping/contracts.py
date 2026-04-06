@@ -4,6 +4,22 @@ from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.spec.types import VariableDefinition
 
 
+def _empty_variable_definitions() -> list[VariableDefinition]:
+    return []
+
+
+class MappingPlannerInput(BaseModel):
+    topic: str
+    entity_scope: str
+    time_start_year: int
+    time_end_year: int
+    analysis_frequency_hint: str = "unknown"
+    analysis_grain_candidates: list[str] = Field(default_factory=list)
+    variable_definitions: list[VariableDefinition] = Field(
+        default_factory=_empty_variable_definitions
+    )
+
+
 class VariableMappingBudget(BaseModel):
     list_databases_limit: int = 1
     list_tables_limit: int = 4
@@ -95,16 +111,8 @@ def _empty_bindings() -> list[VariableBinding]:
     return []
 
 
-def _empty_variable_definitions() -> list[VariableDefinition]:
-    return []
-
-
 class VariableMappingResult(BaseModel):
     bindings: list[VariableBinding] = Field(default_factory=_empty_bindings)
     failure_reason: str | None = None
-    hard_contract_variables: list[str] = Field(default_factory=list)
     soft_contract_gaps: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
-    resolved_variable_definitions: list[VariableDefinition] = Field(
-        default_factory=_empty_variable_definitions
-    )

@@ -1,5 +1,21 @@
 from pydantic import BaseModel, Field
 
+from stata_agent.domains.mapping.types import VariableBinding
+
+
+def _empty_variable_bindings() -> list[VariableBinding]:
+    return []
+
+
+class ProbeExecutionInput(BaseModel):
+    entity_scope: str
+    analysis_grain: str = ""
+    time_start_year: int
+    time_end_year: int
+    variable_bindings: list[VariableBinding] = Field(
+        default_factory=_empty_variable_bindings
+    )
+
 
 class VariableProbeResult(BaseModel):
     variable_name: str

@@ -6,12 +6,18 @@ from uuid import uuid4
 from langchain_core.runnables.config import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.runtime import Runtime
+from langgraph.store.base import BaseStore
 from langgraph.types import Command
 
 from stata_agent.domains.request.types import ResearchRequest
+from stata_agent.providers.audit import StoreBackedAuditStore
 from stata_agent.providers.settings import Settings
 from stata_agent.providers.settings import SettingsError
 from stata_agent.providers.settings import get_settings
+from stata_agent.services.audit.contracts import AuditRecord
+from stata_agent.services.audit.contracts import TraceRecord
+from stata_agent.services.audit.ports import AuditStorePort
 from stata_agent.services.contract.ports import DataContractBuilderPort
 from stata_agent.services.mapping.ports import CsmarMetadataProviderPort
 from stata_agent.services.mapping.ports import ProbeMappingPlannerPort
@@ -25,6 +31,7 @@ from stata_agent.workflow.gateway import GatewayResumeRequest
 from stata_agent.workflow.graph import build_workflow_graph
 from stata_agent.workflow.state import ResearchState
 from stata_agent.workflow.stages.phase1_feasibility import Phase1OrchestratorPort
+from stata_agent.workflow.stages.phase1_threading import resolve_thread_id
 
 
 class WorkflowBootstrapError(RuntimeError):
@@ -66,6 +73,7 @@ class ApplicationOrchestrator:
         self._checkpointer = (
             checkpointer_factory() if checkpointer_factory is not None else None
         )
+        self._thread_audit_stores: dict[str, AuditStorePort] = {}
         self._graph = self._build_graph()
 
     def create_initial_state(self, request: ResearchRequest) -> ResearchState:
@@ -74,6 +82,7 @@ class ApplicationOrchestrator:
     def run(self, request: ResearchRequest) -> tuple[ResearchState, str]:
         thread_id = f"run-{uuid4()}"
         initial_state = self.create_initial_state(request)
+        self._thread_audit_stores[thread_id] = self._dependencies.audit_store
         result = self._graph.invoke(
             initial_state, config=self._build_run_config(thread_id)
         )
@@ -81,6 +90,7 @@ class ApplicationOrchestrator:
 
     def resume(self, thread_id: str, decision: GatewayResumeRequest) -> ResearchState:
         config = self._build_run_config(thread_id)
+        self._thread_audit_stores.setdefault(thread_id, self._dependencies.audit_store)
         result = self._graph.invoke(Command(resume=decision.model_dump(mode="json")), config)
         return self._extract_state(result)
 
@@ -97,9 +107,17 @@ class ApplicationOrchestrator:
         self,
         state: ResearchState,
         config: RunnableConfig | None = None,
+        runtime: Runtime[ResearchState] | None = None,
     ) -> ResearchState:
+        audit_store = self._dependencies.audit_store
+        runtime_store = getattr(runtime, "store", None) if runtime is not None else None
+        if isinstance(runtime_store, BaseStore):
+            audit_store = StoreBackedAuditStore(runtime_store)
+        self._thread_audit_stores[resolve_thread_id(config, "local-run")] = audit_store
         return self._dependencies.phase1_orchestrator.run_feasibility(
-            state, config=config
+            state,
+            config=config,
+            audit_store=audit_store,
         )
 
     def _build_run_config(self, thread_id: str) -> RunnableConfig:
@@ -110,6 +128,29 @@ class ApplicationOrchestrator:
             return result
         return ResearchState.model_validate(result)
 
+    def read_audit_record(
+        self,
+        thread_id: str,
+        audit_ref: str,
+    ) -> AuditRecord | None:
+        return self._audit_store_for_thread(thread_id).read_audit(
+            thread_id=thread_id,
+            audit_ref=audit_ref,
+        )
+
+    def read_trace_record(
+        self,
+        thread_id: str,
+        trace_ref: str,
+    ) -> TraceRecord | None:
+        return self._audit_store_for_thread(thread_id).read_trace(
+            thread_id=thread_id,
+            trace_ref=trace_ref,
+        )
+
     @property
     def compiled_graph(self):
         return self._graph
+
+    def _audit_store_for_thread(self, thread_id: str) -> AuditStorePort:
+        return self._thread_audit_stores.get(thread_id, self._dependencies.audit_store)

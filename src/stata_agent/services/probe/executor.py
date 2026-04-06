@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import cast
 
 from stata_agent.domains.mapping.types import VariableBinding
-from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
 from stata_agent.services.mapping.contracts import CsmarFieldProbeResult
 from stata_agent.services.mapping.ports import CsmarMetadataProviderPort
+from stata_agent.services.probe.contracts import ProbeExecutionInput
 from stata_agent.services.probe.contracts import VariableProbeResult
 
 
@@ -17,22 +17,21 @@ class ProbeExecutor:
 
     def run_field_probes(
         self,
-        spec: ResearchSpec,
-        variable_bindings: list[VariableBinding],
+        probe_input: ProbeExecutionInput,
     ) -> list[VariableProbeResult]:
         self._pending_traces = []
         probe_results: list[VariableProbeResult] = []
         probe_cache: dict[tuple[str, str, int, int], VariableProbeResult] = {}
-        for binding in variable_bindings:
+        for binding in probe_input.variable_bindings:
             probe_key = (
                 binding.table_code,
                 binding.field_name,
-                spec.time_start_year,
-                spec.time_end_year,
+                probe_input.time_start_year,
+                probe_input.time_end_year,
             )
             cached = probe_cache.get(probe_key)
             if cached is None:
-                result = self._probe_binding(spec=spec, binding=binding)
+                result = self._probe_binding(probe_input=probe_input, binding=binding)
                 probe_cache[probe_key] = result
                 probe_results.append(result)
                 continue
@@ -43,7 +42,7 @@ class ProbeExecutor:
                         "variable_name": binding.variable_name,
                         "contract_tier": binding.contract_tier,
                         "frequency_match": binding.frequency_match,
-                        "trace_id": binding.trace_id or cached.trace_id,
+                        "trace_id": cached.trace_id,
                     }
                 )
             )
@@ -52,10 +51,10 @@ class ProbeExecutor:
     def _probe_binding(
         self,
         *,
-        spec: ResearchSpec,
+        probe_input: ProbeExecutionInput,
         binding: VariableBinding,
     ) -> VariableProbeResult:
-        trace_id = binding.trace_id
+        trace_id = ""
         try:
             probe_result = self._metadata_provider.probe_field_availability(
                 CsmarFieldProbeRequest(
@@ -63,12 +62,10 @@ class ProbeExecutor:
                     table_code=binding.table_code,
                     field_name=binding.field_name,
                     contract_tier=binding.contract_tier,
-                    entity_scope=spec.entity_scope,
-                    analysis_grain=spec.analysis_grain_candidates[0]
-                    if spec.analysis_grain_candidates
-                    else "",
-                    time_start_year=spec.time_start_year,
-                    time_end_year=spec.time_end_year,
+                    entity_scope=probe_input.entity_scope,
+                    analysis_grain=probe_input.analysis_grain,
+                    time_start_year=probe_input.time_start_year,
+                    time_end_year=probe_input.time_end_year,
                 )
             )
         except Exception as exc:

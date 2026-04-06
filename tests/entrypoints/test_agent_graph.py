@@ -51,4 +51,4 @@ def test_agent_graph_returns_failed_state_when_real_mapping_fails(
     state = ResearchState.model_validate(result)
 
     assert state.stage is RunStage.FAILED
-    assert state.phase1_artifacts.mapping_result is not None
+    assert state.workflow_audit.node_audits["materialize_variable_bindings"].failure_reason

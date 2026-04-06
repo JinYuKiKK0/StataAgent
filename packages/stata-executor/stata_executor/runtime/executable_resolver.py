@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import sys
 
 from ..contract import Edition
 
@@ -47,6 +48,9 @@ def find_preferred_executable(directory: Path, edition: Edition) -> Path | None:
 def build_stata_command(executable: Path, wrapper_do_path: Path) -> list[str]:
     if os.name == "nt":
         return [str(executable), "/q", "/i", "/e", "do", str(wrapper_do_path)]
+    compat_command = _build_posix_compat_command(executable, wrapper_do_path)
+    if compat_command is not None:
+        return compat_command
     return [str(executable), "-b", "do", str(wrapper_do_path)]
 
 
@@ -60,4 +64,19 @@ def _resolve_candidate(path: Path, edition: Edition) -> Path | None:
     if path.exists() and path.is_dir():
         return find_preferred_executable(path, edition)
 
+    return None
+
+
+def _build_posix_compat_command(
+    executable: Path,
+    wrapper_do_path: Path,
+) -> list[str] | None:
+    if executable.suffix.lower() not in {".cmd", ".bat"}:
+        return None
+
+    # Test fixtures use a Windows batch wrapper that forwards to a sibling Python script.
+    # On POSIX that wrapper is not directly executable, so invoke the sibling helper instead.
+    python_sibling = executable.with_suffix(".py")
+    if python_sibling.exists():
+        return [sys.executable, str(python_sibling), str(wrapper_do_path)]
     return None

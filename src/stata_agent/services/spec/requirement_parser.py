@@ -44,6 +44,7 @@ class RequirementParser:
                 "control_variable_candidates": _normalize_candidates(
                     result.spec.control_variable_candidates
                 ),
+                "empirical_requirements": request.empirical_requirements.strip(),
                 "analysis_grain_candidates": _normalize_candidates(
                     result.spec.analysis_grain_candidates
                 ),

@@ -7,6 +7,7 @@ from stata_agent.providers.csmar import CsmarBridgeClient
 from stata_agent.providers.csmar.node_scoped_client import NodeScopedCsmarProviderFactory
 from stata_agent.providers.llm import TongyiVariableMappingPlanner
 from stata_agent.providers.settings import Settings
+from stata_agent.services.mapping.contracts import MappingPlannerInput
 from stata_agent.services.mapping.materialize_bindings import VariableBindingMaterializer
 from stata_agent.services.mapping.plan_mapping import ProbeMappingPlanner
 from stata_agent.services.spec.requirement_parser import RequirementParser
@@ -34,20 +35,27 @@ def test_mapper_generates_bindings_from_real_csmar_metadata(
         scope_factory=NodeScopedCsmarProviderFactory(),
     )
     plan_result = planner.plan_probe_mapping(
-        request=live_request,
-        spec=parse_result.spec,
-        variable_definitions=build_result.variable_definitions,
+        planner_input=MappingPlannerInput(
+            topic=parse_result.spec.topic,
+            entity_scope=parse_result.spec.entity_scope,
+            time_start_year=parse_result.spec.time_start_year,
+            time_end_year=parse_result.spec.time_end_year,
+            analysis_frequency_hint=parse_result.spec.analysis_frequency_hint,
+            analysis_grain_candidates=parse_result.spec.analysis_grain_candidates,
+            variable_definitions=build_result.variable_definitions,
+        ),
     )
     result = VariableBindingMaterializer().materialize_variable_bindings(
-        request=live_request,
-        spec=parse_result.spec,
         variable_definitions=build_result.variable_definitions,
         planning_result=plan_result,
     )
 
     assert result.failure_reason is None
     assert result.bindings
-    assert parse_result.spec.dependent_variable in result.hard_contract_variables
-
+    assert any(
+        binding.variable_name == parse_result.spec.dependent_variable
+        and binding.contract_tier == "hard"
+        for binding in result.bindings
+    )
 
 

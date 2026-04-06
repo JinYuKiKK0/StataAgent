@@ -6,6 +6,7 @@ from typing import Literal, Protocol, cast
 from langchain_core.runnables.config import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.runtime import Runtime
 from langgraph.types import interrupt
 
 from stata_agent.workflow.gateway import GatewayDecision
@@ -20,6 +21,7 @@ class Phase1Node(Protocol):
         self,
         state: ResearchState,
         config: RunnableConfig | None = None,
+        runtime: Runtime[ResearchState] | None = None,
     ) -> ResearchState: ...
 
 
@@ -42,62 +44,12 @@ def gateway_approval_node(state: ResearchState) -> ResearchState:
         "time_range": f"{contract.time_start_year}-{contract.time_end_year}"
         if contract
         else "",
-        "mapping_evidence_summary": _build_mapping_evidence_summary(state),
-        "probe_trace_summary": _build_probe_trace_summary(state),
+        "substitution_log": contract.substitution_log if contract else [],
     }
 
     human_decision = cast(object, interrupt(approval_payload))
     resume_request = _coerce_gateway_resume_request(human_decision)
     return _apply_gateway_decision(state, resume_request)
-
-
-def _build_mapping_evidence_summary(state: ResearchState) -> list[dict[str, str]]:
-    contract = state.phase1_artifacts.data_contract_bundle
-    if contract is None:
-        return []
-
-    return [
-        {
-            "variable_name": binding.variable_name,
-            "table_code": binding.table_code,
-            "field_name": binding.field_name,
-            "trace_id": binding.trace_id,
-            "evidence": binding.evidence,
-        }
-        for binding in contract.variable_bindings
-    ]
-
-
-def _build_probe_trace_summary(state: ResearchState) -> list[dict[str, str]]:
-    contract = state.phase1_artifacts.data_contract_bundle
-    if contract is None:
-        return []
-
-    trace_validation_map: dict[str, str] = {}
-    for trace in state.workflow_audit.csmar_traces:
-        trace_id = trace.trace_id.strip()
-        validation_id = (trace.validation_id or "").strip()
-        if trace_id and validation_id:
-            trace_validation_map[trace_id] = validation_id
-
-    summary: list[dict[str, str]] = []
-    for result in contract.probe_coverage.probe_results:
-        validation_id = result.validation_id.strip()
-        if not validation_id:
-            validation_id = trace_validation_map.get(result.trace_id.strip(), "")
-        summary.append(
-            {
-                "variable_name": result.variable_name,
-                "table_code": result.table_code,
-                "field_name": result.field_name,
-                "trace_id": result.trace_id,
-                "query_fingerprint": result.query_fingerprint,
-                "validation_id": validation_id,
-                "error_code": result.error_code,
-            }
-        )
-    return summary
-
 
 def _coerce_gateway_resume_request(payload: object) -> GatewayResumeRequest:
     if not isinstance(payload, Mapping):

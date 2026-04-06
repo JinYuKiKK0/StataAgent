@@ -3,8 +3,6 @@ from __future__ import annotations
 from stata_agent.services.mapping.contracts import VariableMappingResult
 from stata_agent.services.probe.contracts import ProbeCoverageResult
 from stata_agent.workflow.stages.phase1_audit import build_workflow_audit
-from stata_agent.workflow.stages.phase1_audit import trace_ids_from_bindings
-from stata_agent.workflow.stages.phase1_audit import trace_ids_from_probe_results
 from stata_agent.workflow.state import ResearchState
 from stata_agent.workflow.state_contracts import Phase1StateUpdate
 from stata_agent.workflow.types import RunStage
@@ -13,20 +11,20 @@ from stata_agent.workflow.types import RunStage
 def build_mapping_state_update(
     state: ResearchState,
     mapping_result: VariableMappingResult,
+    *,
+    planned_items_count: int,
+    audit_refs: list[str] | None = None,
 ) -> Phase1StateUpdate:
     notes = list(state.workflow_audit.notes)
     notes.extend(mapping_result.warnings)
-    phase1 = state.phase1_artifacts.model_copy(update={"mapping_result": mapping_result})
     updates: Phase1StateUpdate = {
-        "phase1_artifacts": phase1,
+        "phase1_artifacts": state.phase1_artifacts,
         "workflow_audit": build_workflow_audit(
             state,
             notes=notes,
             node_name="materialize_variable_bindings",
             input_summary={
-                "planned_items_count": len(state.phase1_artifacts.mapping_plan_result.items)
-                if state.phase1_artifacts.mapping_plan_result is not None
-                else 0,
+                "planned_items_count": planned_items_count,
             },
             output_summary={
                 "bindings_count": len(mapping_result.bindings),
@@ -34,7 +32,7 @@ def build_mapping_state_update(
             },
             warnings=list(mapping_result.warnings),
             failure_reason=mapping_result.failure_reason,
-            trace_ids=trace_ids_from_bindings(mapping_result.bindings),
+            audit_refs=audit_refs,
         ),
     }
     if mapping_result.failure_reason is not None:
@@ -44,13 +42,8 @@ def build_mapping_state_update(
         return updates
 
     notes.append("CSMAR 探针级变量映射已完成。")
-    resolved_definitions = mapping_result.resolved_variable_definitions
-    if not resolved_definitions:
-        assert state.phase1_artifacts.variable_definitions is not None
-        resolved_definitions = state.phase1_artifacts.variable_definitions
-    updates["phase1_artifacts"] = phase1.model_copy(
+    updates["phase1_artifacts"] = state.phase1_artifacts.model_copy(
         update={
-            "variable_definitions": resolved_definitions,
             "variable_bindings": mapping_result.bindings,
         }
     )
@@ -62,6 +55,8 @@ def build_mapping_state_update(
 def build_probe_summary_state_update(
     state: ResearchState,
     coverage_result: ProbeCoverageResult,
+    *,
+    audit_refs: list[str] | None = None,
 ) -> Phase1StateUpdate:
     notes = list(state.workflow_audit.notes)
     notes.extend(coverage_result.warnings)
@@ -73,9 +68,7 @@ def build_probe_summary_state_update(
             state,
             notes=notes,
             node_name="summarize_probe_coverage",
-            input_summary={
-                "probe_results_count": len(state.phase1_artifacts.probe_results_raw or [])
-            },
+            input_summary={"probe_results_count": len(coverage_result.probe_results)},
             output_summary={
                 "hard_gaps_count": len(coverage_result.hard_gaps),
                 "soft_gaps_count": len(coverage_result.soft_gaps),
@@ -84,7 +77,7 @@ def build_probe_summary_state_update(
             },
             warnings=list(coverage_result.warnings),
             failure_reason=coverage_result.failure_reason,
-            trace_ids=trace_ids_from_probe_results(coverage_result.probe_results),
+            audit_refs=audit_refs,
         ),
     }
     if coverage_result.failure_reason is not None:

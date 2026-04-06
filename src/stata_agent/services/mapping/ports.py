@@ -1,16 +1,15 @@
 from collections.abc import Sequence
 from typing import Protocol
 
-from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.domains.spec.types import ResearchSpec
-from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
 from stata_agent.services.mapping.contracts import CsmarFieldProbeResult
 from stata_agent.services.mapping.contracts import CsmarTableRecord
 from stata_agent.services.mapping.contracts import CsmarTableSchema
+from stata_agent.services.mapping.contracts import MappingPlannerInput
 from stata_agent.services.mapping.contracts import VariableMappingBudget
 from stata_agent.services.mapping.contracts import VariableMappingPlanResult
 from stata_agent.services.mapping.contracts import VariableMappingResult
+from stata_agent.domains.spec.types import VariableDefinition
 
 
 class CsmarMetadataProviderPort(Protocol):
@@ -41,9 +40,7 @@ class MappingPlannerPort(Protocol):
     def plan(
         self,
         *,
-        request: ResearchRequest,
-        spec: ResearchSpec,
-        variable_definitions: list[VariableDefinition],
+        planner_input: MappingPlannerInput,
         metadata_provider: CsmarMetadataProviderPort,
     ) -> VariableMappingPlanResult: ...
 
@@ -52,9 +49,7 @@ class ProbeMappingPlannerPort(Protocol):
     def plan_probe_mapping(
         self,
         *,
-        request: ResearchRequest,
-        spec: ResearchSpec,
-        variable_definitions: list[VariableDefinition],
+        planner_input: MappingPlannerInput,
     ) -> VariableMappingPlanResult: ...
 
     def drain_tool_traces(self) -> Sequence[object]: ...
@@ -64,8 +59,6 @@ class VariableBindingMaterializerPort(Protocol):
     def materialize_variable_bindings(
         self,
         *,
-        request: ResearchRequest,
-        spec: ResearchSpec,
         variable_definitions: list[VariableDefinition],
         planning_result: VariableMappingPlanResult,
     ) -> VariableMappingResult: ...

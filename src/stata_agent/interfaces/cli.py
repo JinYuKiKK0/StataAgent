@@ -151,10 +151,11 @@ def _render_research_summary(state: ResearchState) -> None:
         _render_variable_definitions(state)
     if artifacts.data_requirements_draft is not None:
         _render_data_requirements(state)
-    if artifacts.parse_result is not None:
-        _render_parse_audit(state)
-    if artifacts.probe_coverage_result is not None:
+    _render_parse_audit(state)
+    if artifacts.probe_coverage_result is not None or artifacts.data_contract_bundle is not None:
         _render_probe_coverage(state)
+    if artifacts.data_contract_bundle is not None:
+        _render_contract_summary(state)
     console.print(f"\n[dim]工作流状态 ID: {state.stage}[/dim]")
 
 
@@ -185,22 +186,20 @@ def _render_spec_summary(state: ResearchState) -> None:
 
 
 def _render_parse_audit(state: ResearchState) -> None:
-    parse_result = state.phase1_artifacts.parse_result
-    if parse_result is None:
+    parse_audit = state.workflow_audit.node_audits.get("parse_request")
+    if parse_audit is None:
         return
 
     table = Table(title="需求解析审计")
     table.add_column("字段", style="cyan")
     table.add_column("值", style="white")
 
-    if parse_result.failure_reason is not None:
-        table.add_row("失败原因", parse_result.failure_reason)
-    if parse_result.parsing_error is not None:
-        table.add_row("结构化解析错误", parse_result.parsing_error)
-    if parse_result.warnings:
-        table.add_row("Warnings", " | ".join(parse_result.warnings))
-    if parse_result.raw_response_text:
-        table.add_row("原始响应", parse_result.raw_response_text)
+    if parse_audit.failure_reason is not None:
+        table.add_row("失败原因", parse_audit.failure_reason)
+    if parse_audit.warnings:
+        table.add_row("Warnings", " | ".join(parse_audit.warnings))
+    if parse_audit.audit_refs:
+        table.add_row("审计引用", " | ".join(parse_audit.audit_refs))
 
     if table.row_count > 0:
         console.print(table)
@@ -249,6 +248,8 @@ def _render_data_requirements(state: ResearchState) -> None:
 
 def _render_probe_coverage(state: ResearchState) -> None:
     probe_coverage = state.phase1_artifacts.probe_coverage_result
+    if probe_coverage is None and state.phase1_artifacts.data_contract_bundle is not None:
+        probe_coverage = state.phase1_artifacts.data_contract_bundle.probe_coverage
     if probe_coverage is None:
         return
 
@@ -277,4 +278,26 @@ def _render_probe_coverage(state: ResearchState) -> None:
         "Soft 缺口",
         "、".join(probe_coverage.soft_gaps) if probe_coverage.soft_gaps else "无",
     )
+    if probe_coverage.failure_reason is not None:
+        summary.add_row("失败原因", probe_coverage.failure_reason)
+    if probe_coverage.warnings:
+        summary.add_row("Warnings", " | ".join(probe_coverage.warnings))
+    console.print(summary)
+
+
+def _render_contract_summary(state: ResearchState) -> None:
+    contract = state.phase1_artifacts.data_contract_bundle
+    if contract is None:
+        return
+
+    summary = Table(title="最低可行数据契约")
+    summary.add_column("字段", style="cyan")
+    summary.add_column("值", style="white")
+    summary.add_row("分析粒度", contract.analysis_grain)
+    summary.add_row("Hard Contract 变量", "、".join(contract.hard_contract_variables) or "无")
+    summary.add_row("Soft Contract 变量", "、".join(contract.soft_contract_variables) or "无")
+    summary.add_row("允许自动剔除", "、".join(contract.allowed_soft_removals) or "无")
+    summary.add_row("残余风险", "、".join(contract.residual_risks) or "无")
+    if contract.substitution_log:
+        summary.add_row("替代记录", "、".join(contract.substitution_log))
     console.print(summary)

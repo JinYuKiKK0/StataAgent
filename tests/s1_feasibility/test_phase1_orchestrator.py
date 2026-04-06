@@ -16,18 +16,15 @@ def test_phase1_runs_to_contracted_state(
     live_phase1_orchestrator: Phase1FeasibilityOrchestrator,
     live_request: ResearchRequest,
 ) -> None:
-    """验证真实 Phase 1 流水线会产出最低可行数据契约。"""
+    """验证真实 Phase 1 流水线会产出最低可行数据契约，并清理 active state。"""
     state = live_phase1_orchestrator.run_feasibility(ResearchState(request=live_request))
 
     assert state.stage is RunStage.CONTRACTED
-    assert state.phase1_artifacts.spec is not None
-    assert state.phase1_artifacts.parse_result is not None
-    assert state.phase1_artifacts.variable_definitions is not None
-    assert state.phase1_artifacts.data_requirements_draft is not None
-    assert state.phase1_artifacts.variable_bindings is not None
-    assert state.phase1_artifacts.mapping_result is not None
-    assert state.phase1_artifacts.probe_coverage_result is not None
+    assert state.phase1_artifacts.spec is None
+    assert state.phase1_artifacts.variable_definitions is None
+    assert state.phase1_artifacts.data_requirements_draft is None
+    assert state.phase1_artifacts.variable_bindings is None
+    assert state.phase1_artifacts.probe_coverage_result is None
     assert state.phase1_artifacts.data_contract_bundle is not None
-
 
 

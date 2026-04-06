@@ -6,6 +6,7 @@ from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
 from stata_agent.services.mapping.contracts import CsmarFieldProbeResult
 from stata_agent.services.mapping.contracts import CsmarTableRecord
 from stata_agent.services.mapping.contracts import CsmarTableSchema
+from stata_agent.services.probe.contracts import ProbeExecutionInput
 from stata_agent.services.probe.contracts import ProbeCoverageResult
 from stata_agent.services.probe.executor import ProbeExecutor
 from stata_agent.services.probe.summarizer import ProbeCoverageSummarizer
@@ -54,14 +55,8 @@ def _build_hard_binding() -> VariableBinding:
         variable_name="ROA",
         table_code="FS_Comins",
         field_name="ROA",
-        confidence=0.9,
-        database_name="财务报表",
         contract_tier="hard",
-        is_hard_contract=True,
         frequency_match=True,
-        source="unit-test",
-        evidence="hard",
-        table_name="利润表",
     )
 
 
@@ -69,8 +64,17 @@ def _execute_probe_summary(
     executor: ProbeExecutor,
     variable_bindings: list[VariableBinding],
 ) -> ProbeCoverageResult:
-    probe_results = executor.run_field_probes(_build_spec(), variable_bindings)
-    return ProbeCoverageSummarizer().summarize_coverage(_build_spec(), probe_results)
+    spec = _build_spec()
+    probe_results = executor.run_field_probes(
+        ProbeExecutionInput(
+            entity_scope=spec.entity_scope,
+            analysis_grain=spec.analysis_grain_candidates[0],
+            time_start_year=spec.time_start_year,
+            time_end_year=spec.time_end_year,
+            variable_bindings=variable_bindings,
+        )
+    )
+    return ProbeCoverageSummarizer().summarize_coverage(spec, probe_results)
 
 
 def test_probe_executor_reports_scoped_coverage() -> None:
@@ -118,6 +122,5 @@ def test_probe_executor_fails_fast_for_hard_gap() -> None:
 
     assert result.failure_reason is not None
     assert result.hard_gaps == ["ROA"]
-
 
 

@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from stata_agent.providers.csmar.client import CsmarBridgeClient
 from stata_agent.providers.csmar.contracts import McpToolPayload
 from stata_agent.providers.csmar.errors import CsmarMetadataError
@@ -223,6 +221,5 @@ def test_materialize_query_parses_new_contract_fields() -> None:
     assert len(traces) == 1
     assert traces[0].tool_name == "csmar_materialize_query"
     assert traces[0].validation_id == "validation_test001"
-
 
 
