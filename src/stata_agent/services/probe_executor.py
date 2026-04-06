@@ -20,6 +20,14 @@ class ProbeExecutor:
         spec: ResearchSpec,
         variable_bindings: list[VariableBinding],
     ) -> ProbeCoverageResult:
+        probe_results = self.run_field_probes(spec, variable_bindings)
+        return self.summarize_coverage(spec, probe_results)
+
+    def run_field_probes(
+        self,
+        spec: ResearchSpec,
+        variable_bindings: list[VariableBinding],
+    ) -> list[VariableProbeResult]:
         self._pending_traces = []
         probe_results: list[VariableProbeResult] = []
         probe_cache: dict[tuple[str, str, int, int], VariableProbeResult] = {}
@@ -47,18 +55,17 @@ class ProbeExecutor:
                     }
                 )
             )
-        hard_results = [
-            result for result in probe_results if result.contract_tier == "hard"
-        ]
-        soft_results = [
-            result for result in probe_results if result.contract_tier == "soft"
-        ]
-        hard_gaps = [
-            result.variable_name for result in hard_results if not result.is_accessible
-        ]
-        soft_gaps = [
-            result.variable_name for result in soft_results if not result.is_accessible
-        ]
+        return probe_results
+
+    def summarize_coverage(
+        self,
+        spec: ResearchSpec,
+        probe_results: list[VariableProbeResult],
+    ) -> ProbeCoverageResult:
+        hard_results = [r for r in probe_results if r.contract_tier == "hard"]
+        soft_results = [r for r in probe_results if r.contract_tier == "soft"]
+        hard_gaps = [r.variable_name for r in hard_results if not r.is_accessible]
+        soft_gaps = [r.variable_name for r in soft_results if not r.is_accessible]
         warnings = self._collect_probe_warnings(probe_results)
         warnings.extend(self._collect_fail_fast_warnings(probe_results))
         warnings.extend(self._build_soft_gap_warnings(soft_gaps))

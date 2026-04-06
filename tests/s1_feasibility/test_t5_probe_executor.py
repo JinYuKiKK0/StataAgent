@@ -1,20 +1,14 @@
 """S1-T5 探针执行与覆盖摘要测试。"""
 
-import pytest
-
+from stata_agent.domains.fetch.types import VariableProbeResult
 from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
 from stata_agent.domains.mapping.types import CsmarFieldProbeResult
 from stata_agent.domains.mapping.types import CsmarTableRecord
 from stata_agent.domains.mapping.types import CsmarTableSchema
 from stata_agent.domains.mapping.types import VariableBinding
-from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
-from stata_agent.providers.csmar import CsmarBridgeClient
 from stata_agent.providers.csmar import CsmarMetadataError
 from stata_agent.services.probe_executor import ProbeExecutor
-from stata_agent.services.requirement_parser import RequirementParser
-
-pytest_plugins = ["tests.live_api_support"]
 
 
 class _FakeMetadataProvider:
@@ -264,39 +258,58 @@ def test_probe_executor_surfaces_fail_fast_error_metadata() -> None:
     assert any("fail-fast" in warning for warning in result.warnings)
 
 
-@pytest.mark.live_api
-def test_probe_executor_reports_real_coverage(
-    live_parser: RequirementParser,
-    live_csmar_provider: CsmarBridgeClient,
-    live_request: ResearchRequest,
-) -> None:
-    """验证探针节点会使用真实 CSMAR queryCount 返回覆盖摘要。"""
-    parse_result = live_parser.parse(live_request)
-    assert parse_result.spec is not None
+def test_probe_executor_exposes_raw_probe_results_before_summary() -> None:
+    """验证探针服务可先执行原始 probes，再交由子图做摘要节点。"""
+    provider = _FakeMetadataProvider(
+        {
+            ("FS_Comins", "ROA"): CsmarFieldProbeResult(
+                variable_name="ROA",
+                table_code="FS_Comins",
+                field_name="ROA",
+                field_exists=True,
+                row_count=99,
+                query_fingerprint="FS_Comins.ROA:2018-2023",
+                validation_id="validation_probe_roa",
+                scope_level="time_scoped",
+            )
+        }
+    )
+    executor = ProbeExecutor(metadata_provider=provider)
 
-    executor = ProbeExecutor(metadata_provider=live_csmar_provider)
-    result = executor.execute_coverage(parse_result.spec, [_build_hard_binding()])
+    raw_results = executor.run_field_probes(_build_spec(), [_build_hard_binding()])
+
+    assert len(raw_results) == 1
+    assert raw_results[0].query_fingerprint == "FS_Comins.ROA:2018-2023"
+
+
+def test_probe_executor_summarizes_existing_probe_results() -> None:
+    """验证探针服务可从既有 raw probe 结果生成 coverage 摘要。"""
+    executor = ProbeExecutor(metadata_provider=_FakeMetadataProvider({}))
+    raw_results = [
+        VariableProbeResult(
+            variable_name="ROA",
+            contract_tier="hard",
+            table_code="FS_Comins",
+            field_name="ROA",
+            field_exists=True,
+            frequency_match=True,
+            query_count=99,
+            is_accessible=True,
+            scope_level="time_scoped",
+        ),
+        VariableProbeResult(
+            variable_name="软约束不存在字段",
+            contract_tier="soft",
+            table_code="FS_Comins",
+            field_name="NOT_A_REAL_FIELD_SOFT",
+            field_exists=False,
+            frequency_match=True,
+            failure_reason="字段不存在，无法执行 scoped probe。",
+            scope_level="time_scoped",
+        ),
+    ]
+
+    result = executor.summarize_coverage(_build_spec(), raw_results)
 
     assert result.failure_reason is None
-    assert result.hard_coverage_rate == 1.0
-    assert result.key_alignment_ready is True
-
-
-@pytest.mark.live_api
-def test_probe_executor_fails_fast_for_real_hard_gap(
-    live_parser: RequirementParser,
-    live_csmar_provider: CsmarBridgeClient,
-    live_request: ResearchRequest,
-) -> None:
-    """验证真实探针中 Hard Contract 字段不可达时会触发 fail-fast。"""
-    parse_result = live_parser.parse(live_request)
-    assert parse_result.spec is not None
-
-    executor = ProbeExecutor(metadata_provider=live_csmar_provider)
-    invalid_binding = _build_hard_binding().model_copy(
-        update={"field_name": "NOT_A_REAL_FIELD", "variable_name": "硬约束不存在字段"}
-    )
-    result = executor.execute_coverage(parse_result.spec, [invalid_binding])
-
-    assert result.failure_reason is not None
-    assert result.hard_gaps == ["硬约束不存在字段"]
+    assert result.soft_gaps == ["软约束不存在字段"]

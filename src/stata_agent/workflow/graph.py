@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from typing import Literal, Protocol, cast
 
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
@@ -15,7 +16,11 @@ from stata_agent.workflow.types import RunStage
 
 
 class Phase1Node(Protocol):
-    def __call__(self, state: ResearchState) -> ResearchState: ...
+    def __call__(
+        self,
+        state: ResearchState,
+        config: RunnableConfig | None = None,
+    ) -> ResearchState: ...
 
 
 def gateway_approval_node(state: ResearchState) -> ResearchState:

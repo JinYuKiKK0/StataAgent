@@ -224,3 +224,80 @@ def test_mapper_keeps_soft_gap_summary_without_abort() -> None:
 
     assert result.failure_reason is None
     assert "不存在的控制变量" in result.soft_contract_gaps
+
+
+def test_mapper_exposes_planning_result_before_materialization() -> None:
+    """验证映射服务可先输出原始 planning result 供子图节点消费。"""
+    plan_result = VariableMappingPlanResult(
+        items=[
+            VariableMappingPlanItem(
+                variable_name="ROA",
+                matched=True,
+                database_name="财务报表",
+                table_code="FS_Comins",
+                field_name="ROA",
+                frequency_match=True,
+                trace_id="trace_roa_schema",
+            )
+        ],
+        warnings=["planning complete"],
+    )
+    mapper = VariableMapper(
+        metadata_provider=_UnusedMetadataProvider(),
+        planner=_FakePlanningAgent(plan_result),
+    )
+
+    result = mapper.plan_probe_mapping(
+        request=_build_request(),
+        spec=_build_spec(),
+        variable_definitions=_build_definitions(),
+    )
+
+    assert result.items[0].variable_name == "ROA"
+    assert result.warnings == ["planning complete"]
+
+
+def test_mapper_materializes_bindings_from_existing_plan() -> None:
+    """验证映射服务可从既有 plan 物化正式绑定结果。"""
+    mapper = VariableMapper(
+        metadata_provider=_UnusedMetadataProvider(),
+        planner=_FakePlanningAgent(VariableMappingPlanResult()),
+    )
+    plan_result = VariableMappingPlanResult(
+        items=[
+            VariableMappingPlanItem(
+                variable_name="ROA",
+                matched=True,
+                database_name="财务报表",
+                table_code="FS_Comins",
+                table_name="利润表",
+                field_name="ROA",
+                field_label="资产回报率",
+                frequency_match=True,
+                evidence="已确认利润表 schema。",
+                trace_id="trace_roa_schema",
+            ),
+            VariableMappingPlanItem(
+                variable_name="资产总计",
+                matched=True,
+                database_name="财务报表",
+                table_code="FS_Combas",
+                table_name="资产负债表",
+                field_name="ASSET",
+                field_label="总资产",
+                frequency_match=True,
+                evidence="已确认资产负债表 schema。",
+                trace_id="trace_asset_schema",
+            ),
+        ]
+    )
+
+    result = mapper.materialize_variable_bindings(
+        request=_build_request(),
+        spec=_build_spec(),
+        variable_definitions=_build_definitions(),
+        planning_result=plan_result,
+    )
+
+    assert result.failure_reason is None
+    assert [item.variable_name for item in result.bindings] == ["ROA", "资产总计"]

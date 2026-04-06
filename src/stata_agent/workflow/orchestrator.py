@@ -105,8 +105,12 @@ class ApplicationOrchestrator:
 
     # ── Graph nodes ──
 
-    def _run_phase1_node(self, state: ResearchState) -> ResearchState:
-        return self._get_phase1_orchestrator().run_feasibility(state)
+    def _run_phase1_node(
+        self,
+        state: ResearchState,
+        config: RunnableConfig | None = None,
+    ) -> ResearchState:
+        return self._get_phase1_orchestrator().run_feasibility(state, config=config)
 
     # ── Config ──
 

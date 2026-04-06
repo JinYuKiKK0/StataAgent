@@ -2,14 +2,17 @@ from typing import Protocol
 
 from stata_agent.domains.fetch.types import DataContractBundle
 from stata_agent.domains.fetch.types import ProbeCoverageResult
+from stata_agent.domains.fetch.types import VariableProbeResult
 from stata_agent.domains.mapping.ports import CsmarMetadataProviderPort
 from stata_agent.domains.mapping.types import VariableBinding
+from stata_agent.domains.mapping.types import VariableMappingPlanResult
 from stata_agent.domains.mapping.types import VariableMappingResult
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import RequirementParseResult
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.domains.spec.types import VariableRequirementsResult
+from langchain_core.runnables.config import RunnableConfig
 from stata_agent.workflow.state import ResearchState
 
 
@@ -22,6 +25,23 @@ class VariableRequirementsBuilderPort(Protocol):
 
 
 class VariableMapperPort(Protocol):
+    def plan_probe_mapping(
+        self,
+        *,
+        request: ResearchRequest,
+        spec: ResearchSpec,
+        variable_definitions: list[VariableDefinition],
+    ) -> VariableMappingPlanResult: ...
+
+    def materialize_variable_bindings(
+        self,
+        *,
+        request: ResearchRequest,
+        spec: ResearchSpec,
+        variable_definitions: list[VariableDefinition],
+        planning_result: VariableMappingPlanResult,
+    ) -> VariableMappingResult: ...
+
     def map_probe_bindings(
         self,
         request: ResearchRequest,
@@ -31,6 +51,18 @@ class VariableMapperPort(Protocol):
 
 
 class ProbeExecutorPort(Protocol):
+    def run_field_probes(
+        self,
+        spec: ResearchSpec,
+        variable_bindings: list[VariableBinding],
+    ) -> list[VariableProbeResult]: ...
+
+    def summarize_coverage(
+        self,
+        spec: ResearchSpec,
+        probe_results: list[VariableProbeResult],
+    ) -> ProbeCoverageResult: ...
+
     def execute_coverage(
         self,
         spec: ResearchSpec,
@@ -50,7 +82,12 @@ class DataContractBuilderPort(Protocol):
 
 
 class Phase1OrchestratorPort(Protocol):
-    def run_feasibility(self, state: ResearchState) -> ResearchState: ...
+    def run_feasibility(
+        self,
+        state: ResearchState,
+        *,
+        config: RunnableConfig | None = None,
+    ) -> ResearchState: ...
 
 
 class Phase2OrchestratorPort(Protocol):

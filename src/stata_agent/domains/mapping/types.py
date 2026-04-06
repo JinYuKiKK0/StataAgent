@@ -185,6 +185,7 @@ def _empty_mapping_plan_items() -> list[VariableMappingPlanItem]:
 
 class VariableMappingPlanResult(BaseModel):
     items: list[VariableMappingPlanItem] = Field(default_factory=_empty_mapping_plan_items)
+    failure_reason: str | None = None
     warnings: list[str] = Field(default_factory=list)
 
 

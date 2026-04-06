@@ -7,6 +7,7 @@ from stata_agent.domains.mapping.types import (
     VariableBinding,
     VariableMappingBudget,
     VariableMappingPlanItem,
+    VariableMappingPlanResult,
     VariableMappingResult,
 )
 from stata_agent.domains.request.types import ResearchRequest
@@ -38,8 +39,26 @@ class VariableMapper:
         spec: ResearchSpec,
         variable_definitions: list[VariableDefinition],
     ) -> VariableMappingResult:
+        planning_result = self.plan_probe_mapping(
+            request=request,
+            spec=spec,
+            variable_definitions=variable_definitions,
+        )
+        return self.materialize_variable_bindings(
+            request=request,
+            spec=spec,
+            variable_definitions=variable_definitions,
+            planning_result=planning_result,
+        )
+
+    def plan_probe_mapping(
+        self,
+        *,
+        request: ResearchRequest,
+        spec: ResearchSpec,
+        variable_definitions: list[VariableDefinition],
+    ) -> VariableMappingPlanResult:
         self._pending_traces = []
-        hard_variables = self._build_hard_variables(request, spec, variable_definitions)
         scoped_provider = NodeScopedCsmarProvider(
             metadata_provider=self._metadata_provider,
             node_name="map_variables",
@@ -59,14 +78,30 @@ class VariableMapper:
             )
         except Exception as exc:
             self._pending_traces.extend(scoped_provider.drain_tool_traces())
-            return VariableMappingResult(
+            return VariableMappingPlanResult(
                 failure_reason=f"变量映射失败：LLM 映射节点执行失败：{exc}",
-                hard_contract_variables=sorted(hard_variables),
                 warnings=[f"变量映射节点异常：{exc}"],
+            )
+        self._pending_traces.extend(scoped_provider.drain_tool_traces())
+        return planning_result
+
+    def materialize_variable_bindings(
+        self,
+        *,
+        request: ResearchRequest,
+        spec: ResearchSpec,
+        variable_definitions: list[VariableDefinition],
+        planning_result: VariableMappingPlanResult,
+    ) -> VariableMappingResult:
+        hard_variables = self._build_hard_variables(request, spec, variable_definitions)
+        if planning_result.failure_reason is not None:
+            return VariableMappingResult(
+                failure_reason=planning_result.failure_reason,
+                hard_contract_variables=sorted(hard_variables),
+                warnings=list(planning_result.warnings),
                 resolved_variable_definitions=variable_definitions,
             )
 
-        self._pending_traces.extend(scoped_provider.drain_tool_traces())
         items_by_name = {
             item.variable_name: item for item in planning_result.items if item.variable_name
         }
