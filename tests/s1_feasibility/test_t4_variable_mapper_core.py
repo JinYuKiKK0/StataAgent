@@ -6,6 +6,7 @@ from stata_agent.domains.mapping.types import CsmarTableRecord
 from stata_agent.domains.mapping.types import CsmarTableSchema
 from stata_agent.domains.mapping.types import VariableMappingPlanItem
 from stata_agent.domains.mapping.types import VariableMappingPlanResult
+from stata_agent.domains.mapping.types import VariableMappingResult
 from stata_agent.domains.mapping.ports import CsmarMetadataProviderPort
 from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.domains.request.types import ResearchRequest
@@ -75,6 +76,25 @@ def _build_definitions() -> list[VariableDefinition]:
     return builder.build(_build_spec()).variable_definitions
 
 
+def _materialize_from_planner(
+    mapper: VariableMapper,
+    *,
+    variable_definitions: list[VariableDefinition] | None = None,
+) -> VariableMappingResult:
+    definitions = variable_definitions or _build_definitions()
+    plan_result = mapper.plan_probe_mapping(
+        request=_build_request(),
+        spec=_build_spec(),
+        variable_definitions=definitions,
+    )
+    return mapper.materialize_variable_bindings(
+        request=_build_request(),
+        spec=_build_spec(),
+        variable_definitions=definitions,
+        planning_result=plan_result,
+    )
+
+
 def test_mapper_builds_bindings_from_planner_selection() -> None:
     """验证 mapper 会把 planner 产出的结构化映射草案转换为正式绑定。"""
     planner = _FakePlanningAgent(
@@ -117,11 +137,7 @@ def test_mapper_builds_bindings_from_planner_selection() -> None:
         planner=planner,
     )
 
-    result = mapper.map_probe_bindings(
-        request=_build_request(),
-        spec=_build_spec(),
-        variable_definitions=_build_definitions(),
-    )
+    result = _materialize_from_planner(mapper)
 
     assert result.failure_reason is None
     assert [item.variable_name for item in result.bindings] == ["ROA", "资产总计"]
@@ -159,11 +175,7 @@ def test_mapper_fails_fast_when_planner_misses_hard_variable() -> None:
         planner=planner,
     )
 
-    result = mapper.map_probe_bindings(
-        request=_build_request(),
-        spec=_build_spec(),
-        variable_definitions=_build_definitions(),
-    )
+    result = _materialize_from_planner(mapper)
 
     assert result.failure_reason is not None
     assert "资产总计" in result.failure_reason
@@ -216,88 +228,10 @@ def test_mapper_keeps_soft_gap_summary_without_abort() -> None:
         )
     ]
 
-    result = mapper.map_probe_bindings(
-        request=_build_request(),
-        spec=_build_spec(),
+    result = _materialize_from_planner(
+        mapper,
         variable_definitions=definitions,
     )
 
     assert result.failure_reason is None
     assert "不存在的控制变量" in result.soft_contract_gaps
-
-
-def test_mapper_exposes_planning_result_before_materialization() -> None:
-    """验证映射服务可先输出原始 planning result 供子图节点消费。"""
-    plan_result = VariableMappingPlanResult(
-        items=[
-            VariableMappingPlanItem(
-                variable_name="ROA",
-                matched=True,
-                database_name="财务报表",
-                table_code="FS_Comins",
-                field_name="ROA",
-                frequency_match=True,
-                trace_id="trace_roa_schema",
-            )
-        ],
-        warnings=["planning complete"],
-    )
-    mapper = VariableMapper(
-        metadata_provider=_UnusedMetadataProvider(),
-        planner=_FakePlanningAgent(plan_result),
-    )
-
-    result = mapper.plan_probe_mapping(
-        request=_build_request(),
-        spec=_build_spec(),
-        variable_definitions=_build_definitions(),
-    )
-
-    assert result.items[0].variable_name == "ROA"
-    assert result.warnings == ["planning complete"]
-
-
-def test_mapper_materializes_bindings_from_existing_plan() -> None:
-    """验证映射服务可从既有 plan 物化正式绑定结果。"""
-    mapper = VariableMapper(
-        metadata_provider=_UnusedMetadataProvider(),
-        planner=_FakePlanningAgent(VariableMappingPlanResult()),
-    )
-    plan_result = VariableMappingPlanResult(
-        items=[
-            VariableMappingPlanItem(
-                variable_name="ROA",
-                matched=True,
-                database_name="财务报表",
-                table_code="FS_Comins",
-                table_name="利润表",
-                field_name="ROA",
-                field_label="资产回报率",
-                frequency_match=True,
-                evidence="已确认利润表 schema。",
-                trace_id="trace_roa_schema",
-            ),
-            VariableMappingPlanItem(
-                variable_name="资产总计",
-                matched=True,
-                database_name="财务报表",
-                table_code="FS_Combas",
-                table_name="资产负债表",
-                field_name="ASSET",
-                field_label="总资产",
-                frequency_match=True,
-                evidence="已确认资产负债表 schema。",
-                trace_id="trace_asset_schema",
-            ),
-        ]
-    )
-
-    result = mapper.materialize_variable_bindings(
-        request=_build_request(),
-        spec=_build_spec(),
-        variable_definitions=_build_definitions(),
-        planning_result=plan_result,
-    )
-
-    assert result.failure_reason is None
-    assert [item.variable_name for item in result.bindings] == ["ROA", "资产总计"]

@@ -30,10 +30,16 @@ def test_mapper_generates_bindings_from_real_csmar_metadata(
         metadata_provider=live_csmar_provider,
         planner=TongyiVariableMappingPlanner(live_settings),
     )
-    result = mapper.map_probe_bindings(
+    plan_result = mapper.plan_probe_mapping(
         request=live_request,
         spec=parse_result.spec,
         variable_definitions=build_result.variable_definitions,
+    )
+    result = mapper.materialize_variable_bindings(
+        request=live_request,
+        spec=parse_result.spec,
+        variable_definitions=build_result.variable_definitions,
+        planning_result=plan_result,
     )
 
     assert result.failure_reason is None
@@ -58,10 +64,16 @@ def test_mapper_fails_fast_when_real_hard_variable_has_no_mapping(
         metadata_provider=live_csmar_provider,
         planner=TongyiVariableMappingPlanner(live_settings),
     )
-    result = mapper.map_probe_bindings(
+    plan_result = mapper.plan_probe_mapping(
         request=failing_live_request,
         spec=parse_result.spec,
         variable_definitions=build_result.variable_definitions,
+    )
+    result = mapper.materialize_variable_bindings(
+        request=failing_live_request,
+        spec=parse_result.spec,
+        variable_definitions=build_result.variable_definitions,
+        planning_result=plan_result,
     )
 
     assert result.failure_reason is not None

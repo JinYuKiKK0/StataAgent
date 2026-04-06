@@ -38,7 +38,8 @@ def test_probe_executor_reports_real_coverage(
     assert parse_result.spec is not None
 
     executor = ProbeExecutor(metadata_provider=live_csmar_provider)
-    result = executor.execute_coverage(parse_result.spec, [_build_hard_binding()])
+    probe_results = executor.run_field_probes(parse_result.spec, [_build_hard_binding()])
+    result = executor.summarize_coverage(parse_result.spec, probe_results)
 
     assert result.failure_reason is None
     assert result.hard_coverage_rate == 1.0
@@ -59,7 +60,8 @@ def test_probe_executor_fails_fast_for_real_hard_gap(
     invalid_binding = _build_hard_binding().model_copy(
         update={"field_name": "NOT_A_REAL_FIELD", "variable_name": "硬约束不存在字段"}
     )
-    result = executor.execute_coverage(parse_result.spec, [invalid_binding])
+    probe_results = executor.run_field_probes(parse_result.spec, [invalid_binding])
+    result = executor.summarize_coverage(parse_result.spec, probe_results)
 
     assert result.failure_reason is not None
     assert result.hard_gaps == ["硬约束不存在字段"]

@@ -29,11 +29,6 @@ class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
         probe_executor: ProbeExecutorPort,
         data_contract_builder: DataContractBuilderPort,
     ) -> None:
-        self._parser = parser
-        self._builder = builder
-        self._mapper = mapper
-        self._probe_executor = probe_executor
-        self._data_contract_builder = data_contract_builder
         self._nodes = Phase1FeasibilityNodes(
             parser=parser,
             builder=builder,
@@ -42,10 +37,6 @@ class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
             data_contract_builder=data_contract_builder,
         )
         self._graph = self._build_graph()
-
-    @property
-    def compiled_graph(self):
-        return self._graph
 
     def run_feasibility(
         self,

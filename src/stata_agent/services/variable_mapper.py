@@ -33,24 +33,6 @@ class VariableMapper:
         )
         self._pending_traces: list[CsmarToolTrace] = []
 
-    def map_probe_bindings(
-        self,
-        request: ResearchRequest,
-        spec: ResearchSpec,
-        variable_definitions: list[VariableDefinition],
-    ) -> VariableMappingResult:
-        planning_result = self.plan_probe_mapping(
-            request=request,
-            spec=spec,
-            variable_definitions=variable_definitions,
-        )
-        return self.materialize_variable_bindings(
-            request=request,
-            spec=spec,
-            variable_definitions=variable_definitions,
-            planning_result=planning_result,
-        )
-
     def plan_probe_mapping(
         self,
         *,

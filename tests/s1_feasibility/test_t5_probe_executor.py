@@ -1,6 +1,6 @@
 """S1-T5 探针执行与覆盖摘要测试。"""
 
-from stata_agent.domains.fetch.types import VariableProbeResult
+from stata_agent.domains.fetch.types import ProbeCoverageResult
 from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
 from stata_agent.domains.mapping.types import CsmarFieldProbeResult
 from stata_agent.domains.mapping.types import CsmarTableRecord
@@ -93,6 +93,14 @@ def _build_soft_invalid_binding() -> VariableBinding:
     )
 
 
+def _execute_probe_summary(
+    executor: ProbeExecutor,
+    variable_bindings: list[VariableBinding],
+) -> ProbeCoverageResult:
+    probe_results = executor.run_field_probes(_build_spec(), variable_bindings)
+    return executor.summarize_coverage(_build_spec(), probe_results)
+
+
 def test_probe_executor_reports_scoped_coverage() -> None:
     """验证探针节点会保留时间范围 scoped probe 的结果与指纹。"""
     provider = _FakeMetadataProvider(
@@ -111,7 +119,7 @@ def test_probe_executor_reports_scoped_coverage() -> None:
     )
     executor = ProbeExecutor(metadata_provider=provider)
 
-    result = executor.execute_coverage(_build_spec(), [_build_hard_binding()])
+    result = _execute_probe_summary(executor, [_build_hard_binding()])
 
     assert result.failure_reason is None
     assert result.hard_coverage_rate == 1.0
@@ -136,7 +144,7 @@ def test_probe_executor_fails_fast_for_hard_gap() -> None:
     )
     executor = ProbeExecutor(metadata_provider=provider)
 
-    result = executor.execute_coverage(_build_spec(), [_build_hard_binding()])
+    result = _execute_probe_summary(executor, [_build_hard_binding()])
 
     assert result.failure_reason is not None
     assert result.hard_gaps == ["ROA"]
@@ -167,8 +175,8 @@ def test_probe_executor_keeps_soft_gap_summary_without_abort() -> None:
     )
     executor = ProbeExecutor(metadata_provider=provider)
 
-    result = executor.execute_coverage(
-        _build_spec(),
+    result = _execute_probe_summary(
+        executor,
         [_build_hard_binding(), _build_soft_invalid_binding()],
     )
 
@@ -194,7 +202,7 @@ def test_probe_executor_surfaces_vendor_cooldown_errors() -> None:
     )
     executor = ProbeExecutor(metadata_provider=provider)
 
-    result = executor.execute_coverage(_build_spec(), [_build_hard_binding()])
+    result = _execute_probe_summary(executor, [_build_hard_binding()])
 
     assert result.failure_reason is not None
     assert result.probe_results[0].vendor_message == "30分钟限制"
@@ -225,9 +233,7 @@ def test_probe_executor_deduplicates_same_probe_key_calls() -> None:
         }
     )
 
-    result = executor.execute_coverage(
-        _build_spec(), [_build_hard_binding(), second_binding]
-    )
+    result = _execute_probe_summary(executor, [_build_hard_binding(), second_binding])
 
     assert len(provider.probe_calls) == 1
     assert len(result.probe_results) == 2
@@ -250,66 +256,9 @@ def test_probe_executor_surfaces_fail_fast_error_metadata() -> None:
     )
     executor = ProbeExecutor(metadata_provider=provider)
 
-    result = executor.execute_coverage(_build_spec(), [_build_hard_binding()])
+    result = _execute_probe_summary(executor, [_build_hard_binding()])
 
     assert result.failure_reason is not None
     assert result.probe_results[0].error_code == "rate_limited"
     assert result.probe_results[0].retry_after_seconds == 60
     assert any("fail-fast" in warning for warning in result.warnings)
-
-
-def test_probe_executor_exposes_raw_probe_results_before_summary() -> None:
-    """验证探针服务可先执行原始 probes，再交由子图做摘要节点。"""
-    provider = _FakeMetadataProvider(
-        {
-            ("FS_Comins", "ROA"): CsmarFieldProbeResult(
-                variable_name="ROA",
-                table_code="FS_Comins",
-                field_name="ROA",
-                field_exists=True,
-                row_count=99,
-                query_fingerprint="FS_Comins.ROA:2018-2023",
-                validation_id="validation_probe_roa",
-                scope_level="time_scoped",
-            )
-        }
-    )
-    executor = ProbeExecutor(metadata_provider=provider)
-
-    raw_results = executor.run_field_probes(_build_spec(), [_build_hard_binding()])
-
-    assert len(raw_results) == 1
-    assert raw_results[0].query_fingerprint == "FS_Comins.ROA:2018-2023"
-
-
-def test_probe_executor_summarizes_existing_probe_results() -> None:
-    """验证探针服务可从既有 raw probe 结果生成 coverage 摘要。"""
-    executor = ProbeExecutor(metadata_provider=_FakeMetadataProvider({}))
-    raw_results = [
-        VariableProbeResult(
-            variable_name="ROA",
-            contract_tier="hard",
-            table_code="FS_Comins",
-            field_name="ROA",
-            field_exists=True,
-            frequency_match=True,
-            query_count=99,
-            is_accessible=True,
-            scope_level="time_scoped",
-        ),
-        VariableProbeResult(
-            variable_name="软约束不存在字段",
-            contract_tier="soft",
-            table_code="FS_Comins",
-            field_name="NOT_A_REAL_FIELD_SOFT",
-            field_exists=False,
-            frequency_match=True,
-            failure_reason="字段不存在，无法执行 scoped probe。",
-            scope_level="time_scoped",
-        ),
-    ]
-
-    result = executor.summarize_coverage(_build_spec(), raw_results)
-
-    assert result.failure_reason is None
-    assert result.soft_gaps == ["软约束不存在字段"]

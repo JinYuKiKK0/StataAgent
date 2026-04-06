@@ -42,13 +42,6 @@ class VariableMapperPort(Protocol):
         planning_result: VariableMappingPlanResult,
     ) -> VariableMappingResult: ...
 
-    def map_probe_bindings(
-        self,
-        request: ResearchRequest,
-        spec: ResearchSpec,
-        variable_definitions: list[VariableDefinition],
-    ) -> VariableMappingResult: ...
-
 
 class ProbeExecutorPort(Protocol):
     def run_field_probes(
@@ -61,12 +54,6 @@ class ProbeExecutorPort(Protocol):
         self,
         spec: ResearchSpec,
         probe_results: list[VariableProbeResult],
-    ) -> ProbeCoverageResult: ...
-
-    def execute_coverage(
-        self,
-        spec: ResearchSpec,
-        variable_bindings: list[VariableBinding],
     ) -> ProbeCoverageResult: ...
 
 

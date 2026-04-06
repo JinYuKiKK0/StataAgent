@@ -15,14 +15,6 @@ class ProbeExecutor:
         self._metadata_provider = metadata_provider
         self._pending_traces: list[CsmarToolTrace] = []
 
-    def execute_coverage(
-        self,
-        spec: ResearchSpec,
-        variable_bindings: list[VariableBinding],
-    ) -> ProbeCoverageResult:
-        probe_results = self.run_field_probes(spec, variable_bindings)
-        return self.summarize_coverage(spec, probe_results)
-
     def run_field_probes(
         self,
         spec: ResearchSpec,
