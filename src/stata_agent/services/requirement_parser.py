@@ -18,12 +18,7 @@ class RequirementParser:
             )
 
         expected_start_year, expected_end_year = _parse_time_range(request.time_range)
-        validation_error = _validate_spec_against_request(
-            request=request,
-            spec=result.spec,
-            expected_start_year=expected_start_year,
-            expected_end_year=expected_end_year,
-        )
+        validation_error = _validate_spec_against_request(result.spec)
         if validation_error is not None:
             return self._failure_result(result, validation_error)
 
@@ -75,38 +70,9 @@ def _parse_time_range(time_range: str) -> tuple[int, int]:
     return int(start_year_text), int(end_year_text)
 
 
-def _validate_spec_against_request(
-    *,
-    request: ResearchRequest,
-    spec: ResearchSpec,
-    expected_start_year: int,
-    expected_end_year: int,
-) -> str | None:
-    if spec.dependent_variable.strip() != request.dependent_variable.strip():
-        return "需求解析失败：模型改写了用户给定的因变量。"
-    if [value.strip() for value in spec.independent_variables] != [
-        value.strip() for value in request.independent_variables
-    ]:
-        return "需求解析失败：模型改写了用户给定的自变量。"
-    if request.entity_scope is not None:
-        if spec.entity_scope.strip() != request.entity_scope.strip():
-            return "需求解析失败：模型改写了用户给定的样本范围。"
-    if (
-        spec.time_start_year != expected_start_year
-        or spec.time_end_year != expected_end_year
-    ):
-        return "需求解析失败：模型改写了用户给定的时间范围。"
+def _validate_spec_against_request(spec: ResearchSpec) -> str | None:
     if not spec.analysis_grain_candidates:
         return "需求解析失败：模型没有提供候选分析粒度。"
-
-    forbidden_controls = {request.dependent_variable, *request.independent_variables}
-    overlapping_controls = [
-        candidate
-        for candidate in spec.control_variable_candidates
-        if candidate in forbidden_controls
-    ]
-    if overlapping_controls:
-        return "需求解析失败：控制变量候选与用户指定的核心变量重复。"
     return None
 
 
