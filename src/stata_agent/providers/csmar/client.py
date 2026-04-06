@@ -6,15 +6,11 @@ from collections.abc import Mapping, Sequence
 from stata_agent.domains.mapping.types import (
     CsmarFieldProbeRequest,
     CsmarFieldProbeResult,
-    CsmarFieldSearchHit,
-    CsmarFieldSearchRequest,
     CsmarMaterializeQueryResult,
     CsmarProbeQueryResult,
     CsmarSchemaField,
     CsmarTableRecord,
-    CsmarTableCandidate,
     CsmarTableSchema,
-    CsmarTableSearchRequest,
     CsmarToolTrace,
 )
 from stata_agent.providers.csmar.contracts import McpToolPayload
@@ -101,37 +97,6 @@ class CsmarBridgeClient:
                 )
         return normalized
 
-    def search_tables(self, request: CsmarTableSearchRequest) -> list[CsmarTableCandidate]:
-        payload = self._call_mcp_tool(
-            "csmar_search_tables",
-            {
-                "query": request.query,
-                "database_name": request.database_name,
-                "limit": max(1, min(request.limit, 5)),
-            },
-        ).content
-        items = payload.get("items")
-        if not isinstance(items, Sequence) or isinstance(items, (str, bytes, bytearray)):
-            raise CsmarMetadataError("MCP 返回的搜索结果格式非法。", code="upstream_error")
-
-        normalized: list[CsmarTableCandidate] = []
-        for item in items:
-            if not isinstance(item, Mapping):
-                continue
-            table_code = str(item.get("table_code") or "").strip()
-            if not table_code:
-                continue
-            normalized.append(
-                CsmarTableCandidate(
-                    table_code=table_code,
-                    table_name=str(item.get("table_name") or table_code).strip(),
-                    database_name=str(item.get("database_name") or "").strip(),
-                    score=float(item.get("score") or 0.0),
-                    why_matched=str(item.get("why_matched") or "").strip(),
-                )
-            )
-        return normalized
-
     def get_table_schema(self, table_code: str) -> CsmarTableSchema:
         payload = self._call_mcp_tool(
             "csmar_get_table_schema", {"table_code": table_code}
@@ -164,49 +129,6 @@ class CsmarBridgeClient:
             database_name=str(payload.get("database_name") or "").strip(),
             fields=normalized_fields,
         )
-
-    def search_fields(self, request: CsmarFieldSearchRequest) -> list[CsmarFieldSearchHit]:
-        payload = self._call_mcp_tool(
-            "csmar_search_fields",
-            {
-                "query": request.query,
-                "database_name": request.database_name,
-                "table_code": request.table_code,
-                "role_hint": request.role_hint,
-                "frequency_hint": request.frequency_hint,
-                "limit": max(1, min(request.limit, 20)),
-            },
-        ).content
-        items = payload.get("items")
-        if not isinstance(items, Sequence) or isinstance(items, (str, bytes, bytearray)):
-            raise CsmarMetadataError(
-                "MCP 返回的字段检索结果格式非法。", code="upstream_error"
-            )
-
-        normalized: list[CsmarFieldSearchHit] = []
-        for item in items:
-            if not isinstance(item, Mapping):
-                continue
-            table_code = str(item.get("table_code") or "").strip()
-            field_name = str(item.get("field_name") or "").strip()
-            if not table_code or not field_name:
-                continue
-            normalized.append(
-                CsmarFieldSearchHit(
-                    field_name=field_name,
-                    field_label=str(item.get("field_label") or "").strip(),
-                    field_description=str(item.get("field_description") or "").strip(),
-                    data_type=str(item.get("data_type") or "").strip(),
-                    frequency_tags=normalize_tags(item.get("frequency_tags")),
-                    role_tags=normalize_tags(item.get("role_tags")),
-                    table_code=table_code,
-                    table_name=str(item.get("table_name") or table_code).strip(),
-                    database_name=str(item.get("database_name") or "").strip(),
-                    why_matched=str(item.get("why_matched") or "").strip(),
-                    score=float(item.get("score") or 0.0),
-                )
-            )
-        return normalized
 
     def probe_query(
         self,

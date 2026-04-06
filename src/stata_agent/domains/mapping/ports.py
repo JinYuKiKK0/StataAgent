@@ -4,9 +4,7 @@ from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
 from stata_agent.domains.mapping.types import CsmarFieldProbeResult
 from stata_agent.domains.mapping.types import CsmarTableRecord
 from stata_agent.domains.mapping.types import CsmarTableSchema
-from stata_agent.domains.mapping.types import CsmarFieldCandidate
 from stata_agent.domains.mapping.types import VariableMappingPlanResult
-from stata_agent.domains.mapping.types import VariableMatchDecision
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domains.spec.types import VariableDefinition
@@ -33,13 +31,3 @@ class VariableMappingPlannerPort(Protocol):
         variable_definitions: list[VariableDefinition],
         metadata_provider: CsmarMetadataProviderPort,
     ) -> VariableMappingPlanResult: ...
-
-
-class VariableSemanticJudgePort(Protocol):
-    def judge(
-        self,
-        request: ResearchRequest,
-        spec: ResearchSpec,
-        definition: VariableDefinition,
-        candidates: list[CsmarFieldCandidate],
-    ) -> VariableMatchDecision: ...

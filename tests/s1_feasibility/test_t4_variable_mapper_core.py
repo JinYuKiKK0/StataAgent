@@ -11,9 +11,7 @@ from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.services.variable_mapper import VariableMapper
-from tests.s1_feasibility.t4_variable_mapper_support import build_definitions
-from tests.s1_feasibility.t4_variable_mapper_support import build_request
-from tests.s1_feasibility.t4_variable_mapper_support import build_spec
+from stata_agent.services.variable_requirements_builder import VariableRequirementsBuilder
 
 
 class _UnusedMetadataProvider:
@@ -45,6 +43,36 @@ class _FakePlanningAgent:
         metadata_provider: CsmarMetadataProviderPort,
     ) -> VariableMappingPlanResult:
         return self._result
+
+
+def _build_request() -> ResearchRequest:
+    return ResearchRequest(
+        topic="企业资产规模与盈利能力",
+        dependent_variable="ROA",
+        independent_variables=["资产总计"],
+        entity_scope="A股上市公司",
+        time_range="2018-2023",
+        empirical_requirements="构建基准双向固定效应模型",
+    )
+
+
+def _build_spec() -> ResearchSpec:
+    return ResearchSpec(
+        topic="企业资产规模与盈利能力",
+        dependent_variable="ROA",
+        independent_variables=["资产总计"],
+        entity_scope="A股上市公司",
+        time_start_year=2018,
+        time_end_year=2023,
+        control_variable_candidates=["资产负债率"],
+        analysis_grain_candidates=["firm-year"],
+        analysis_frequency_hint="annual",
+    )
+
+
+def _build_definitions() -> list[VariableDefinition]:
+    builder = VariableRequirementsBuilder()
+    return builder.build(_build_spec()).variable_definitions
 
 
 def test_mapper_builds_bindings_from_planner_selection() -> None:
@@ -90,9 +118,9 @@ def test_mapper_builds_bindings_from_planner_selection() -> None:
     )
 
     result = mapper.map_probe_bindings(
-        request=build_request(),
-        spec=build_spec(),
-        variable_definitions=build_definitions(),
+        request=_build_request(),
+        spec=_build_spec(),
+        variable_definitions=_build_definitions(),
     )
 
     assert result.failure_reason is None
@@ -132,9 +160,9 @@ def test_mapper_fails_fast_when_planner_misses_hard_variable() -> None:
     )
 
     result = mapper.map_probe_bindings(
-        request=build_request(),
-        spec=build_spec(),
-        variable_definitions=build_definitions(),
+        request=_build_request(),
+        spec=_build_spec(),
+        variable_definitions=_build_definitions(),
     )
 
     assert result.failure_reason is not None
@@ -177,7 +205,7 @@ def test_mapper_keeps_soft_gap_summary_without_abort() -> None:
         metadata_provider=_UnusedMetadataProvider(),
         planner=planner,
     )
-    definitions = build_definitions() + [
+    definitions = _build_definitions() + [
         VariableDefinition(
             variable_name="不存在的控制变量",
             role="control",
@@ -189,8 +217,8 @@ def test_mapper_keeps_soft_gap_summary_without_abort() -> None:
     ]
 
     result = mapper.map_probe_bindings(
-        request=build_request(),
-        spec=build_spec(),
+        request=_build_request(),
+        spec=_build_spec(),
         variable_definitions=definitions,
     )
 

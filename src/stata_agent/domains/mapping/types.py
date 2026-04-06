@@ -16,20 +16,6 @@ class CsmarTableRecord(BaseModel):
     database_name: str = ""
 
 
-class CsmarTableSearchRequest(BaseModel):
-    query: str
-    database_name: str | None = None
-    limit: int = 5
-
-
-class CsmarTableCandidate(BaseModel):
-    table_code: str
-    table_name: str = ""
-    database_name: str = ""
-    score: float = 0.0
-    why_matched: str = ""
-
-
 class CsmarSchemaField(BaseModel):
     field_name: str
     field_label: str = ""
@@ -48,29 +34,6 @@ class CsmarTableSchema(BaseModel):
     table_name: str = ""
     database_name: str = ""
     fields: list[CsmarSchemaField] = Field(default_factory=_empty_schema_fields)
-
-
-class CsmarFieldSearchRequest(BaseModel):
-    query: str
-    database_name: str | None = None
-    table_code: str | None = None
-    role_hint: str | None = None
-    frequency_hint: str | None = None
-    limit: int = 20
-
-
-class CsmarFieldSearchHit(BaseModel):
-    field_name: str
-    field_label: str = ""
-    field_description: str = ""
-    data_type: str = ""
-    frequency_tags: list[str] = Field(default_factory=list)
-    role_tags: list[str] = Field(default_factory=list)
-    table_code: str
-    table_name: str = ""
-    database_name: str = ""
-    why_matched: str = ""
-    score: float = 0.0
 
 
 def _empty_object_rows() -> list[dict[str, object]]:
@@ -100,31 +63,6 @@ class CsmarMaterializeQueryResult(BaseModel):
     row_count: int
     archive_path: str
     audit: CsmarMaterializeAudit
-
-
-class CsmarFieldCandidate(BaseModel):
-    variable_name: str
-    table_code: str
-    field_name: str
-    database_name: str
-    alias_hit: bool = False
-    table_name: str = ""
-    table_label: str = ""
-    field_label: str = ""
-    field_description: str = ""
-    aliases: list[str] = Field(default_factory=list)
-    match_evidence: list[str] = Field(default_factory=list)
-    frequency_tags: list[str] = Field(default_factory=list)
-    catalog_source: str = Field(default="sdk_catalog", description="候选来源")
-
-
-class VariableMatchDecision(BaseModel):
-    matched: bool = False
-    selected_table_code: str = ""
-    selected_field_name: str = ""
-    confidence: float = 0.0
-    rationale: str = ""
-    resolved_domain: str = ""
 
 
 class CsmarFieldProbeRequest(BaseModel):

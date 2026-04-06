@@ -5,8 +5,6 @@ from pathlib import Path
 import pytest
 
 from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
-from stata_agent.domains.mapping.types import CsmarFieldSearchRequest
-from stata_agent.domains.mapping.types import CsmarTableSearchRequest
 from stata_agent.providers.csmar.client import CsmarBridgeClient
 from stata_agent.providers.csmar.contracts import McpToolPayload
 from stata_agent.providers.csmar.errors import CsmarMetadataError
@@ -20,7 +18,9 @@ class _FakeMcpToolCaller:
 
     def call_tool(self, tool_name: str, arguments: dict[str, object]) -> McpToolPayload:
         self.calls.append((tool_name, arguments))
-        if tool_name == "csmar_search_tables":
+        if tool_name == "csmar_list_databases":
+            return McpToolPayload(content={"databases": ["银行财务", "财务报表"]})
+        if tool_name == "csmar_list_tables":
             return McpToolPayload(content={
                 "items": [
                     {
@@ -52,22 +52,6 @@ class _FakeMcpToolCaller:
                     },
                 ],
             })
-        if tool_name == "csmar_search_fields":
-            return McpToolPayload(content={
-                "items": [
-                    {
-                        "table_code": "BANK_Index",
-                        "table_name": "银行指标",
-                        "database_name": "银行财务",
-                        "field_name": "ROAA",
-                        "field_label": "总资产收益率",
-                        "field_description": "资产收益率指标",
-                        "score": 0.93,
-                        "why_matched": "label_contains_query",
-                        "frequency_tags": ["annual"],
-                    }
-                ]
-            })
         if tool_name == "csmar_probe_query":
             return McpToolPayload(content={
                 "validation_id": "validation_test001",
@@ -93,7 +77,7 @@ class _FailingProbeToolCaller(_FakeMcpToolCaller):
 
 class _RuntimeFailingToolCaller(_FakeMcpToolCaller):
     def call_tool(self, tool_name: str, arguments: dict[str, object]) -> McpToolPayload:
-        if tool_name == "csmar_search_tables":
+        if tool_name == "csmar_list_tables":
             raise TimeoutError("MCP tool call timed out")
         return super().call_tool(tool_name, arguments)
 
@@ -149,41 +133,26 @@ def _build_settings(**overrides: object) -> Settings:
     return Settings.model_validate(payload)
 
 
-def test_search_tables_then_schema_via_mcp() -> None:
-    """验证 MCP 适配层可显式执行 search_tables 与 get_table_schema。"""
+def test_list_tables_then_schema_via_mcp() -> None:
+    """验证 MCP 适配层会沿 list_databases/list_tables/schema 路径返回结构化元数据。"""
     tool_caller = _FakeMcpToolCaller()
     client = CsmarBridgeClient(
         mcp_launch_spec=_dummy_launch_spec(),
         mcp_tool_caller=tool_caller,
     )
 
-    tables = client.search_tables(CsmarTableSearchRequest(query="ROA", limit=3))
+    databases = client.list_databases()
+    tables = client.list_tables("银行财务")
     schema = client.get_table_schema("BANK_Index")
 
+    assert databases == ["银行财务", "财务报表"]
     assert tables
     assert tables[0].table_code == "BANK_Index"
     assert schema.table_code == "BANK_Index"
     assert schema.fields
-    assert any(name == "csmar_search_tables" for name, _ in tool_caller.calls)
+    assert any(name == "csmar_list_databases" for name, _ in tool_caller.calls)
+    assert any(name == "csmar_list_tables" for name, _ in tool_caller.calls)
     assert any(name == "csmar_get_table_schema" for name, _ in tool_caller.calls)
-
-
-def test_search_fields_returns_structured_hits() -> None:
-    """验证 search_fields 作为辅助能力返回结构化字段命中。"""
-    tool_caller = _FakeMcpToolCaller()
-    client = CsmarBridgeClient(
-        mcp_launch_spec=_dummy_launch_spec(),
-        mcp_tool_caller=tool_caller,
-    )
-
-    hits = client.search_fields(
-        CsmarFieldSearchRequest(query="ROA", frequency_hint="annual", limit=5)
-    )
-
-    assert hits
-    assert hits[0].table_code == "BANK_Index"
-    assert hits[0].field_name == "ROAA"
-    assert any(name == "csmar_search_fields" for name, _ in tool_caller.calls)
 
 
 def test_probe_field_availability_uses_mcp_probe_result() -> None:
@@ -255,13 +224,13 @@ def test_client_drains_local_tool_traces() -> None:
         mcp_tool_caller=tool_caller,
     )
 
-    client.search_tables(CsmarTableSearchRequest(query="ROA", limit=3))
+    client.list_tables("银行财务")
     client.get_table_schema("BANK_Index")
     traces = client.drain_tool_traces()
 
     assert len(traces) == 2
     assert traces[0].trace_id
-    assert traces[0].tool_name == "csmar_search_tables"
+    assert traces[0].tool_name == "csmar_list_tables"
     assert traces[1].tool_name == "csmar_get_table_schema"
 
 
@@ -282,12 +251,12 @@ def test_runtime_exception_is_normalized_and_traced() -> None:
     )
 
     with pytest.raises(CsmarMetadataError, match="MCP tool call timed out") as error:
-        client.search_tables(CsmarTableSearchRequest(query="ROA", limit=3))
+        client.list_tables("银行财务")
 
     assert error.value.code == "upstream_error"
     traces = client.drain_tool_traces()
     assert len(traces) == 1
-    assert traces[0].tool_name == "csmar_search_tables"
+    assert traces[0].tool_name == "csmar_list_tables"
     assert traces[0].error is not None
     assert traces[0].error.get("code") == "upstream_error"
     assert traces[0].started_at
