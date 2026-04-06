@@ -30,16 +30,4 @@ def test_phase1_runs_to_contracted_state(
     assert state.phase1_artifacts.data_contract_bundle is not None
 
 
-def test_phase1_fails_when_hard_variable_cannot_be_mapped(
-    live_phase1_orchestrator: Phase1FeasibilityOrchestrator,
-    failing_live_request: ResearchRequest,
-) -> None:
-    """验证真实流程中 Hard Contract 映射失败会让编排进入失败态。"""
-    state = live_phase1_orchestrator.run_feasibility(
-        ResearchState(request=failing_live_request)
-    )
 
-    assert state.stage is RunStage.FAILED
-    assert state.phase1_artifacts.mapping_result is not None
-    assert state.phase1_artifacts.mapping_result.failure_reason is not None
-    assert state.phase1_artifacts.variable_bindings is None

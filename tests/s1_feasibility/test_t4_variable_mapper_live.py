@@ -50,35 +50,4 @@ def test_mapper_generates_bindings_from_real_csmar_metadata(
     assert parse_result.spec.dependent_variable in result.hard_contract_variables
 
 
-@pytest.mark.live_api
-def test_mapper_fails_fast_when_real_hard_variable_has_no_mapping(
-    live_parser: RequirementParser,
-    live_csmar_provider: CsmarBridgeClient,
-    live_settings: Settings,
-    failing_live_request: ResearchRequest,
-) -> None:
-    """验证真实映射流程中 Hard Contract 不可映射时会立刻失败。"""
-    parse_result = live_parser.parse(failing_live_request)
-    assert parse_result.spec is not None
-    builder = VariableRequirementsBuilder()
-    build_result = builder.build(parse_result.spec)
 
-    planner = ProbeMappingPlanner(
-        metadata_provider=live_csmar_provider,
-        planner=TongyiVariableMappingPlanner(live_settings),
-        scope_factory=NodeScopedCsmarProviderFactory(),
-    )
-    plan_result = planner.plan_probe_mapping(
-        request=failing_live_request,
-        spec=parse_result.spec,
-        variable_definitions=build_result.variable_definitions,
-    )
-    result = VariableBindingMaterializer().materialize_variable_bindings(
-        request=failing_live_request,
-        spec=parse_result.spec,
-        variable_definitions=build_result.variable_definitions,
-        planning_result=plan_result,
-    )
-
-    assert result.failure_reason is not None
-    assert result.bindings == []

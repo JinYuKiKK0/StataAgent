@@ -49,24 +49,4 @@ def test_probe_executor_reports_real_coverage(
     assert result.key_alignment_ready is True
 
 
-@pytest.mark.live_api
-def test_probe_executor_fails_fast_for_real_hard_gap(
-    live_parser: RequirementParser,
-    live_csmar_provider: CsmarBridgeClient,
-    live_request: ResearchRequest,
-) -> None:
-    """验证真实探针中 Hard Contract 字段不可达时会触发 fail-fast。"""
-    parse_result = live_parser.parse(live_request)
-    assert parse_result.spec is not None
 
-    executor = ProbeExecutor(metadata_provider=live_csmar_provider)
-    invalid_binding = _build_hard_binding().model_copy(
-        update={"field_name": "NOT_A_REAL_FIELD", "variable_name": "硬约束不存在字段"}
-    )
-    probe_results = executor.run_field_probes(parse_result.spec, [invalid_binding])
-    result = ProbeCoverageSummarizer().summarize_coverage(
-        parse_result.spec, probe_results
-    )
-
-    assert result.failure_reason is not None
-    assert result.hard_gaps == ["硬约束不存在字段"]

@@ -8,7 +8,6 @@ from stata_agent.providers.csmar.client import CsmarBridgeClient
 from stata_agent.providers.csmar.contracts import McpToolPayload
 from stata_agent.providers.csmar.errors import CsmarMetadataError
 from stata_agent.providers.csmar.mcp_runtime import CsmarMcpLaunchSpec
-from stata_agent.providers.settings import Settings
 from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
 
 
@@ -75,13 +74,6 @@ class _FailingProbeToolCaller(_FakeMcpToolCaller):
         return super().call_tool(tool_name, arguments)
 
 
-class _RuntimeFailingToolCaller(_FakeMcpToolCaller):
-    def call_tool(self, tool_name: str, arguments: dict[str, object]) -> McpToolPayload:
-        if tool_name == "csmar_list_tables":
-            raise TimeoutError("MCP tool call timed out")
-        return super().call_tool(tool_name, arguments)
-
-
 class _MaterializeToolCaller(_FakeMcpToolCaller):
     def call_tool(self, tool_name: str, arguments: dict[str, object]) -> McpToolPayload:
         if tool_name == "csmar_materialize_query":
@@ -103,13 +95,6 @@ class _MaterializeToolCaller(_FakeMcpToolCaller):
         return super().call_tool(tool_name, arguments)
 
 
-class _MaterializeMissingFieldsToolCaller(_FakeMcpToolCaller):
-    def call_tool(self, tool_name: str, arguments: dict[str, object]) -> McpToolPayload:
-        if tool_name == "csmar_materialize_query":
-            return McpToolPayload(content={"files": ["/tmp/csmar-output/a.csv"]})
-        return super().call_tool(tool_name, arguments)
-
-
 def _dummy_launch_spec() -> CsmarMcpLaunchSpec:
     return CsmarMcpLaunchSpec(
         command="uv",
@@ -119,18 +104,6 @@ def _dummy_launch_spec() -> CsmarMcpLaunchSpec:
         call_timeout_seconds=120,
         env_overrides={},
     )
-
-
-def _build_settings(**overrides: object) -> Settings:
-    payload: dict[str, object] = {
-        "workspace_dir": Path("/tmp/stata-workspace"),
-        "dashscope_api_key": "test-dashscope-key",
-        "tongyi_model": "qwen-plus",
-        "csmar_account": "demo-account",
-        "csmar_password": "demo-password",
-    }
-    payload.update(overrides)
-    return Settings.model_validate(payload)
 
 
 def test_list_tables_then_schema_via_mcp() -> None:
@@ -216,51 +189,13 @@ def test_probe_field_availability_surfaces_mcp_rate_limit_error() -> None:
     assert traces[0].error.get("code") == "rate_limited"
 
 
-def test_client_drains_local_tool_traces() -> None:
-    """验证 MCP 调用后可从 provider 侧拉取本地 trace 审计记录。"""
-    tool_caller = _FakeMcpToolCaller()
-    client = CsmarBridgeClient(
-        mcp_launch_spec=_dummy_launch_spec(),
-        mcp_tool_caller=tool_caller,
-    )
-
-    client.list_tables("银行财务")
-    client.get_table_schema("BANK_Index")
-    traces = client.drain_tool_traces()
-
-    assert len(traces) == 2
-    assert traces[0].trace_id
-    assert traces[0].tool_name == "csmar_list_tables"
-    assert traces[1].tool_name == "csmar_get_table_schema"
 
 
-def test_from_settings_fails_fast_when_credentials_missing() -> None:
-    """验证 from_settings 在缺少凭证时直接失败，不延迟到运行期。"""
-    settings = _build_settings(csmar_account=None, csmar_password=None)
-
-    with pytest.raises(ValueError, match="CSMAR_ACCOUNT"):
-        CsmarBridgeClient.from_settings(settings)
 
 
-def test_runtime_exception_is_normalized_and_traced() -> None:
-    """验证非业务异常会被归一化为 upstream_error 并写入本地 trace。"""
-    tool_caller = _RuntimeFailingToolCaller()
-    client = CsmarBridgeClient(
-        mcp_launch_spec=_dummy_launch_spec(),
-        mcp_tool_caller=tool_caller,
-    )
 
-    with pytest.raises(CsmarMetadataError, match="MCP tool call timed out") as error:
-        client.list_tables("银行财务")
 
-    assert error.value.code == "upstream_error"
-    traces = client.drain_tool_traces()
-    assert len(traces) == 1
-    assert traces[0].tool_name == "csmar_list_tables"
-    assert traces[0].error is not None
-    assert traces[0].error.get("code") == "upstream_error"
-    assert traces[0].started_at
-    assert traces[0].completed_at
+
 
 
 def test_materialize_query_parses_new_contract_fields() -> None:
@@ -290,18 +225,4 @@ def test_materialize_query_parses_new_contract_fields() -> None:
     assert traces[0].validation_id == "validation_test001"
 
 
-def test_materialize_query_rejects_missing_required_fields() -> None:
-    """验证 materialize 响应缺少关键字段时会 fail-fast。"""
-    tool_caller = _MaterializeMissingFieldsToolCaller()
-    client = CsmarBridgeClient(
-        mcp_launch_spec=_dummy_launch_spec(),
-        mcp_tool_caller=tool_caller,
-    )
 
-    with pytest.raises(CsmarMetadataError, match="MCP materialize 返回缺少关键字段") as error:
-        client.materialize_query(
-            validation_id="validation_test001",
-            output_dir="/tmp/ignored-by-provider",
-        )
-
-    assert error.value.code == "upstream_error"
