@@ -53,8 +53,10 @@ src/stata_agent/
 - `services/` 是当前纯业务逻辑的正式归属目录；不要在常规 feature 开发中把它迁到新的 `application/`、`adapters/`、`runtime/`、`use_cases/` 等平行根目录。
 - `domains/` 负责稳定的跨阶段边界类型；新增研究域时优先在现有 `domains/` 下扩展，而不是发明新的顶层包。
 - `providers/` 是唯一允许直接接触 SDK、文件系统持久化、模型后端和执行器客户端的目录。
+- `providers/` 可以依赖 `services/*/ports.py` 与 `services/*/contracts.py` 来实现外部适配，但不得导入 service 用例实现。
+- `workflow/` 是唯一允许承担组合根与对象装配职责的目录；`interfaces/` 不直接拼装 provider/service。
 - `templates/` 只保存模板和受控资产，不是通用 Python 代码落点。
-- 顶层包导入边界由 `.importlinter` 和 `uv run python -m tools。
+- 顶层包导入边界由 `.importlinter`、`uv run python -m tools.run_import_linter` 和 `tests/architecture` 共同约束。
 
 ## 稳定数据契约
 

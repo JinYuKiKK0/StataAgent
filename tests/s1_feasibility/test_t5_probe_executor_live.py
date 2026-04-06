@@ -5,8 +5,9 @@ import pytest
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.providers.csmar import CsmarBridgeClient
-from stata_agent.services.probe_executor import ProbeExecutor
-from stata_agent.services.requirement_parser import RequirementParser
+from stata_agent.services.probe.executor import ProbeExecutor
+from stata_agent.services.probe.summarizer import ProbeCoverageSummarizer
+from stata_agent.services.spec.requirement_parser import RequirementParser
 
 pytest_plugins = ["tests.live_api_support"]
 
@@ -39,7 +40,9 @@ def test_probe_executor_reports_real_coverage(
 
     executor = ProbeExecutor(metadata_provider=live_csmar_provider)
     probe_results = executor.run_field_probes(parse_result.spec, [_build_hard_binding()])
-    result = executor.summarize_coverage(parse_result.spec, probe_results)
+    result = ProbeCoverageSummarizer().summarize_coverage(
+        parse_result.spec, probe_results
+    )
 
     assert result.failure_reason is None
     assert result.hard_coverage_rate == 1.0
@@ -61,7 +64,9 @@ def test_probe_executor_fails_fast_for_real_hard_gap(
         update={"field_name": "NOT_A_REAL_FIELD", "variable_name": "硬约束不存在字段"}
     )
     probe_results = executor.run_field_probes(parse_result.spec, [invalid_binding])
-    result = executor.summarize_coverage(parse_result.spec, probe_results)
+    result = ProbeCoverageSummarizer().summarize_coverage(
+        parse_result.spec, probe_results
+    )
 
     assert result.failure_reason is not None
     assert result.hard_gaps == ["硬约束不存在字段"]

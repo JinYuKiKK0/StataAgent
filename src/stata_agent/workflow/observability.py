@@ -4,7 +4,7 @@ from typing import cast
 
 from pydantic import BaseModel, Field
 
-from stata_agent.domains.mapping.types import CsmarToolTrace
+from stata_agent.providers.csmar.types import CsmarToolTrace
 
 
 class WorkflowNodeAudit(BaseModel):

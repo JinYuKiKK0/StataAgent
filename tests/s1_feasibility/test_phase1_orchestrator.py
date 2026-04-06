@@ -20,14 +20,14 @@ def test_phase1_runs_to_contracted_state(
     state = live_phase1_orchestrator.run_feasibility(ResearchState(request=live_request))
 
     assert state.stage is RunStage.CONTRACTED
-    assert state.spec is not None
-    assert state.parse_result is not None
-    assert state.variable_definitions is not None
-    assert state.data_requirements_draft is not None
-    assert state.variable_bindings is not None
-    assert state.variable_mapping_result is not None
-    assert state.probe_coverage_result is not None
-    assert state.data_contract_bundle is not None
+    assert state.phase1_artifacts.spec is not None
+    assert state.phase1_artifacts.parse_result is not None
+    assert state.phase1_artifacts.variable_definitions is not None
+    assert state.phase1_artifacts.data_requirements_draft is not None
+    assert state.phase1_artifacts.variable_bindings is not None
+    assert state.phase1_artifacts.mapping_result is not None
+    assert state.phase1_artifacts.probe_coverage_result is not None
+    assert state.phase1_artifacts.data_contract_bundle is not None
 
 
 def test_phase1_fails_when_hard_variable_cannot_be_mapped(
@@ -40,6 +40,6 @@ def test_phase1_fails_when_hard_variable_cannot_be_mapped(
     )
 
     assert state.stage is RunStage.FAILED
-    assert state.variable_mapping_result is not None
-    assert state.variable_mapping_result.failure_reason is not None
-    assert state.variable_bindings is None
+    assert state.phase1_artifacts.mapping_result is not None
+    assert state.phase1_artifacts.mapping_result.failure_reason is not None
+    assert state.phase1_artifacts.variable_bindings is None

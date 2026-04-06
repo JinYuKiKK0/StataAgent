@@ -8,9 +8,9 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
-from stata_agent.domains.fetch.types import GatewayDecision
-from stata_agent.domains.fetch.types import GatewayRecord
-from stata_agent.domains.fetch.types import GatewayResumeRequest
+from stata_agent.workflow.gateway import GatewayDecision
+from stata_agent.workflow.gateway import GatewayRecord
+from stata_agent.workflow.gateway import GatewayResumeRequest
 from stata_agent.workflow.state import ResearchState
 from stata_agent.workflow.types import RunStage
 
@@ -24,8 +24,7 @@ class Phase1Node(Protocol):
 
 
 def gateway_approval_node(state: ResearchState) -> ResearchState:
-    """Gateway 审批中断与恢复。"""
-    contract = state.data_contract_bundle
+    contract = state.phase1_artifacts.data_contract_bundle
     entity_scope_inferred = contract.entity_scope_inferred if contract else False
     message = "请审核最低可行数据契约并决定是否批准"
     if entity_scope_inferred:
@@ -53,31 +52,29 @@ def gateway_approval_node(state: ResearchState) -> ResearchState:
 
 
 def _build_mapping_evidence_summary(state: ResearchState) -> list[dict[str, str]]:
-    contract = state.data_contract_bundle
+    contract = state.phase1_artifacts.data_contract_bundle
     if contract is None:
         return []
 
-    summary: list[dict[str, str]] = []
-    for binding in contract.variable_bindings:
-        summary.append(
-            {
-                "variable_name": binding.variable_name,
-                "table_code": binding.table_code,
-                "field_name": binding.field_name,
-                "trace_id": binding.trace_id,
-                "evidence": binding.evidence,
-            }
-        )
-    return summary
+    return [
+        {
+            "variable_name": binding.variable_name,
+            "table_code": binding.table_code,
+            "field_name": binding.field_name,
+            "trace_id": binding.trace_id,
+            "evidence": binding.evidence,
+        }
+        for binding in contract.variable_bindings
+    ]
 
 
 def _build_probe_trace_summary(state: ResearchState) -> list[dict[str, str]]:
-    contract = state.data_contract_bundle
+    contract = state.phase1_artifacts.data_contract_bundle
     if contract is None:
         return []
 
     trace_validation_map: dict[str, str] = {}
-    for trace in state.csmar_traces:
+    for trace in state.workflow_audit.csmar_traces:
         trace_id = trace.trace_id.strip()
         validation_id = (trace.validation_id or "").strip()
         if trace_id and validation_id:
@@ -128,24 +125,24 @@ def _apply_gateway_decision(
         decision=decision_request.decision,
         reason=decision_request.reason,
     )
-
-    notes = list(state.notes)
+    notes = list(state.workflow_audit.notes)
+    gateway_state = state.gateway_state.model_copy(update={"record": record})
     if decision_request.decision is GatewayDecision.APPROVED:
         notes.append("Gateway 审批通过，数据契约已锁定。")
         return state.model_copy(
             update={
-                "gateway_record": record,
+                "gateway_state": gateway_state,
                 "stage": RunStage.APPROVED,
-                "notes": notes,
+                "workflow_audit": state.workflow_audit.model_copy(update={"notes": notes}),
             }
         )
 
     notes.append(f"Gateway 审批被驳回：{decision_request.reason}")
     return state.model_copy(
         update={
-            "gateway_record": record,
+            "gateway_state": gateway_state,
             "stage": RunStage.FAILED,
-            "notes": notes,
+            "workflow_audit": state.workflow_audit.model_copy(update={"notes": notes}),
         }
     )
 

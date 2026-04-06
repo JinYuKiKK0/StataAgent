@@ -1,19 +1,21 @@
 """Gateway 审批载荷摘要测试。"""
 
-from unittest.mock import patch
 from typing import cast
+from unittest.mock import patch
 
-from stata_agent.domains.fetch.types import DataContractBundle
-from stata_agent.domains.fetch.types import GatewayDecision
-from stata_agent.domains.fetch.types import GatewayResumeRequest
-from stata_agent.domains.fetch.types import ProbeCoverageResult
-from stata_agent.domains.fetch.types import VariableProbeResult
+from stata_agent.domains.contract.types import ContractProbeResult
+from stata_agent.domains.contract.types import DataContractBundle
+from stata_agent.domains.contract.types import ProbeCoverageSummary
 from stata_agent.domains.mapping.types import VariableBinding
-from stata_agent.domains.mapping.types import CsmarToolTrace
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
+from stata_agent.providers.csmar.types import CsmarToolTrace
 from stata_agent.workflow.graph import gateway_approval_node
+from stata_agent.workflow.gateway import GatewayDecision
+from stata_agent.workflow.gateway import GatewayResumeRequest
+from stata_agent.workflow.state import Phase1Artifacts
 from stata_agent.workflow.state import ResearchState
+from stata_agent.workflow.state import WorkflowAuditState
 from stata_agent.workflow.types import RunStage
 
 
@@ -57,7 +59,7 @@ def test_gateway_payload_includes_mapping_and_probe_summaries() -> None:
         trace_id="trace_bind_001",
         table_name="银行指标",
     )
-    probe_result = VariableProbeResult(
+    probe_result = ContractProbeResult(
         variable_name="ROA",
         contract_tier="hard",
         table_code="BANK_Index",
@@ -70,7 +72,7 @@ def test_gateway_payload_includes_mapping_and_probe_summaries() -> None:
         query_fingerprint="fingerprint_001",
         scope_level="time_scoped",
     )
-    coverage = ProbeCoverageResult(
+    coverage = ProbeCoverageSummary(
         probe_results=[probe_result],
         hard_coverage_rate=1.0,
         soft_coverage_rate=1.0,
@@ -94,17 +96,19 @@ def test_gateway_payload_includes_mapping_and_probe_summaries() -> None:
     state = ResearchState(
         request=_build_request(),
         stage=RunStage.CONTRACTED,
-        data_contract_bundle=contract,
-        csmar_traces=[
-            CsmarToolTrace(
-                trace_id="trace_probe_001",
-                tool_name="csmar_probe_query",
-                query_fingerprint="fingerprint_001",
-                validation_id="validation_001",
-                started_at="2026-04-04T10:00:00Z",
-                completed_at="2026-04-04T10:00:01Z",
-            )
-        ],
+        phase1_artifacts=Phase1Artifacts(data_contract_bundle=contract),
+        workflow_audit=WorkflowAuditState(
+            csmar_traces=[
+                CsmarToolTrace(
+                    trace_id="trace_probe_001",
+                    tool_name="csmar_probe_query",
+                    query_fingerprint="fingerprint_001",
+                    validation_id="validation_001",
+                    started_at="2026-04-04T10:00:00Z",
+                    completed_at="2026-04-04T10:00:01Z",
+                )
+            ]
+        ),
     )
 
     captured: dict[str, object] = {}

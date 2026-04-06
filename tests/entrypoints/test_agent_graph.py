@@ -28,9 +28,10 @@ def test_agent_graph_interrupts_at_gateway_on_real_happy_path(
         dict[str, Any],
         graph.invoke(ResearchState(request=live_request), version="v1"),
     )
+    state = ResearchState.model_validate(result)
 
-    assert result["stage"] is RunStage.CONTRACTED
-    assert result["data_contract_bundle"] is not None
+    assert state.stage is RunStage.CONTRACTED
+    assert state.phase1_artifacts.data_contract_bundle is not None
     assert "__interrupt__" in result
     assert result["__interrupt__"]
 
@@ -47,6 +48,7 @@ def test_agent_graph_returns_failed_state_when_real_mapping_fails(
         dict[str, Any],
         graph.invoke(ResearchState(request=failing_live_request), version="v1"),
     )
+    state = ResearchState.model_validate(result)
 
-    assert result["stage"] is RunStage.FAILED
-    assert result["variable_mapping_result"] is not None
+    assert state.stage is RunStage.FAILED
+    assert state.phase1_artifacts.mapping_result is not None

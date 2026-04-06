@@ -9,8 +9,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
 from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
 from stata_agent.providers.settings import Settings
+from stata_agent.services.spec.contracts import RequirementParseResult
+from stata_agent.services.spec.ports import ResearchSpecGenerator
+from stata_agent.domains.spec.types import ResearchSpec
 
 
 class _RequirementSpecPayload(BaseModel):
@@ -34,7 +36,7 @@ class _RequirementSpecPayload(BaseModel):
     warnings: list[str] = Field(default_factory=list, description="仅保留真实不确定性")
 
 
-class TongyiResearchSpecGenerator:
+class TongyiResearchSpecGenerator(ResearchSpecGenerator):
     def __init__(self, settings: Settings) -> None:
         prompt = ChatPromptTemplate.from_messages(
             [
@@ -127,6 +129,8 @@ def _build_tongyi_model(settings: Settings) -> ChatTongyi:
         streaming=True,
         model_kwargs={"temperature": 0},
     )
+
+
 def _stringify_raw_message(raw: object) -> str | None:
     if isinstance(raw, BaseMessage):
         content = raw.content

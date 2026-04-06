@@ -3,10 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from stata_agent.domains.mapping.types import CsmarToolTrace
 from stata_agent.providers.csmar.contracts import McpToolPayload
 from stata_agent.providers.csmar.errors import CsmarMetadataError
 from stata_agent.providers.csmar.mcp_transport import CsmarMcpToolCaller
+from stata_agent.providers.csmar.types import CsmarToolTrace
 
 
 def call_mcp_tool_with_trace(

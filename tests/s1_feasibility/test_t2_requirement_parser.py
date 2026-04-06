@@ -3,7 +3,7 @@
 import pytest
 
 from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.services.requirement_parser import RequirementParser
+from stata_agent.services.spec.requirement_parser import RequirementParser
 
 pytest_plugins = ["tests.live_api_support"]
 

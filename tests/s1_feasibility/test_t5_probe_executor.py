@@ -1,14 +1,15 @@
 """S1-T5 探针执行与覆盖摘要测试。"""
 
-from stata_agent.domains.fetch.types import ProbeCoverageResult
-from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
-from stata_agent.domains.mapping.types import CsmarFieldProbeResult
-from stata_agent.domains.mapping.types import CsmarTableRecord
-from stata_agent.domains.mapping.types import CsmarTableSchema
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.providers.csmar import CsmarMetadataError
-from stata_agent.services.probe_executor import ProbeExecutor
+from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
+from stata_agent.services.mapping.contracts import CsmarFieldProbeResult
+from stata_agent.services.mapping.contracts import CsmarTableRecord
+from stata_agent.services.mapping.contracts import CsmarTableSchema
+from stata_agent.services.probe.contracts import ProbeCoverageResult
+from stata_agent.services.probe.executor import ProbeExecutor
+from stata_agent.services.probe.summarizer import ProbeCoverageSummarizer
 
 
 class _FakeMetadataProvider:
@@ -98,7 +99,7 @@ def _execute_probe_summary(
     variable_bindings: list[VariableBinding],
 ) -> ProbeCoverageResult:
     probe_results = executor.run_field_probes(_build_spec(), variable_bindings)
-    return executor.summarize_coverage(_build_spec(), probe_results)
+    return ProbeCoverageSummarizer().summarize_coverage(_build_spec(), probe_results)
 
 
 def test_probe_executor_reports_scoped_coverage() -> None:
@@ -260,5 +261,4 @@ def test_probe_executor_surfaces_fail_fast_error_metadata() -> None:
 
     assert result.failure_reason is not None
     assert result.probe_results[0].error_code == "rate_limited"
-    assert result.probe_results[0].retry_after_seconds == 60
-    assert any("fail-fast" in warning for warning in result.warnings)
+    assert any("rate_limited" in warning for warning in result.warnings)

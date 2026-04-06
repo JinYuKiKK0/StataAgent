@@ -7,8 +7,8 @@ type = layers
 layers =
     stata_agent.interfaces
     stata_agent.workflow
-    stata_agent.services
     stata_agent.providers
+    stata_agent.services
     stata_agent.domains
 
 [importlinter:contract:interfaces_must_flow_through_workflow]
@@ -37,3 +37,17 @@ forbidden_modules =
     stata_agent.config
     stata_agent.logging
     stata_agent.workflows
+
+[importlinter:contract:providers_only_import_service_contracts]
+name = Providers must not import service implementations
+type = forbidden
+source_modules =
+    stata_agent.providers
+forbidden_modules =
+    stata_agent.services.contract.data_contract_builder
+    stata_agent.services.mapping.materialize_bindings
+    stata_agent.services.mapping.plan_mapping
+    stata_agent.services.probe.executor
+    stata_agent.services.probe.summarizer
+    stata_agent.services.spec.requirement_parser
+    stata_agent.services.spec.variable_requirements

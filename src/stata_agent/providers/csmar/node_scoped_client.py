@@ -5,16 +5,15 @@ from datetime import datetime, timezone
 from typing import TypeVar, cast
 from uuid import uuid4
 
-from stata_agent.domains.mapping.ports import CsmarMetadataProviderPort
-from stata_agent.domains.mapping.types import (
-    CsmarFieldProbeRequest,
-    CsmarFieldProbeResult,
-    CsmarTableRecord,
-    CsmarTableSchema,
-    CsmarToolTrace,
-    VariableMappingBudget,
-)
 from stata_agent.providers.csmar.errors import CsmarMetadataError
+from stata_agent.providers.csmar.types import CsmarToolTrace
+from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
+from stata_agent.services.mapping.contracts import CsmarFieldProbeResult
+from stata_agent.services.mapping.contracts import CsmarTableRecord
+from stata_agent.services.mapping.contracts import CsmarTableSchema
+from stata_agent.services.mapping.contracts import VariableMappingBudget
+from stata_agent.services.mapping.ports import CsmarMetadataProviderPort
+from stata_agent.services.mapping.ports import MappingProviderScopePort
 
 _ResultT = TypeVar("_ResultT")
 
@@ -195,3 +194,21 @@ class NodeScopedCsmarProvider:
         )
         self._last_trace_id = trace_id
         self._local_traces.append(trace)
+
+
+class NodeScopedCsmarProviderFactory(MappingProviderScopePort):
+    def create_mapping_provider(
+        self,
+        metadata_provider: CsmarMetadataProviderPort,
+        budget: VariableMappingBudget,
+    ) -> NodeScopedCsmarProvider:
+        return NodeScopedCsmarProvider(
+            metadata_provider=metadata_provider,
+            node_name="map_variables",
+            allowed_tools={
+                "csmar_list_databases",
+                "csmar_list_tables",
+                "csmar_get_table_schema",
+            },
+            budget=budget,
+        )

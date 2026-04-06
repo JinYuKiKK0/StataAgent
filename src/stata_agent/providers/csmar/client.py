@@ -3,16 +3,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
-from stata_agent.domains.mapping.types import (
-    CsmarFieldProbeRequest,
-    CsmarFieldProbeResult,
-    CsmarMaterializeQueryResult,
-    CsmarProbeQueryResult,
-    CsmarSchemaField,
-    CsmarTableRecord,
-    CsmarTableSchema,
-    CsmarToolTrace,
-)
 from stata_agent.providers.csmar.contracts import McpToolPayload
 from stata_agent.providers.csmar.errors import CsmarMetadataError
 from stata_agent.providers.csmar.mcp_runtime import CsmarMcpLaunchSpec
@@ -26,7 +16,15 @@ from stata_agent.providers.csmar.normalizers import normalize_object_rows
 from stata_agent.providers.csmar.normalizers import normalize_tags
 from stata_agent.providers.csmar.normalizers import probe_scope_warnings
 from stata_agent.providers.csmar.tool_call import call_mcp_tool_with_trace
+from stata_agent.providers.csmar.types import CsmarMaterializeQueryResult
+from stata_agent.providers.csmar.types import CsmarProbeQueryResult
+from stata_agent.providers.csmar.types import CsmarToolTrace
 from stata_agent.providers.settings import Settings
+from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
+from stata_agent.services.mapping.contracts import CsmarFieldProbeResult
+from stata_agent.services.mapping.contracts import CsmarSchemaField
+from stata_agent.services.mapping.contracts import CsmarTableRecord
+from stata_agent.services.mapping.contracts import CsmarTableSchema
 
 
 class CsmarBridgeClient:

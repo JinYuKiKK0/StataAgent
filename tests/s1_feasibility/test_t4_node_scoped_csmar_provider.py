@@ -1,13 +1,13 @@
 """S1-T4 节点级 CSMAR 工具预算与白名单测试。"""
 
-from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
-from stata_agent.domains.mapping.types import CsmarFieldProbeResult
-from stata_agent.domains.mapping.types import CsmarSchemaField
-from stata_agent.domains.mapping.types import CsmarTableRecord
-from stata_agent.domains.mapping.types import CsmarTableSchema
-from stata_agent.domains.mapping.types import VariableMappingBudget
 from stata_agent.providers.csmar import CsmarMetadataError
 from stata_agent.providers.csmar.node_scoped_client import NodeScopedCsmarProvider
+from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
+from stata_agent.services.mapping.contracts import CsmarFieldProbeResult
+from stata_agent.services.mapping.contracts import CsmarSchemaField
+from stata_agent.services.mapping.contracts import CsmarTableRecord
+from stata_agent.services.mapping.contracts import CsmarTableSchema
+from stata_agent.services.mapping.contracts import VariableMappingBudget
 
 
 class _FakeMetadataProvider:

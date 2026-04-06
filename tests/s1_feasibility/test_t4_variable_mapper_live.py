@@ -4,11 +4,13 @@ import pytest
 
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.providers.csmar import CsmarBridgeClient
-from stata_agent.providers.llm_mapping import TongyiVariableMappingPlanner
+from stata_agent.providers.csmar.node_scoped_client import NodeScopedCsmarProviderFactory
+from stata_agent.providers.llm import TongyiVariableMappingPlanner
 from stata_agent.providers.settings import Settings
-from stata_agent.services.requirement_parser import RequirementParser
-from stata_agent.services.variable_mapper import VariableMapper
-from stata_agent.services.variable_requirements_builder import VariableRequirementsBuilder
+from stata_agent.services.mapping.materialize_bindings import VariableBindingMaterializer
+from stata_agent.services.mapping.plan_mapping import ProbeMappingPlanner
+from stata_agent.services.spec.requirement_parser import RequirementParser
+from stata_agent.services.spec.variable_requirements import VariableRequirementsBuilder
 
 pytest_plugins = ["tests.live_api_support"]
 
@@ -26,16 +28,17 @@ def test_mapper_generates_bindings_from_real_csmar_metadata(
     builder = VariableRequirementsBuilder()
     build_result = builder.build(parse_result.spec)
 
-    mapper = VariableMapper(
+    planner = ProbeMappingPlanner(
         metadata_provider=live_csmar_provider,
         planner=TongyiVariableMappingPlanner(live_settings),
+        scope_factory=NodeScopedCsmarProviderFactory(),
     )
-    plan_result = mapper.plan_probe_mapping(
+    plan_result = planner.plan_probe_mapping(
         request=live_request,
         spec=parse_result.spec,
         variable_definitions=build_result.variable_definitions,
     )
-    result = mapper.materialize_variable_bindings(
+    result = VariableBindingMaterializer().materialize_variable_bindings(
         request=live_request,
         spec=parse_result.spec,
         variable_definitions=build_result.variable_definitions,
@@ -60,16 +63,17 @@ def test_mapper_fails_fast_when_real_hard_variable_has_no_mapping(
     builder = VariableRequirementsBuilder()
     build_result = builder.build(parse_result.spec)
 
-    mapper = VariableMapper(
+    planner = ProbeMappingPlanner(
         metadata_provider=live_csmar_provider,
         planner=TongyiVariableMappingPlanner(live_settings),
+        scope_factory=NodeScopedCsmarProviderFactory(),
     )
-    plan_result = mapper.plan_probe_mapping(
+    plan_result = planner.plan_probe_mapping(
         request=failing_live_request,
         spec=parse_result.spec,
         variable_definitions=build_result.variable_definitions,
     )
-    result = mapper.materialize_variable_bindings(
+    result = VariableBindingMaterializer().materialize_variable_bindings(
         request=failing_live_request,
         spec=parse_result.spec,
         variable_definitions=build_result.variable_definitions,

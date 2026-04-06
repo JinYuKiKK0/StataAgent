@@ -1,9 +1,11 @@
-from stata_agent.domains.fetch.types import DataContractBundle
-from stata_agent.domains.fetch.types import ProbeCoverageResult
+from stata_agent.domains.contract.types import ContractProbeResult
+from stata_agent.domains.contract.types import DataContractBundle
+from stata_agent.domains.contract.types import ProbeCoverageSummary
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domains.spec.types import VariableDefinition
+from stata_agent.services.probe.contracts import ProbeCoverageResult
 
 
 class DataContractBuilder:
@@ -37,7 +39,7 @@ class DataContractBuilder:
             empirical_requirements=request.empirical_requirements,
             variable_definitions=variable_definitions,
             variable_bindings=variable_bindings,
-            probe_coverage=probe_coverage,
+            probe_coverage=_to_probe_coverage_summary(probe_coverage),
             substitution_log=substitution_log,
             residual_risks=residual_risks,
             spec=spec,
@@ -103,3 +105,22 @@ def _pick_analysis_grain(spec: ResearchSpec) -> str:
     if not spec.analysis_grain_candidates:
         return ""
     return spec.analysis_grain_candidates[0]
+
+
+def _to_probe_coverage_summary(
+    probe_coverage: ProbeCoverageResult,
+) -> ProbeCoverageSummary:
+    return ProbeCoverageSummary(
+        probe_results=[
+            ContractProbeResult.model_validate(item.model_dump(mode="json"))
+            for item in probe_coverage.probe_results
+        ],
+        hard_coverage_rate=probe_coverage.hard_coverage_rate,
+        soft_coverage_rate=probe_coverage.soft_coverage_rate,
+        hard_gaps=list(probe_coverage.hard_gaps),
+        soft_gaps=list(probe_coverage.soft_gaps),
+        key_alignment_ready=probe_coverage.key_alignment_ready,
+        target_grain_ready=probe_coverage.target_grain_ready,
+        warnings=list(probe_coverage.warnings),
+        failure_reason=probe_coverage.failure_reason,
+    )

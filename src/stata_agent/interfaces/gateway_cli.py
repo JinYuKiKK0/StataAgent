@@ -4,14 +4,14 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from stata_agent.domains.fetch.types import GatewayDecision
-from stata_agent.domains.fetch.types import GatewayResumeRequest
+from stata_agent.workflow.gateway import GatewayDecision
+from stata_agent.workflow.gateway import GatewayResumeRequest
 from stata_agent.workflow.state import ResearchState
 
 
 def render_contract_for_approval(console: Console, state: ResearchState) -> None:
     """呈递最低可行数据契约供用户审核。"""
-    contract = state.data_contract_bundle
+    contract = state.phase1_artifacts.data_contract_bundle
     if contract is None:
         return
 

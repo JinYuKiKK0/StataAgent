@@ -126,6 +126,7 @@ def _build_request(
 
 
 def _render_research_summary(state: ResearchState) -> None:
+    artifacts = state.phase1_artifacts
     if state.stage is not RunStage.FAILED:
         console.print("\n[bold green]✓ 研究请求已完成需求解析[/bold green]\n")
     else:
@@ -144,40 +145,39 @@ def _render_research_summary(state: ResearchState) -> None:
     table.add_row("当前阶段", state.stage.value)
 
     console.print(table)
-    if state.spec is not None:
+    if artifacts.spec is not None:
         _render_spec_summary(state)
-    if state.variable_definitions is not None:
+    if artifacts.variable_definitions is not None:
         _render_variable_definitions(state)
-    if state.data_requirements_draft is not None:
+    if artifacts.data_requirements_draft is not None:
         _render_data_requirements(state)
-    if state.parse_result is not None:
+    if artifacts.parse_result is not None:
         _render_parse_audit(state)
-    if state.probe_coverage_result is not None:
+    if artifacts.probe_coverage_result is not None:
         _render_probe_coverage(state)
     console.print(f"\n[dim]工作流状态 ID: {state.stage}[/dim]")
 
 
 def _render_spec_summary(state: ResearchState) -> None:
-    if state.spec is None:
+    spec = state.phase1_artifacts.spec
+    if spec is None:
         return
 
     table = Table(title="ResearchSpec 摘要")
     table.add_column("字段", style="cyan")
     table.add_column("值", style="white")
 
-    table.add_row("解析主题", state.spec.topic)
-    entity_scope_label = state.spec.entity_scope
-    if state.spec.entity_scope_inferred:
-        entity_scope_label = f"{state.spec.entity_scope} (Agent 推断)"
+    table.add_row("解析主题", spec.topic)
+    entity_scope_label = spec.entity_scope
+    if spec.entity_scope_inferred:
+        entity_scope_label = f"{spec.entity_scope} (Agent 推断)"
     table.add_row("样本范围", entity_scope_label)
-    table.add_row(
-        "时间边界", f"{state.spec.time_start_year}-{state.spec.time_end_year}"
-    )
-    table.add_row("候选分析粒度", ", ".join(state.spec.analysis_grain_candidates))
+    table.add_row("时间边界", f"{spec.time_start_year}-{spec.time_end_year}")
+    table.add_row("候选分析粒度", ", ".join(spec.analysis_grain_candidates))
     table.add_row(
         "控制变量候选",
-        ", ".join(state.spec.control_variable_candidates)
-        if state.spec.control_variable_candidates
+        ", ".join(spec.control_variable_candidates)
+        if spec.control_variable_candidates
         else "无",
     )
 
@@ -185,28 +185,30 @@ def _render_spec_summary(state: ResearchState) -> None:
 
 
 def _render_parse_audit(state: ResearchState) -> None:
-    if state.parse_result is None:
+    parse_result = state.phase1_artifacts.parse_result
+    if parse_result is None:
         return
 
     table = Table(title="需求解析审计")
     table.add_column("字段", style="cyan")
     table.add_column("值", style="white")
 
-    if state.parse_result.failure_reason is not None:
-        table.add_row("失败原因", state.parse_result.failure_reason)
-    if state.parse_result.parsing_error is not None:
-        table.add_row("结构化解析错误", state.parse_result.parsing_error)
-    if state.parse_result.warnings:
-        table.add_row("Warnings", " | ".join(state.parse_result.warnings))
-    if state.parse_result.raw_response_text:
-        table.add_row("原始响应", state.parse_result.raw_response_text)
+    if parse_result.failure_reason is not None:
+        table.add_row("失败原因", parse_result.failure_reason)
+    if parse_result.parsing_error is not None:
+        table.add_row("结构化解析错误", parse_result.parsing_error)
+    if parse_result.warnings:
+        table.add_row("Warnings", " | ".join(parse_result.warnings))
+    if parse_result.raw_response_text:
+        table.add_row("原始响应", parse_result.raw_response_text)
 
     if table.row_count > 0:
         console.print(table)
 
 
 def _render_variable_definitions(state: ResearchState) -> None:
-    if state.variable_definitions is None:
+    variable_definitions = state.phase1_artifacts.variable_definitions
+    if variable_definitions is None:
         return
 
     table = Table(title="变量定义表")
@@ -217,7 +219,7 @@ def _render_variable_definitions(state: ResearchState) -> None:
     table.add_column("频率")
     table.add_column("候选数据域")
 
-    for definition in state.variable_definitions:
+    for definition in variable_definitions:
         table.add_row(
             definition.variable_name,
             definition.role,
@@ -231,52 +233,50 @@ def _render_variable_definitions(state: ResearchState) -> None:
 
 
 def _render_data_requirements(state: ResearchState) -> None:
-    if state.data_requirements_draft is None:
+    draft = state.phase1_artifacts.data_requirements_draft
+    if draft is None:
         return
 
     summary = Table(title="数据需求表")
     summary.add_column("字段", style="cyan")
     summary.add_column("值", style="white")
-    summary.add_row("样本范围", state.data_requirements_draft.entity_scope)
+    summary.add_row("样本范围", draft.entity_scope)
     summary.add_row(
         "时间边界",
-        f"{state.data_requirements_draft.time_start_year}-{state.data_requirements_draft.time_end_year}",
+        f"{draft.time_start_year}-{draft.time_end_year}",
     )
-    summary.add_row("需求条目数", str(len(state.data_requirements_draft.items)))
+    summary.add_row("需求条目数", str(len(draft.items)))
     console.print(summary)
 
 
 def _render_probe_coverage(state: ResearchState) -> None:
-    if state.probe_coverage_result is None:
+    probe_coverage = state.phase1_artifacts.probe_coverage_result
+    if probe_coverage is None:
         return
 
     summary = Table(title="探针覆盖摘要")
     summary.add_column("字段", style="cyan")
     summary.add_column("值", style="white")
     summary.add_row(
-        "Hard 覆盖率", f"{state.probe_coverage_result.hard_coverage_rate:.0%}"
+        "Hard 覆盖率", f"{probe_coverage.hard_coverage_rate:.0%}"
     )
     summary.add_row(
-        "Soft 覆盖率", f"{state.probe_coverage_result.soft_coverage_rate:.0%}"
+        "Soft 覆盖率", f"{probe_coverage.soft_coverage_rate:.0%}"
     )
     summary.add_row(
         "关键主键可对齐",
-        "是" if state.probe_coverage_result.key_alignment_ready else "否",
+        "是" if probe_coverage.key_alignment_ready else "否",
     )
     summary.add_row(
         "目标粒度可得",
-        "是" if state.probe_coverage_result.target_grain_ready else "否",
+        "是" if probe_coverage.target_grain_ready else "否",
     )
     summary.add_row(
         "Hard 缺口",
-        "、".join(state.probe_coverage_result.hard_gaps)
-        if state.probe_coverage_result.hard_gaps
-        else "无",
+        "、".join(probe_coverage.hard_gaps) if probe_coverage.hard_gaps else "无",
     )
     summary.add_row(
         "Soft 缺口",
-        "、".join(state.probe_coverage_result.soft_gaps)
-        if state.probe_coverage_result.soft_gaps
-        else "无",
+        "、".join(probe_coverage.soft_gaps) if probe_coverage.soft_gaps else "无",
     )
     console.print(summary)

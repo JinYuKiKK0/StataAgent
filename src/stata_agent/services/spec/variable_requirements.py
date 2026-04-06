@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from stata_agent.domains.spec.types import DataRequirementItem
-from stata_agent.domains.spec.types import DataRequirementsDraft
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domains.spec.types import VariableDefinition
-from stata_agent.domains.spec.types import VariableRequirementsResult
+from stata_agent.services.spec.contracts import DataRequirementItem
+from stata_agent.services.spec.contracts import DataRequirementsDraft
+from stata_agent.services.spec.contracts import VariableRequirementsResult
 
 
 class VariableRequirementsBuilder:

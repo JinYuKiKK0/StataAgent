@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Protocol
 
 from langchain_core.runnables.config import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
-from stata_agent.workflow.ports import DataContractBuilderPort
-from stata_agent.workflow.ports import Phase1OrchestratorPort
-from stata_agent.workflow.ports import ProbeExecutorPort
-from stata_agent.workflow.ports import RequirementParserPort
-from stata_agent.workflow.ports import VariableMapperPort
-from stata_agent.workflow.ports import VariableRequirementsBuilderPort
+from stata_agent.services.contract.ports import DataContractBuilderPort
+from stata_agent.services.mapping.ports import ProbeMappingPlannerPort
+from stata_agent.services.mapping.ports import VariableBindingMaterializerPort
+from stata_agent.services.probe.ports import ProbeCoverageSummarizerPort
+from stata_agent.services.probe.ports import ProbeExecutorPort
+from stata_agent.services.spec.ports import RequirementParserPort
+from stata_agent.services.spec.ports import VariableRequirementsBuilderPort
 from stata_agent.workflow.state import ResearchState
 from stata_agent.workflow.stages.phase1_feasibility_nodes import (
     Phase1FeasibilityNodes,
@@ -20,20 +21,33 @@ from stata_agent.workflow.stages.phase1_feasibility_nodes import (
 from stata_agent.workflow.types import RunStage
 
 
+class Phase1OrchestratorPort(Protocol):
+    def run_feasibility(
+        self,
+        state: ResearchState,
+        *,
+        config: RunnableConfig | None = None,
+    ) -> ResearchState: ...
+
+
 class Phase1FeasibilityOrchestrator(Phase1OrchestratorPort):
     def __init__(
         self,
         parser: RequirementParserPort,
         builder: VariableRequirementsBuilderPort,
-        mapper: VariableMapperPort,
+        mapping_planner: ProbeMappingPlannerPort,
+        binding_materializer: VariableBindingMaterializerPort,
         probe_executor: ProbeExecutorPort,
+        probe_summarizer: ProbeCoverageSummarizerPort,
         data_contract_builder: DataContractBuilderPort,
     ) -> None:
         self._nodes = Phase1FeasibilityNodes(
             parser=parser,
             builder=builder,
-            mapper=mapper,
+            mapping_planner=mapping_planner,
+            binding_materializer=binding_materializer,
             probe_executor=probe_executor,
+            probe_summarizer=probe_summarizer,
             data_contract_builder=data_contract_builder,
         )
         self._graph = self._build_graph()

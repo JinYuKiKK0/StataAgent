@@ -6,7 +6,7 @@ Y/X/控制变量的角色、锁定状态和频率提示，作为后续 CSMAR 探
 """
 
 from stata_agent.domains.spec.types import ResearchSpec
-from stata_agent.services.variable_requirements_builder import (
+from stata_agent.services.spec.variable_requirements import (
     VariableRequirementsBuilder,
 )
 

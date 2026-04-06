@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.domains.spec.ports import ResearchSpecGenerator
-from stata_agent.domains.spec.types import RequirementParseResult, ResearchSpec
+from stata_agent.domains.spec.types import ResearchSpec
+from stata_agent.services.spec.contracts import RequirementParseResult
+from stata_agent.services.spec.ports import ResearchSpecGenerator
 
 
 class RequirementParser:

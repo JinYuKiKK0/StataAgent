@@ -2,10 +2,10 @@
 
 import pytest
 
-from stata_agent.domains.fetch.types import GatewayDecision
-from stata_agent.domains.fetch.types import GatewayResumeRequest
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.providers.settings import Settings
+from stata_agent.workflow.gateway import GatewayDecision
+from stata_agent.workflow.gateway import GatewayResumeRequest
 from stata_agent.workflow.orchestrator import ApplicationOrchestrator
 from stata_agent.workflow.types import RunStage
 
@@ -25,7 +25,7 @@ def test_orchestrator_happy_path_pauses_at_gateway(
     state, thread_id = orchestrator.run(live_request)
 
     assert state.stage is RunStage.CONTRACTED
-    assert state.data_contract_bundle is not None
+    assert state.phase1_artifacts.data_contract_bundle is not None
     assert thread_id.startswith("run-")
 
 
@@ -46,8 +46,8 @@ def test_gateway_approve_advances_to_approved_stage(
     )
 
     assert resumed.stage is RunStage.APPROVED
-    assert resumed.gateway_record is not None
-    assert resumed.gateway_record.decision is GatewayDecision.APPROVED
+    assert resumed.gateway_state.record is not None
+    assert resumed.gateway_state.record.decision is GatewayDecision.APPROVED
 
 
 def test_gateway_reject_fails_with_reason(
@@ -70,9 +70,9 @@ def test_gateway_reject_fails_with_reason(
     )
 
     assert resumed.stage is RunStage.FAILED
-    assert resumed.gateway_record is not None
-    assert resumed.gateway_record.decision is GatewayDecision.REJECTED
-    assert resumed.gateway_record.reason == "变量覆盖不满足预期"
+    assert resumed.gateway_state.record is not None
+    assert resumed.gateway_state.record.decision is GatewayDecision.REJECTED
+    assert resumed.gateway_state.record.reason == "变量覆盖不满足预期"
 
 
 def test_orchestrator_fails_when_hard_mapping_is_unavailable(
@@ -86,6 +86,6 @@ def test_orchestrator_fails_when_hard_mapping_is_unavailable(
     state, _ = orchestrator.run(failing_live_request)
 
     assert state.stage is RunStage.FAILED
-    assert state.variable_mapping_result is not None
-    assert state.variable_mapping_result.failure_reason is not None
-    assert state.gateway_record is None
+    assert state.phase1_artifacts.mapping_result is not None
+    assert state.phase1_artifacts.mapping_result.failure_reason is not None
+    assert state.gateway_state.record is None

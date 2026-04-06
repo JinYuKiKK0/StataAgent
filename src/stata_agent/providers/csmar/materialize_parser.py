@@ -3,12 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import cast
 
-from stata_agent.domains.mapping.types import (
-    CsmarMaterializeAudit,
-    CsmarMaterializeQueryResult,
-)
 from stata_agent.providers.csmar.errors import CsmarMetadataError
 from stata_agent.providers.csmar.normalizers import extract_first_int, normalize_tags
+from stata_agent.providers.csmar.types import CsmarMaterializeAudit
+from stata_agent.providers.csmar.types import CsmarMaterializeQueryResult
 
 
 def parse_materialize_payload(payload: Mapping[str, object]) -> CsmarMaterializeQueryResult:

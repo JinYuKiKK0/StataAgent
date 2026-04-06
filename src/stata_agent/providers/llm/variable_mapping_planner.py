@@ -6,17 +6,18 @@ from typing import cast
 
 from langchain.agents import create_agent
 from langchain_community.chat_models import ChatTongyi
+from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, Field
 
-from stata_agent.domains.mapping.ports import CsmarMetadataProviderPort
-from stata_agent.domains.mapping.ports import VariableMappingPlannerPort
-from stata_agent.domains.mapping.types import VariableMappingPlanItem
-from stata_agent.domains.mapping.types import VariableMappingPlanResult
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
 from stata_agent.domains.spec.types import VariableDefinition
-from stata_agent.providers.llm_mapping_toolkit import VariableMappingToolkit
+from stata_agent.providers.llm.variable_mapping_toolkit import VariableMappingToolkit
 from stata_agent.providers.settings import Settings
+from stata_agent.services.mapping.contracts import VariableMappingPlanItem
+from stata_agent.services.mapping.contracts import VariableMappingPlanResult
+from stata_agent.services.mapping.ports import CsmarMetadataProviderPort
+from stata_agent.services.mapping.ports import MappingPlannerPort
 
 
 class _VariableMappingPayloadItem(BaseModel):
@@ -41,7 +42,7 @@ class _VariableMappingPayload(BaseModel):
     warnings: list[str] = Field(default_factory=list, description="真实的不确定性说明")
 
 
-class TongyiVariableMappingPlanner(VariableMappingPlannerPort):
+class TongyiVariableMappingPlanner(MappingPlannerPort):
     def __init__(self, settings: Settings) -> None:
         self._model = ChatTongyi(
             model=settings.tongyi_model,
@@ -63,7 +64,6 @@ class TongyiVariableMappingPlanner(VariableMappingPlannerPort):
             model=self._model,
             tools=toolkit.build_tools(),
             system_prompt=_build_system_prompt(),
-            response_format=_VariableMappingPayload,
         )
         result = cast(
             Mapping[str, object],
@@ -82,7 +82,8 @@ class TongyiVariableMappingPlanner(VariableMappingPlannerPort):
                 }
             ),
         )
-        payload = result.get("structured_response")
+        messages = cast(list[BaseMessage], result.get("messages", []))
+        payload = self._extract_structured_output(messages)
         if not isinstance(payload, _VariableMappingPayload):
             raise RuntimeError("变量映射 agent 未返回可解析的结构化结果。")
         return VariableMappingPlanResult(
@@ -104,6 +105,24 @@ class TongyiVariableMappingPlanner(VariableMappingPlannerPort):
             ],
             warnings=payload.warnings,
         )
+
+    def _extract_structured_output(
+        self, messages: list[BaseMessage]
+    ) -> _VariableMappingPayload | None:
+        structured_model = self._model.with_structured_output(_VariableMappingPayload)
+        extraction_prompt = (
+            "基于以上对话历史，请提取变量映射结果。"
+            "必须为每个输入变量输出一条记录，包含 variable_name、matched、"
+            "database_name、table_code、table_name、field_name、field_label、"
+            "frequency_match、evidence、rationale、trace_id 字段。"
+        )
+        all_messages = list(messages) + [
+            {"role": "user", "content": extraction_prompt}
+        ]
+        result = structured_model.invoke(all_messages)
+        if isinstance(result, _VariableMappingPayload):
+            return result
+        return None
 
 
 def _build_system_prompt() -> str:

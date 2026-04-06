@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
 from stata_agent.providers.csmar.client import CsmarBridgeClient
 from stata_agent.providers.csmar.contracts import McpToolPayload
 from stata_agent.providers.csmar.errors import CsmarMetadataError
 from stata_agent.providers.csmar.mcp_runtime import CsmarMcpLaunchSpec
 from stata_agent.providers.settings import Settings
+from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
 
 
 class _FakeMcpToolCaller:

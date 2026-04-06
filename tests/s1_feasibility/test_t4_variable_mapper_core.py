@@ -1,18 +1,22 @@
 """S1-T4 变量映射核心行为测试。"""
 
-from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
-from stata_agent.domains.mapping.types import CsmarFieldProbeResult
-from stata_agent.domains.mapping.types import CsmarTableRecord
-from stata_agent.domains.mapping.types import CsmarTableSchema
-from stata_agent.domains.mapping.types import VariableMappingPlanItem
-from stata_agent.domains.mapping.types import VariableMappingPlanResult
-from stata_agent.domains.mapping.types import VariableMappingResult
-from stata_agent.domains.mapping.ports import CsmarMetadataProviderPort
-from stata_agent.domains.spec.types import VariableDefinition
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.domains.spec.types import ResearchSpec
-from stata_agent.services.variable_mapper import VariableMapper
-from stata_agent.services.variable_requirements_builder import VariableRequirementsBuilder
+from stata_agent.domains.spec.types import VariableDefinition
+from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
+from stata_agent.services.mapping.contracts import CsmarFieldProbeResult
+from stata_agent.services.mapping.contracts import CsmarTableRecord
+from stata_agent.services.mapping.contracts import CsmarTableSchema
+from stata_agent.services.mapping.contracts import VariableMappingBudget
+from stata_agent.services.mapping.contracts import VariableMappingPlanItem
+from stata_agent.services.mapping.contracts import VariableMappingPlanResult
+from stata_agent.services.mapping.contracts import VariableMappingResult
+from stata_agent.services.mapping.materialize_bindings import (
+    VariableBindingMaterializer,
+)
+from stata_agent.services.mapping.plan_mapping import ProbeMappingPlanner
+from stata_agent.services.mapping.ports import CsmarMetadataProviderPort
+from stata_agent.services.spec.variable_requirements import VariableRequirementsBuilder
 
 
 class _UnusedMetadataProvider:
@@ -29,6 +33,20 @@ class _UnusedMetadataProvider:
         self, request: CsmarFieldProbeRequest
     ) -> CsmarFieldProbeResult:
         raise AssertionError("变量映射测试不应调用 probe。")
+
+    def drain_tool_traces(self) -> list[object]:
+        return []
+
+
+class _PassThroughScopeFactory:
+    def create_mapping_provider(
+        self,
+        metadata_provider: CsmarMetadataProviderPort,
+        budget: VariableMappingBudget,
+    ) -> _UnusedMetadataProvider:
+        del budget
+        assert isinstance(metadata_provider, _UnusedMetadataProvider)
+        return metadata_provider
 
 
 class _FakePlanningAgent:
@@ -76,18 +94,30 @@ def _build_definitions() -> list[VariableDefinition]:
     return builder.build(_build_spec()).variable_definitions
 
 
+def _build_mapping_components(
+    result: VariableMappingPlanResult,
+) -> tuple[ProbeMappingPlanner, VariableBindingMaterializer]:
+    planner = ProbeMappingPlanner(
+        metadata_provider=_UnusedMetadataProvider(),
+        planner=_FakePlanningAgent(result),
+        scope_factory=_PassThroughScopeFactory(),
+    )
+    return planner, VariableBindingMaterializer()
+
+
 def _materialize_from_planner(
-    mapper: VariableMapper,
+    planner: ProbeMappingPlanner,
+    materializer: VariableBindingMaterializer,
     *,
     variable_definitions: list[VariableDefinition] | None = None,
 ) -> VariableMappingResult:
     definitions = variable_definitions or _build_definitions()
-    plan_result = mapper.plan_probe_mapping(
+    plan_result = planner.plan_probe_mapping(
         request=_build_request(),
         spec=_build_spec(),
         variable_definitions=definitions,
     )
-    return mapper.materialize_variable_bindings(
+    return materializer.materialize_variable_bindings(
         request=_build_request(),
         spec=_build_spec(),
         variable_definitions=definitions,
@@ -97,7 +127,7 @@ def _materialize_from_planner(
 
 def test_mapper_builds_bindings_from_planner_selection() -> None:
     """验证 mapper 会把 planner 产出的结构化映射草案转换为正式绑定。"""
-    planner = _FakePlanningAgent(
+    planner, materializer = _build_mapping_components(
         VariableMappingPlanResult(
             items=[
                 VariableMappingPlanItem(
@@ -132,12 +162,8 @@ def test_mapper_builds_bindings_from_planner_selection() -> None:
             ]
         )
     )
-    mapper = VariableMapper(
-        metadata_provider=_UnusedMetadataProvider(),
-        planner=planner,
-    )
 
-    result = _materialize_from_planner(mapper)
+    result = _materialize_from_planner(planner, materializer)
 
     assert result.failure_reason is None
     assert [item.variable_name for item in result.bindings] == ["ROA", "资产总计"]
@@ -150,7 +176,7 @@ def test_mapper_builds_bindings_from_planner_selection() -> None:
 
 def test_mapper_fails_fast_when_planner_misses_hard_variable() -> None:
     """验证 planner 未能解析 Hard Contract 变量时 mapper 会触发失败。"""
-    planner = _FakePlanningAgent(
+    planner, materializer = _build_mapping_components(
         VariableMappingPlanResult(
             items=[
                 VariableMappingPlanItem(
@@ -170,12 +196,8 @@ def test_mapper_fails_fast_when_planner_misses_hard_variable() -> None:
             ]
         )
     )
-    mapper = VariableMapper(
-        metadata_provider=_UnusedMetadataProvider(),
-        planner=planner,
-    )
 
-    result = _materialize_from_planner(mapper)
+    result = _materialize_from_planner(planner, materializer)
 
     assert result.failure_reason is not None
     assert "资产总计" in result.failure_reason
@@ -184,7 +206,7 @@ def test_mapper_fails_fast_when_planner_misses_hard_variable() -> None:
 
 def test_mapper_keeps_soft_gap_summary_without_abort() -> None:
     """验证 planner 未解决 Soft Contract 变量时 mapper 仅记录缺口摘要。"""
-    planner = _FakePlanningAgent(
+    planner, materializer = _build_mapping_components(
         VariableMappingPlanResult(
             items=[
                 VariableMappingPlanItem(
@@ -213,10 +235,6 @@ def test_mapper_keeps_soft_gap_summary_without_abort() -> None:
             ]
         )
     )
-    mapper = VariableMapper(
-        metadata_provider=_UnusedMetadataProvider(),
-        planner=planner,
-    )
     definitions = _build_definitions() + [
         VariableDefinition(
             variable_name="不存在的控制变量",
@@ -229,7 +247,8 @@ def test_mapper_keeps_soft_gap_summary_without_abort() -> None:
     ]
 
     result = _materialize_from_planner(
-        mapper,
+        planner,
+        materializer,
         variable_definitions=definitions,
     )
 

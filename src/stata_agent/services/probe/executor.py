@@ -1,19 +1,19 @@
-from stata_agent.domains.fetch.types import ProbeCoverageResult
-from stata_agent.domains.fetch.types import VariableProbeResult
-from stata_agent.domains.mapping.ports import CsmarMetadataProviderPort
-from stata_agent.domains.mapping.types import CsmarFieldProbeResult
-from stata_agent.domains.mapping.types import CsmarFieldProbeRequest
-from stata_agent.domains.mapping.types import CsmarToolTrace
+from __future__ import annotations
+
+from typing import cast
+
 from stata_agent.domains.mapping.types import VariableBinding
 from stata_agent.domains.spec.types import ResearchSpec
-from stata_agent.providers.csmar import CsmarMetadataError
-from typing import cast
+from stata_agent.services.mapping.contracts import CsmarFieldProbeRequest
+from stata_agent.services.mapping.contracts import CsmarFieldProbeResult
+from stata_agent.services.mapping.ports import CsmarMetadataProviderPort
+from stata_agent.services.probe.contracts import VariableProbeResult
 
 
 class ProbeExecutor:
     def __init__(self, metadata_provider: CsmarMetadataProviderPort) -> None:
         self._metadata_provider = metadata_provider
-        self._pending_traces: list[CsmarToolTrace] = []
+        self._pending_traces: list[object] = []
 
     def run_field_probes(
         self,
@@ -49,36 +49,6 @@ class ProbeExecutor:
             )
         return probe_results
 
-    def summarize_coverage(
-        self,
-        spec: ResearchSpec,
-        probe_results: list[VariableProbeResult],
-    ) -> ProbeCoverageResult:
-        hard_results = [r for r in probe_results if r.contract_tier == "hard"]
-        soft_results = [r for r in probe_results if r.contract_tier == "soft"]
-        hard_gaps = [r.variable_name for r in hard_results if not r.is_accessible]
-        soft_gaps = [r.variable_name for r in soft_results if not r.is_accessible]
-        warnings = self._collect_probe_warnings(probe_results)
-        warnings.extend(self._collect_fail_fast_warnings(probe_results))
-        warnings.extend(self._build_soft_gap_warnings(soft_gaps))
-        key_alignment_ready = all(result.is_accessible for result in hard_results)
-        target_grain_ready = self._is_target_grain_ready(spec, hard_results)
-        return ProbeCoverageResult(
-            probe_results=probe_results,
-            hard_coverage_rate=self._coverage_rate(hard_results),
-            soft_coverage_rate=self._coverage_rate(soft_results),
-            hard_gaps=hard_gaps,
-            soft_gaps=soft_gaps,
-            key_alignment_ready=key_alignment_ready,
-            target_grain_ready=target_grain_ready,
-            warnings=warnings,
-            failure_reason=self._build_failure_reason(
-                hard_gaps=hard_gaps,
-                key_alignment_ready=key_alignment_ready,
-                target_grain_ready=target_grain_ready,
-            ),
-        )
-
     def _probe_binding(
         self,
         *,
@@ -101,11 +71,10 @@ class ProbeExecutor:
                     time_end_year=spec.time_end_year,
                 )
             )
-        except CsmarMetadataError as exc:
+        except Exception as exc:
             provider_traces = self._drain_provider_traces()
             self._pending_traces.extend(provider_traces)
-            if provider_traces:
-                trace_id = provider_traces[-1].trace_id
+            trace_id = self._last_trace_id(provider_traces, trace_id)
             return self._build_probe_failure(
                 binding=binding,
                 field_exists=False,
@@ -114,17 +83,16 @@ class ProbeExecutor:
                 query_fingerprint="",
                 validation_id="",
                 scope_level="time_scoped",
-                vendor_message=exc.vendor_message,
-                error_code=exc.code,
-                hint=exc.hint,
-                retry_after_seconds=exc.retry_after_seconds,
-                suggested_args_patch=exc.suggested_args_patch,
+                vendor_message=str(getattr(exc, "vendor_message", str(exc))),
+                error_code=str(getattr(exc, "code", "")),
+                hint=str(getattr(exc, "hint", "")),
+                retry_after_seconds=getattr(exc, "retry_after_seconds", None),
+                suggested_args_patch=getattr(exc, "suggested_args_patch", None),
             )
 
         provider_traces = self._drain_provider_traces()
         self._pending_traces.extend(provider_traces)
-        if provider_traces:
-            trace_id = provider_traces[-1].trace_id
+        trace_id = self._last_trace_id(provider_traces, trace_id)
 
         if not probe_result.field_exists:
             return self._build_probe_failure(
@@ -137,10 +105,7 @@ class ProbeExecutor:
                 scope_level=probe_result.scope_level,
                 vendor_message=probe_result.vendor_message,
                 error_code=probe_result.error_code or "field_not_found",
-                hint=(
-                    probe_result.hint
-                    or "字段不存在，建议先读取表结构后修正字段代码。"
-                ),
+                hint=probe_result.hint or "字段不存在，建议先读取表结构后修正字段代码。",
                 retry_after_seconds=probe_result.retry_after_seconds,
                 suggested_args_patch=probe_result.suggested_args_patch,
             )
@@ -232,106 +197,29 @@ class ProbeExecutor:
             suggested_args_patch=probe_result.suggested_args_patch,
         )
 
-    def _collect_probe_warnings(
-        self, probe_results: list[VariableProbeResult]
-    ) -> list[str]:
-        warnings: list[str] = []
-        for result in probe_results:
-            if result.scope_level == "time_scoped":
-                warnings.append(
-                    f"变量 `{result.variable_name}` 当前仅完成时间范围 probe，样本范围仍待后续验证。"
-                )
-        return warnings
-
-    def _collect_fail_fast_warnings(
-        self,
-        probe_results: list[VariableProbeResult],
-    ) -> list[str]:
-        fail_fast_codes = {"table_not_found", "field_not_found", "rate_limited"}
-        warnings: list[str] = []
-        for result in probe_results:
-            if result.error_code not in fail_fast_codes:
-                continue
-            retry_hint = (
-                f" 建议等待 {result.retry_after_seconds}s 后重试。"
-                if result.retry_after_seconds is not None
-                else ""
-            )
-            warnings.append(
-                f"变量 `{result.variable_name}` 命中 `{result.error_code}`，按 fail-fast 策略不做内部重试。{retry_hint}"
-            )
-        return warnings
-
-    def _is_target_grain_ready(
-        self,
-        spec: ResearchSpec,
-        hard_results: list[VariableProbeResult],
-    ) -> bool:
-        if not hard_results:
-            return False
-        if not spec.analysis_grain_candidates:
-            return True
-        annual_required = any(
-            "year" in grain.lower() for grain in spec.analysis_grain_candidates
-        )
-        quarterly_required = any(
-            "quarter" in grain.lower() for grain in spec.analysis_grain_candidates
-        )
-        if annual_required or quarterly_required:
-            return all(result.frequency_match for result in hard_results)
-        return True
-
-    def _build_failure_reason(
-        self,
-        *,
-        hard_gaps: list[str],
-        key_alignment_ready: bool,
-        target_grain_ready: bool,
-    ) -> str | None:
-        if hard_gaps:
-            variables = "、".join(hard_gaps)
-            return f"探针失败：Hard Contract 变量不可得：{variables}。"
-        if not key_alignment_ready:
-            return "探针失败：关键主键不可对齐，阻断后续阶段。"
-        if not target_grain_ready:
-            return "探针失败：目标粒度不可得，Hard Contract 变量频率不匹配。"
-        return None
-
-    def _build_soft_gap_warnings(self, soft_gaps: list[str]) -> list[str]:
-        if not soft_gaps:
-            return []
-        text = "、".join(soft_gaps)
-        return [f"Soft Contract 变量覆盖不足：{text}。已记录摘要并继续。"]
-
-    def _coverage_rate(self, results: list[VariableProbeResult]) -> float:
-        if not results:
-            return 1.0
-        covered = sum(1 for item in results if item.is_accessible)
-        return covered / len(results)
-
-    def drain_tool_traces(self) -> list[CsmarToolTrace]:
+    def drain_tool_traces(self) -> list[object]:
         traces = list(self._pending_traces)
         self._pending_traces.clear()
         return traces
 
-    def _drain_provider_traces(self) -> list[CsmarToolTrace]:
+    def _drain_provider_traces(self) -> list[object]:
         drain = getattr(self._metadata_provider, "drain_tool_traces", None)
         if not callable(drain):
             return []
-
-        raw_traces_obj = drain()
-        if not isinstance(raw_traces_obj, list):
+        raw_traces = drain()
+        if not isinstance(raw_traces, list):
             return []
-        raw_traces = cast(list[object], raw_traces_obj)
+        return cast(list[object], raw_traces)
 
-        normalized: list[CsmarToolTrace] = []
-        for item in raw_traces:
-            if isinstance(item, CsmarToolTrace):
-                normalized.append(item)
-                continue
-            try:
-                normalized.append(CsmarToolTrace.model_validate(item))
-            except Exception:
-                continue
-
-        return normalized
+    def _last_trace_id(
+        self,
+        provider_traces: list[object],
+        fallback_trace_id: str,
+    ) -> str:
+        if not provider_traces:
+            return fallback_trace_id
+        last_trace = provider_traces[-1]
+        trace_id = getattr(last_trace, "trace_id", "")
+        if isinstance(trace_id, str) and trace_id.strip():
+            return trace_id
+        return fallback_trace_id

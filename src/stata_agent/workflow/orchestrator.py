@@ -3,34 +3,28 @@
 from collections.abc import Callable
 from uuid import uuid4
 
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
-from langchain_core.runnables.config import RunnableConfig
 
-from stata_agent.domains.fetch.types import GatewayResumeRequest
 from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.providers.csmar import CsmarBridgeClient
-from stata_agent.providers.llm import TongyiResearchSpecGenerator
-from stata_agent.providers.llm_mapping import TongyiVariableMappingPlanner
-from stata_agent.providers.settings import Settings, SettingsError, get_settings
-from stata_agent.services.data_contract_builder import DataContractBuilder
-from stata_agent.services.probe_executor import ProbeExecutor
-from stata_agent.services.requirement_parser import RequirementParser
-from stata_agent.services.variable_mapper import VariableMapper
-from stata_agent.services.variable_requirements_builder import (
-    VariableRequirementsBuilder,
-)
-from stata_agent.workflow.ports import CsmarMetadataProviderPort
-from stata_agent.workflow.ports import DataContractBuilderPort
-from stata_agent.workflow.ports import Phase1OrchestratorPort
-from stata_agent.workflow.ports import ProbeExecutorPort
-from stata_agent.workflow.ports import RequirementParserPort
-from stata_agent.workflow.ports import VariableMapperPort
-from stata_agent.workflow.ports import VariableRequirementsBuilderPort
+from stata_agent.providers.settings import Settings
+from stata_agent.providers.settings import SettingsError
+from stata_agent.providers.settings import get_settings
+from stata_agent.services.contract.ports import DataContractBuilderPort
+from stata_agent.services.mapping.ports import CsmarMetadataProviderPort
+from stata_agent.services.mapping.ports import ProbeMappingPlannerPort
+from stata_agent.services.mapping.ports import VariableBindingMaterializerPort
+from stata_agent.services.probe.ports import ProbeCoverageSummarizerPort
+from stata_agent.services.probe.ports import ProbeExecutorPort
+from stata_agent.services.spec.ports import RequirementParserPort
+from stata_agent.services.spec.ports import VariableRequirementsBuilderPort
+from stata_agent.workflow.bootstrap import build_application_dependencies
+from stata_agent.workflow.gateway import GatewayResumeRequest
 from stata_agent.workflow.graph import build_workflow_graph
 from stata_agent.workflow.state import ResearchState
-from stata_agent.workflow.stages.phase1_feasibility import Phase1FeasibilityOrchestrator
+from stata_agent.workflow.stages.phase1_feasibility import Phase1OrchestratorPort
 
 
 class WorkflowBootstrapError(RuntimeError):
@@ -44,24 +38,31 @@ class ApplicationOrchestrator:
         self,
         parser: RequirementParserPort | None = None,
         builder: VariableRequirementsBuilderPort | None = None,
-        mapper: VariableMapperPort | None = None,
+        mapping_planner: ProbeMappingPlannerPort | None = None,
+        binding_materializer: VariableBindingMaterializerPort | None = None,
         probe_executor: ProbeExecutorPort | None = None,
+        probe_summarizer: ProbeCoverageSummarizerPort | None = None,
         data_contract_builder: DataContractBuilderPort | None = None,
         csmar_provider: CsmarMetadataProviderPort | None = None,
         phase1_orchestrator: Phase1OrchestratorPort | None = None,
         settings_factory: Callable[[], Settings] = get_settings,
         checkpointer_factory: Callable[[], BaseCheckpointSaver[str]] | None = InMemorySaver,
     ) -> None:
-        self._settings_factory = settings_factory
-        self._parser = parser
-        self._builder = builder
-        self._mapper = mapper
-        self._probe_executor = probe_executor
-        self._data_contract_builder = data_contract_builder
-        self._csmar_provider = csmar_provider
-        self._phase1_orchestrator = phase1_orchestrator
-        self._mapping_planner: TongyiVariableMappingPlanner | None = None
-        self._settings: Settings | None = None
+        try:
+            self._dependencies = build_application_dependencies(
+                parser=parser,
+                builder=builder,
+                mapping_planner=mapping_planner,
+                binding_materializer=binding_materializer,
+                probe_executor=probe_executor,
+                probe_summarizer=probe_summarizer,
+                data_contract_builder=data_contract_builder,
+                csmar_provider=csmar_provider,
+                phase1_orchestrator=phase1_orchestrator,
+                settings_factory=settings_factory,
+            )
+        except SettingsError as exc:
+            raise WorkflowBootstrapError(exc.details) from exc
         self._checkpointer = (
             checkpointer_factory() if checkpointer_factory is not None else None
         )
@@ -71,11 +72,6 @@ class ApplicationOrchestrator:
         return ResearchState(request=request)
 
     def run(self, request: ResearchRequest) -> tuple[ResearchState, str]:
-        """启动工作流。返回 (state, thread_id)。
-
-        如果工作流命中 Gateway 中断，返回的 state.stage 为 CONTRACTED，
-        调用方应使用 thread_id 调用 resume() 提交决策。
-        """
         thread_id = f"run-{uuid4()}"
         initial_state = self.create_initial_state(request)
         result = self._graph.invoke(
@@ -84,18 +80,12 @@ class ApplicationOrchestrator:
         return self._extract_state(result), thread_id
 
     def resume(self, thread_id: str, decision: GatewayResumeRequest) -> ResearchState:
-        """用人类决策恢复被中断的工作流。
-
-        decision 格式: GatewayResumeRequest(decision=approved|rejected, reason="...")
-        """
         config = self._build_run_config(thread_id)
         result = self._graph.invoke(Command(resume=decision.model_dump(mode="json")), config)
         return self._extract_state(result)
 
     def app_name(self) -> str:
-        return self._load_settings().app_name
-
-    # ── Graph topology ──
+        return self._dependencies.settings.app_name
 
     def _build_graph(self):
         return build_workflow_graph(
@@ -103,16 +93,14 @@ class ApplicationOrchestrator:
             checkpointer=self._checkpointer,
         )
 
-    # ── Graph nodes ──
-
     def _run_phase1_node(
         self,
         state: ResearchState,
         config: RunnableConfig | None = None,
     ) -> ResearchState:
-        return self._get_phase1_orchestrator().run_feasibility(state, config=config)
-
-    # ── Config ──
+        return self._dependencies.phase1_orchestrator.run_feasibility(
+            state, config=config
+        )
 
     def _build_run_config(self, thread_id: str) -> RunnableConfig:
         return {"configurable": {"thread_id": thread_id}}
@@ -125,66 +113,3 @@ class ApplicationOrchestrator:
     @property
     def compiled_graph(self):
         return self._graph
-
-    # ── Dependency resolution ──
-
-    def _get_parser(self) -> RequirementParserPort:
-        if self._parser is None:
-            generator = TongyiResearchSpecGenerator(self._load_settings())
-            self._parser = RequirementParser(generator=generator)
-        return self._parser
-
-    def _get_builder(self) -> VariableRequirementsBuilderPort:
-        if self._builder is None:
-            self._builder = VariableRequirementsBuilder()
-        return self._builder
-
-    def _get_mapper(self) -> VariableMapperPort:
-        if self._mapper is None:
-            self._mapper = VariableMapper(
-                metadata_provider=self._get_csmar_provider(),
-                planner=self._get_mapping_planner(),
-            )
-        return self._mapper
-
-    def _get_probe_executor(self) -> ProbeExecutorPort:
-        if self._probe_executor is None:
-            self._probe_executor = ProbeExecutor(
-                metadata_provider=self._get_csmar_provider()
-            )
-        return self._probe_executor
-
-    def _get_data_contract_builder(self) -> DataContractBuilderPort:
-        if self._data_contract_builder is None:
-            self._data_contract_builder = DataContractBuilder()
-        return self._data_contract_builder
-
-    def _get_phase1_orchestrator(self) -> Phase1OrchestratorPort:
-        if self._phase1_orchestrator is None:
-            self._phase1_orchestrator = Phase1FeasibilityOrchestrator(
-                parser=self._get_parser(),
-                builder=self._get_builder(),
-                mapper=self._get_mapper(),
-                probe_executor=self._get_probe_executor(),
-                data_contract_builder=self._get_data_contract_builder(),
-            )
-        return self._phase1_orchestrator
-
-    def _get_mapping_planner(self) -> TongyiVariableMappingPlanner:
-        if self._mapping_planner is None:
-            self._mapping_planner = TongyiVariableMappingPlanner(self._load_settings())
-        return self._mapping_planner
-
-    def _get_csmar_provider(self) -> CsmarMetadataProviderPort:
-        if self._csmar_provider is None:
-            settings = self._load_settings()
-            self._csmar_provider = CsmarBridgeClient.from_settings(settings)
-        return self._csmar_provider
-
-    def _load_settings(self) -> Settings:
-        if self._settings is None:
-            try:
-                self._settings = self._settings_factory()
-            except SettingsError as exc:
-                raise WorkflowBootstrapError(exc.details) from exc
-        return self._settings

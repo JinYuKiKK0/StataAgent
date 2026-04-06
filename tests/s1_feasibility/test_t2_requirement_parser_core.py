@@ -1,9 +1,9 @@
 """S1-T2 需求解析核心契约测试。"""
 
 from stata_agent.domains.request.types import ResearchRequest
-from stata_agent.domains.spec.types import RequirementParseResult
 from stata_agent.domains.spec.types import ResearchSpec
-from stata_agent.services.requirement_parser import RequirementParser
+from stata_agent.services.spec.contracts import RequirementParseResult
+from stata_agent.services.spec.requirement_parser import RequirementParser
 
 
 class _FakeSpecGenerator:

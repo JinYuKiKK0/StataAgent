@@ -7,14 +7,17 @@ import pytest
 
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.providers.csmar import CsmarBridgeClient
+from stata_agent.providers.csmar.node_scoped_client import NodeScopedCsmarProviderFactory
 from stata_agent.providers.llm import TongyiResearchSpecGenerator
-from stata_agent.providers.llm_mapping import TongyiVariableMappingPlanner
+from stata_agent.providers.llm import TongyiVariableMappingPlanner
 from stata_agent.providers.settings import Settings, get_settings
-from stata_agent.services.data_contract_builder import DataContractBuilder
-from stata_agent.services.probe_executor import ProbeExecutor
-from stata_agent.services.requirement_parser import RequirementParser
-from stata_agent.services.variable_mapper import VariableMapper
-from stata_agent.services.variable_requirements_builder import VariableRequirementsBuilder
+from stata_agent.services.contract.data_contract_builder import DataContractBuilder
+from stata_agent.services.mapping.materialize_bindings import VariableBindingMaterializer
+from stata_agent.services.mapping.plan_mapping import ProbeMappingPlanner
+from stata_agent.services.probe.executor import ProbeExecutor
+from stata_agent.services.probe.summarizer import ProbeCoverageSummarizer
+from stata_agent.services.spec.requirement_parser import RequirementParser
+from stata_agent.services.spec.variable_requirements import VariableRequirementsBuilder
 from stata_agent.workflow.stages.phase1_feasibility import Phase1FeasibilityOrchestrator
 
 _RUN_LIVE_TESTS_ENV = "RUN_LIVE_API_TESTS"
@@ -101,11 +104,14 @@ def live_phase1_orchestrator(
     return Phase1FeasibilityOrchestrator(
         parser=live_parser,
         builder=VariableRequirementsBuilder(),
-        mapper=VariableMapper(
+        mapping_planner=ProbeMappingPlanner(
             metadata_provider=live_csmar_provider,
             planner=TongyiVariableMappingPlanner(live_settings),
+            scope_factory=NodeScopedCsmarProviderFactory(),
         ),
+        binding_materializer=VariableBindingMaterializer(),
         probe_executor=ProbeExecutor(metadata_provider=live_csmar_provider),
+        probe_summarizer=ProbeCoverageSummarizer(),
         data_contract_builder=DataContractBuilder(),
     )
 

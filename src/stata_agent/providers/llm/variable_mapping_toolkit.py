@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from langchain_core.tools import BaseTool, tool
 
-from stata_agent.domains.mapping.ports import CsmarMetadataProviderPort
-from stata_agent.domains.mapping.types import CsmarGetTableSchemaToolResult
-from stata_agent.domains.mapping.types import CsmarListDatabasesToolResult
-from stata_agent.domains.mapping.types import CsmarListTablesToolResult
 from stata_agent.providers.csmar import CsmarMetadataError
 from stata_agent.providers.csmar import NodeScopedCsmarProvider
+from stata_agent.providers.csmar.types import CsmarGetTableSchemaToolResult
+from stata_agent.providers.csmar.types import CsmarListDatabasesToolResult
+from stata_agent.providers.csmar.types import CsmarListTablesToolResult
+from stata_agent.services.mapping.ports import CsmarMetadataProviderPort
 
 
 class VariableMappingToolkit:
