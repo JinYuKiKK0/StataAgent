@@ -41,14 +41,7 @@ class VariableBindingMaterializer:
             if self._is_valid_match(plan_item):
                 assert plan_item is not None
                 bindings.append(self._to_binding(plan_item, definition, is_hard))
-                resolved_definitions.append(
-                    definition.model_copy(
-                        update={
-                            "source_domain_hint": plan_item.database_name
-                            or "pending_resolution"
-                        }
-                    )
-                )
+                resolved_definitions.append(definition)
                 continue
 
             resolved_definitions.append(definition)

@@ -46,7 +46,6 @@ def _build_variable_definitions() -> list[VariableDefinition]:
             is_locked=True,
             slot_status="ready",
             frequency_hint="annual",
-            source_domain_hint="bank_financials",
         ),
         VariableDefinition(
             variable_name="数字化转型指数",
@@ -54,7 +53,6 @@ def _build_variable_definitions() -> list[VariableDefinition]:
             is_locked=True,
             slot_status="ready",
             frequency_hint="annual",
-            source_domain_hint="bank_topic",
         ),
         VariableDefinition(
             variable_name="资本充足率",
@@ -62,7 +60,6 @@ def _build_variable_definitions() -> list[VariableDefinition]:
             is_locked=False,
             slot_status="pending_agent_completion",
             frequency_hint="annual",
-            source_domain_hint="bank_financials",
         ),
     ]
 

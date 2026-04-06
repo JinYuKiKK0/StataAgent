@@ -22,7 +22,6 @@ class DataRequirementItem(BaseModel):
     variable_name: str = Field(..., description="变量名")
     role: str = Field(..., description="变量角色")
     frequency_hint: str = Field(..., description="频率提示")
-    source_domain_hint: str = Field(..., description="候选数据域提示")
     slot_status: str = Field(..., description="槽位状态")
 
 

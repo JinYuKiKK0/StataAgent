@@ -217,7 +217,6 @@ def _render_variable_definitions(state: ResearchState) -> None:
     table.add_column("锁定")
     table.add_column("槽位状态")
     table.add_column("频率")
-    table.add_column("候选数据域")
 
     for definition in variable_definitions:
         table.add_row(
@@ -226,7 +225,6 @@ def _render_variable_definitions(state: ResearchState) -> None:
             "是" if definition.is_locked else "否",
             definition.slot_status,
             definition.frequency_hint,
-            definition.source_domain_hint,
         )
 
     console.print(table)

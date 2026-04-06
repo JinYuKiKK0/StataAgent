@@ -38,5 +38,4 @@ class VariableDefinition(BaseModel):
     frequency_hint: str = Field(
         ..., description="频率提示：annual/quarterly/monthly/unknown"
     )
-    source_domain_hint: str = Field(..., description="候选数据域提示")
     note: str | None = Field(default=None, description="补充说明")

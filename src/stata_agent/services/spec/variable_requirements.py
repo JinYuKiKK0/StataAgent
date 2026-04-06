@@ -44,7 +44,6 @@ def _build_core_variable(
         is_locked=True,
         slot_status="ready",
         frequency_hint=spec.analysis_frequency_hint,
-        source_domain_hint="pending_resolution",
         note=None,
     )
 
@@ -58,7 +57,6 @@ def _build_control_variables(spec: ResearchSpec) -> list[VariableDefinition]:
             is_locked=False,
             slot_status="pending_agent_completion",
             frequency_hint=spec.analysis_frequency_hint,
-            source_domain_hint="pending_resolution",
             note="控制变量候选，待 agent 在建模阶段确认纳入。",
         )
         for control in normalized_controls
@@ -86,6 +84,5 @@ def _to_requirement_item(definition: VariableDefinition) -> DataRequirementItem:
         variable_name=definition.variable_name,
         role=definition.role,
         frequency_hint=definition.frequency_hint,
-        source_domain_hint=definition.source_domain_hint,
         slot_status=definition.slot_status,
     )
