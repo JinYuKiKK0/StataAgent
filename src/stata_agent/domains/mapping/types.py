@@ -4,10 +4,16 @@ from stata_agent.domains.spec.types import VariableDefinition
 
 
 class VariableMappingBudget(BaseModel):
-    search_tables_limit: int = 1
+    list_databases_limit: int = 1
+    list_tables_limit: int = 4
     schema_reads_limit: int = 2
-    search_fields_limit: int = 1
-    enable_aux_field_search: bool = True
+    max_total_calls: int = 12
+
+
+class CsmarTableRecord(BaseModel):
+    table_code: str
+    table_name: str = ""
+    database_name: str = ""
 
 
 class CsmarTableSearchRequest(BaseModel):
@@ -180,6 +186,68 @@ class CsmarToolTrace(BaseModel):
     cached: bool = False
     started_at: str
     completed_at: str
+
+
+class CsmarListDatabasesToolResult(BaseModel):
+    ok: bool = True
+    databases: list[str] = Field(default_factory=list)
+    code: str = ""
+    message: str = ""
+    hint: str = ""
+    trace_id: str = ""
+
+
+def _empty_table_records() -> list[CsmarTableRecord]:
+    return []
+
+
+class CsmarListTablesToolResult(BaseModel):
+    ok: bool = True
+    database_name: str = ""
+    items: list[CsmarTableRecord] = Field(default_factory=_empty_table_records)
+    code: str = ""
+    message: str = ""
+    hint: str = ""
+    trace_id: str = ""
+
+
+def _empty_schema_result_fields() -> list[CsmarSchemaField]:
+    return []
+
+
+class CsmarGetTableSchemaToolResult(BaseModel):
+    ok: bool = True
+    table_code: str = ""
+    table_name: str = ""
+    database_name: str = ""
+    fields: list[CsmarSchemaField] = Field(default_factory=_empty_schema_result_fields)
+    code: str = ""
+    message: str = ""
+    hint: str = ""
+    trace_id: str = ""
+
+
+class VariableMappingPlanItem(BaseModel):
+    variable_name: str
+    matched: bool = False
+    database_name: str = ""
+    table_code: str = ""
+    table_name: str = ""
+    field_name: str = ""
+    field_label: str = ""
+    frequency_match: bool = False
+    evidence: str = ""
+    rationale: str = ""
+    trace_id: str = ""
+
+
+def _empty_mapping_plan_items() -> list[VariableMappingPlanItem]:
+    return []
+
+
+class VariableMappingPlanResult(BaseModel):
+    items: list[VariableMappingPlanItem] = Field(default_factory=_empty_mapping_plan_items)
+    warnings: list[str] = Field(default_factory=list)
 
 
 def _empty_bindings() -> list[VariableBinding]:

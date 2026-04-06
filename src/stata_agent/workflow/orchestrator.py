@@ -12,7 +12,7 @@ from stata_agent.domains.fetch.types import GatewayResumeRequest
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.providers.csmar import CsmarBridgeClient
 from stata_agent.providers.llm import TongyiResearchSpecGenerator
-from stata_agent.providers.llm import TongyiVariableSemanticJudge
+from stata_agent.providers.llm_mapping import TongyiVariableMappingPlanner
 from stata_agent.providers.settings import Settings, SettingsError, get_settings
 from stata_agent.services.data_contract_builder import DataContractBuilder
 from stata_agent.services.probe_executor import ProbeExecutor
@@ -60,7 +60,7 @@ class ApplicationOrchestrator:
         self._data_contract_builder = data_contract_builder
         self._csmar_provider = csmar_provider
         self._phase1_orchestrator = phase1_orchestrator
-        self._semantic_judge: TongyiVariableSemanticJudge | None = None
+        self._mapping_planner: TongyiVariableMappingPlanner | None = None
         self._settings: Settings | None = None
         self._checkpointer = (
             checkpointer_factory() if checkpointer_factory is not None else None
@@ -139,7 +139,7 @@ class ApplicationOrchestrator:
         if self._mapper is None:
             self._mapper = VariableMapper(
                 metadata_provider=self._get_csmar_provider(),
-                semantic_judge=self._get_semantic_judge(),
+                planner=self._get_mapping_planner(),
             )
         return self._mapper
 
@@ -166,10 +166,10 @@ class ApplicationOrchestrator:
             )
         return self._phase1_orchestrator
 
-    def _get_semantic_judge(self) -> TongyiVariableSemanticJudge:
-        if self._semantic_judge is None:
-            self._semantic_judge = TongyiVariableSemanticJudge(self._load_settings())
-        return self._semantic_judge
+    def _get_mapping_planner(self) -> TongyiVariableMappingPlanner:
+        if self._mapping_planner is None:
+            self._mapping_planner = TongyiVariableMappingPlanner(self._load_settings())
+        return self._mapping_planner
 
     def _get_csmar_provider(self) -> CsmarMetadataProviderPort:
         if self._csmar_provider is None:

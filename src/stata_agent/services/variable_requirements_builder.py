@@ -43,7 +43,7 @@ def _build_core_variable(
         role=role,
         is_locked=True,
         slot_status="ready",
-        frequency_hint=_infer_frequency_hint(spec.topic, cleaned_name),
+        frequency_hint=spec.analysis_frequency_hint,
         source_domain_hint="pending_resolution",
         note=None,
     )
@@ -57,7 +57,7 @@ def _build_control_variables(spec: ResearchSpec) -> list[VariableDefinition]:
             role="control",
             is_locked=False,
             slot_status="pending_agent_completion",
-            frequency_hint=_infer_frequency_hint(spec.topic, control),
+            frequency_hint=spec.analysis_frequency_hint,
             source_domain_hint="pending_resolution",
             note="控制变量候选，待 agent 在建模阶段确认纳入。",
         )
@@ -89,20 +89,3 @@ def _to_requirement_item(definition: VariableDefinition) -> DataRequirementItem:
         source_domain_hint=definition.source_domain_hint,
         slot_status=definition.slot_status,
     )
-
-
-def _infer_frequency_hint(topic: str, variable_name: str) -> str:
-    text = f"{topic} {variable_name}".strip().lower()
-    if _contains_any(text, ["月", "month", "monthly", "m1", "m2", "m3"]):
-        return "monthly"
-    if _contains_any(
-        text, ["季", "季度", "quarter", "quarterly", "q1", "q2", "q3", "q4"]
-    ):
-        return "quarterly"
-    if _contains_any(text, ["年", "年度", "annual", "yearly"]):
-        return "annual"
-    return "unknown"
-
-
-def _contains_any(text: str, keywords: list[str]) -> bool:
-    return any(keyword in text for keyword in keywords)

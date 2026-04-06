@@ -42,6 +42,9 @@ class RequirementParser:
                 "entity_scope_inferred": request.entity_scope is None,
                 "time_start_year": expected_start_year,
                 "time_end_year": expected_end_year,
+                "analysis_frequency_hint": _normalize_frequency_hint(
+                    result.spec.analysis_frequency_hint
+                ),
                 "control_variable_candidates": _normalize_candidates(
                     result.spec.control_variable_candidates
                 ),
@@ -117,3 +120,10 @@ def _normalize_candidates(values: list[str]) -> list[str]:
         normalized.append(cleaned)
         seen.add(cleaned)
     return normalized
+
+
+def _normalize_frequency_hint(value: str) -> str:
+    normalized = value.strip().lower()
+    if normalized in {"annual", "quarterly", "monthly", "unknown"}:
+        return normalized
+    return "unknown"

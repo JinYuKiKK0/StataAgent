@@ -27,6 +27,9 @@ class _RequirementSpecPayload(BaseModel):
     entity_scope: str = Field(..., description="样本范围，必须与输入保持一致")
     time_start_year: int = Field(..., description="起始年份")
     time_end_year: int = Field(..., description="结束年份")
+    analysis_frequency_hint: str = Field(
+        ..., description="研究级主频率：annual/quarterly/monthly/unknown"
+    )
     analysis_grain_candidates: list[str] = Field(
         default_factory=list, description="候选分析粒度"
     )
@@ -58,6 +61,7 @@ class TongyiResearchSpecGenerator:
                             "你的任务是把用户的研究请求整理成结构化研究规范。",
                             "必须严格保留用户给定的因变量、自变量和时间范围，不能擅自改写。",
                             "如果用户提供了样本范围，必须原样保留；如果用户未提供样本范围，请根据研究题目、因变量和自变量推断合适的样本范围。",
+                            "必须推断研究所需的主频率 analysis_frequency_hint，只允许 annual、quarterly、monthly、unknown 四个值。",
                             "只允许补全候选分析粒度与控制变量候选，并在 warnings 中说明真实的不确定点。",
                             "analysis_grain_candidates 至少给出一个候选；control_variable_candidates 中不得包含因变量或自变量本身。",
                         ]
@@ -119,6 +123,7 @@ class TongyiResearchSpecGenerator:
             entity_scope_inferred=request.entity_scope is None,
             time_start_year=parsed.time_start_year,
             time_end_year=parsed.time_end_year,
+            analysis_frequency_hint=parsed.analysis_frequency_hint,
             control_variable_candidates=parsed.control_variable_candidates,
             analysis_grain_candidates=parsed.analysis_grain_candidates,
         )

@@ -13,7 +13,7 @@ from stata_agent.services.variable_requirements_builder import (
 
 def _build_spec() -> ResearchSpec:
     return ResearchSpec(
-        topic="银行季度数字化转型与风险承担",
+        topic="银行数字化转型与风险承担",
         dependent_variable="ROA",
         independent_variables=["数字化转型指数"],
         entity_scope="A股上市银行",
@@ -21,6 +21,7 @@ def _build_spec() -> ResearchSpec:
         time_end_year=2023,
         control_variable_candidates=["资本充足率", "资本充足率", "ROA", "拨备覆盖率"],
         analysis_grain_candidates=["bank-quarter"],
+        analysis_frequency_hint="quarterly",
     )
 
 
@@ -72,8 +73,8 @@ def test_builder_deduplicates_and_reserves_control_slots() -> None:
     assert all(item.is_locked is False for item in controls)
 
 
-def test_builder_applies_frequency_heuristic_and_unknown_fallback() -> None:
-    """验证频率提示会驱动后续映射优先级，无法推断时则显式回退为 `unknown`。"""
+def test_builder_copies_frequency_from_research_spec() -> None:
+    """验证频率提示来自 parser 产出的研究级契约，而不是 builder 自己猜测。"""
     builder = VariableRequirementsBuilder()
     result = builder.build(_build_spec())
 
@@ -81,16 +82,12 @@ def test_builder_applies_frequency_heuristic_and_unknown_fallback() -> None:
         item.frequency_hint == "quarterly" for item in result.variable_definitions
     )
 
-    annual_free_spec = _build_spec().model_copy(
+    monthly_spec = _build_spec().model_copy(
         update={
-            "topic": "银行数字化转型与风险承担",
-            "control_variable_candidates": ["资产规模"],
+            "analysis_frequency_hint": "monthly",
+            "analysis_grain_candidates": ["bank-month"],
         }
     )
-    annual_free_result = builder.build(annual_free_spec)
-    fallback_control = next(
-        item
-        for item in annual_free_result.variable_definitions
-        if item.variable_name == "资产规模"
-    )
-    assert fallback_control.frequency_hint == "unknown"
+    monthly_result = builder.build(monthly_spec)
+
+    assert all(item.frequency_hint == "monthly" for item in monthly_result.variable_definitions)

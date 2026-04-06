@@ -9,6 +9,7 @@ from stata_agent.domains.mapping.types import CsmarFieldSearchHit
 from stata_agent.domains.mapping.types import CsmarFieldSearchRequest
 from stata_agent.domains.mapping.types import CsmarSchemaField
 from stata_agent.domains.mapping.types import CsmarTableCandidate
+from stata_agent.domains.mapping.types import CsmarTableRecord
 from stata_agent.domains.mapping.types import CsmarTableSchema
 from stata_agent.domains.mapping.types import CsmarTableSearchRequest
 from stata_agent.domains.mapping.types import VariableMatchDecision
@@ -30,8 +31,30 @@ class FakeMetadataProvider:
         self._schemas = schemas
         self._search_hits = search_hits or {}
         self.search_tables_calls: list[CsmarTableSearchRequest] = []
+        self.list_databases_calls = 0
+        self.list_tables_calls: list[str] = []
         self.get_table_schema_calls: list[str] = []
         self.search_fields_calls: list[CsmarFieldSearchRequest] = []
+
+    def list_databases(self) -> list[str]:
+        self.list_databases_calls += 1
+        return sorted({item.database_name for values in self._tables.values() for item in values})
+
+    def list_tables(self, database_name: str) -> list[CsmarTableRecord]:
+        self.list_tables_calls.append(database_name)
+        records: list[CsmarTableRecord] = []
+        for values in self._tables.values():
+            for item in values:
+                if item.database_name != database_name:
+                    continue
+                records.append(
+                    CsmarTableRecord(
+                        table_code=item.table_code,
+                        table_name=item.table_name,
+                        database_name=item.database_name,
+                    )
+                )
+        return records
 
     def search_tables(self, request: CsmarTableSearchRequest) -> list[CsmarTableCandidate]:
         self.search_tables_calls.append(request)
@@ -95,6 +118,7 @@ def build_spec() -> ResearchSpec:
         time_end_year=2023,
         control_variable_candidates=["资产负债率"],
         analysis_grain_candidates=["firm-year"],
+        analysis_frequency_hint="annual",
     )
 
 

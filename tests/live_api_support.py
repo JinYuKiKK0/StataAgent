@@ -8,7 +8,7 @@ import pytest
 from stata_agent.domains.request.types import ResearchRequest
 from stata_agent.providers.csmar import CsmarBridgeClient
 from stata_agent.providers.llm import TongyiResearchSpecGenerator
-from stata_agent.providers.llm import TongyiVariableSemanticJudge
+from stata_agent.providers.llm_mapping import TongyiVariableMappingPlanner
 from stata_agent.providers.settings import Settings, get_settings
 from stata_agent.services.data_contract_builder import DataContractBuilder
 from stata_agent.services.probe_executor import ProbeExecutor
@@ -103,7 +103,7 @@ def live_phase1_orchestrator(
         builder=VariableRequirementsBuilder(),
         mapper=VariableMapper(
             metadata_provider=live_csmar_provider,
-            semantic_judge=TongyiVariableSemanticJudge(live_settings),
+            planner=TongyiVariableMappingPlanner(live_settings),
         ),
         probe_executor=ProbeExecutor(metadata_provider=live_csmar_provider),
         data_contract_builder=DataContractBuilder(),

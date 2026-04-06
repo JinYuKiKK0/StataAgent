@@ -11,6 +11,7 @@ from stata_agent.domains.mapping.types import (
     CsmarMaterializeQueryResult,
     CsmarProbeQueryResult,
     CsmarSchemaField,
+    CsmarTableRecord,
     CsmarTableCandidate,
     CsmarTableSchema,
     CsmarTableSearchRequest,
@@ -77,21 +78,27 @@ class CsmarBridgeClient:
             raise CsmarMetadataError("MCP 返回的数据库列表格式非法。", code="upstream_error")
         return [str(item) for item in databases if str(item).strip()]
 
-    def list_tables(self, database_name: str) -> list[dict[str, str]]:
+    def list_tables(self, database_name: str) -> list[CsmarTableRecord]:
         payload = self._call_mcp_tool(
             "csmar_list_tables", {"database_name": database_name}
         ).content
         items = payload.get("items")
         if not isinstance(items, Sequence) or isinstance(items, (str, bytes, bytearray)):
             raise CsmarMetadataError("MCP 返回的表列表格式非法。", code="upstream_error")
-        normalized: list[dict[str, str]] = []
+        normalized: list[CsmarTableRecord] = []
         for item in items:
             if not isinstance(item, Mapping):
                 continue
             table_code = str(item.get("table_code") or "").strip()
             table_name = str(item.get("table_name") or table_code).strip()
             if table_code:
-                normalized.append({"table_code": table_code, "table_name": table_name})
+                normalized.append(
+                    CsmarTableRecord(
+                        table_code=table_code,
+                        table_name=table_name,
+                        database_name=database_name,
+                    )
+                )
         return normalized
 
     def search_tables(self, request: CsmarTableSearchRequest) -> list[CsmarTableCandidate]:

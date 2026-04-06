@@ -15,6 +15,10 @@ class ResearchSpec(BaseModel):
     )
     time_start_year: int = Field(..., description="起始年份")
     time_end_year: int = Field(..., description="结束年份")
+    analysis_frequency_hint: str = Field(
+        default="unknown",
+        description="研究级主频率：annual/quarterly/monthly/unknown",
+    )
     control_variable_candidates: list[str] = Field(
         default_factory=list, description="控制变量候选列表"
     )
